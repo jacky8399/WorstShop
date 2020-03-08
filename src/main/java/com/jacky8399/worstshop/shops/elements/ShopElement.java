@@ -1,0 +1,116 @@
+package com.jacky8399.worstshop.shops.elements;
+
+import com.google.common.collect.Lists;
+import com.jacky8399.worstshop.helper.ConfigHelper;
+import com.jacky8399.worstshop.helper.ItemUtils;
+import com.jacky8399.worstshop.shops.Shop;
+import fr.minuskube.inv.ClickableItem;
+import fr.minuskube.inv.content.InventoryContents;
+import fr.minuskube.inv.content.SlotPos;
+import org.bukkit.ChatColor;
+import org.bukkit.entity.Player;
+import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.inventory.ItemStack;
+
+import java.util.List;
+import java.util.Map;
+
+public class ShopElement implements Cloneable {
+
+    public enum FillType {
+        ALL, BORDER_1, NONE, REMAINING
+    }
+
+    public List<SlotPos> itemPositions = null;
+    public FillType fill = FillType.NONE;
+
+    public static ShopElement fromYaml(Map<String, Object> yaml) {
+        boolean dynamic = (boolean) yaml.getOrDefault("dynamic", false);
+
+        ShopElement element = dynamic ? DynamicShopElement.fromYaml(yaml) : StaticShopElement.fromYaml(yaml);
+
+        if (element == null) {
+            return null;
+        }
+
+        if (yaml.containsKey("fill") && yaml.get("fill") instanceof Boolean) {
+            element.fill = (boolean)yaml.get("fill") ? FillType.ALL : FillType.NONE;
+        } else if (yaml.containsKey("fill") && yaml.get("fill") instanceof String) {
+            element.fill = ConfigHelper.parseEnum((String)yaml.get("fill"), FillType.class);
+        }
+        if (element.fill == FillType.NONE && yaml.containsKey("pos")) { // parse only if not fill
+            element.itemPositions = parsePos((String) yaml.get("pos"));
+        }
+
+        return element;
+    }
+
+    public void onClick(InventoryClickEvent e) {
+
+    }
+
+    public ItemStack createStack(Player player) {
+        return null;
+    }
+
+    protected static List<SlotPos> parsePos(String input) {
+        String[] posStrings = input.split(";");
+        List<SlotPos> list = Lists.newArrayList();
+        for (String posString : posStrings) {
+                if (posString.contains(",")) {
+                    // comma delimited x,y format
+                    String[] posCoords = posString.split(",");
+                    list.add(new SlotPos(Integer.parseInt(posCoords[0].trim()), Integer.parseInt(posCoords[1].trim())));
+                } else {
+                    // assume normal integer format (0 - 54)
+                    int posNum = Integer.parseInt(posString.trim());
+                    int row = posNum / 9, column = posNum % 9;
+                    list.add(new SlotPos(row, column));
+                }
+        }
+        return list;
+    }
+
+    public void populateItems(Player player, InventoryContents contents, Shop.PaginationHelper pagination) {
+        ItemStack stack = createStack(player);
+        if (ItemUtils.isEmpty(stack))
+            return;
+        ClickableItem item = ClickableItem.of(stack, e->{
+            try {
+                onClick(e);
+            } catch (Exception ex) {
+                player.sendMessage(ChatColor.RED + "Error while processing item click: " + ex.toString());
+                ex.printStackTrace();
+            }
+        });
+        switch (fill) {
+            case ALL:
+                contents.fill(item);
+                break;
+            case BORDER_1:
+                contents.fillBorders(item);
+                break;
+            case REMAINING:
+                pagination.forEachRemaining(()->item);
+                break;
+            case NONE:
+                if (itemPositions != null) {
+                    for (SlotPos pos : itemPositions) {
+                        contents.set(pos, item);
+                    }
+                } else {
+                    // pagination
+                    pagination.add(item);
+                }
+                break;
+        }
+    }
+
+    public ShopElement clone() {
+        try {
+            return (ShopElement) super.clone();
+        } catch (CloneNotSupportedException e) {
+            return null;
+        }
+    }
+}

@@ -1,0 +1,42 @@
+worstshop:
+  errors:
+    invalid-shop: 'Invalid shop {0}!'
+
+  messages:
+    shops:
+      wants:
+        levels: '{0} levels'
+        points: '{0} points'
+        player-points: '{0} points'
+        items: '&e{0}x {1}'
+        free: '&dFree'
+        permissions:
+          permission: '&f{0}'
+          group: '&fGroup {0}'
+          meta: '&fMeta {0}'
+          prefix: '&fPrefix {0}'
+          suffix: '&fSuffix {0}'
+
+      buy-for: '&aBuy price: {0} &b(Left click)'
+      sell-for: '&aSell price: {0} &b(Right click)'
+      sell-all: '&aMiddle click to sell all'
+      shop: '&6Shop'
+      buy-counts:
+        increase-by: '&a+{0}'
+        decrease-by: '&c-{0}'
+        change-result: '&e={0}'
+        total: '&ax{0}'
+
+      buttons:
+        confirm: '&aOK'
+        cancel: '&cCancel'
+        maximize-purchase: '&b&lPurchase as many as possible'
+
+      alias:
+        description: 'Opens shop {0}'
+
+      transaction-message: '&eYou traded &7&o({0} times)&r&e {1} for {2}.'
+      transaction-nothing: '&eYou didn''''t trade anything.'
+      transaction-inv-full: '&cYour inventory cannot fit all the items!'
+      transaction-refund: '&eYou were refunded &e{1} &7&o({0} trades)&r&e.'
+    config-reloaded: 'Configuration reloaded!'

@@ -1,0 +1,21 @@
+name: WorstShop
+version: 0.2
+main: com.jacky8399.worstshop.WorstShop
+api-version: 1.14
+depend:
+  - Vault
+softdepend:
+  - PlayerPoints
+  - PlaceholderAPI
+  - LuckPerms
+author: jacky8399
+description: The worst shop plugin.
+
+commands:
+  worstshop:
+    usage: '/<command> [shop]'
+    aliases: ['shop']
+  sell:
+    usage: '/sell <hand/all/container/type>'
+  buy:
+    usage: '/buy <type> [count]'
