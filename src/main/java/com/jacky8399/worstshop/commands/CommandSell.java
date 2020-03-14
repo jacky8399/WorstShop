@@ -62,8 +62,11 @@ public class CommandSell extends BaseCommand {
         if (!skipEventCalls) { // more events
             InventoryOpenEvent e = new InventoryOpenEvent(inventoryView);
             Bukkit.getPluginManager().callEvent(e);
-            if (e.isCancelled())
+            if (e.isCancelled()) {
+                InventoryCloseEvent eClose = new InventoryCloseEvent(inventoryView, InventoryCloseEvent.Reason.PLUGIN);
+                Bukkit.getPluginManager().callEvent(eClose);
                 return false;
+            }
         }
         ListIterator<ItemStack> iterator = inventory.iterator();
         while (iterator.hasNext()) {

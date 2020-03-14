@@ -17,7 +17,8 @@ public class ItemShop {
     Predicate<Player> optionalPermission;
     public ItemShop(ActionItemShop orig, String optionalPermission) {
         this.shop = orig;
-        this.optionalPermission = PermStringHelper.parsePermString(optionalPermission);
+        if (optionalPermission != null)
+            this.optionalPermission = PermStringHelper.parsePermString(optionalPermission);
         this.owningShop = ShopManager.currentShop;
     }
 

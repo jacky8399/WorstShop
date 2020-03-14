@@ -23,7 +23,7 @@ public class ReflectionUtils {
     private static Constructor<?> craftContainerConstructor;
     private static Method craftContainerGetBukkitView;
     public static InventoryView createViewFor(Inventory inventory, Player player) {
-        Object entityHuman = getNMSInstance(player);
+        Object entityPlayer = getNMSInstance(player);
 
         if (craftContainerClazz == null) {
             try {
@@ -31,7 +31,7 @@ public class ReflectionUtils {
                 String packageName = clazz.getPackage().getName();
                 craftContainerClazz = Class.forName(packageName + ".CraftContainer");
                 // public CraftContainer(Inventory inv, EntityHuman player, int windowId)
-                craftContainerConstructor = craftContainerClazz.getConstructor(Inventory.class, entityHuman.getClass(), Integer.TYPE);
+                craftContainerConstructor = craftContainerClazz.getConstructor(Inventory.class, entityPlayer.getClass().getSuperclass(), Integer.TYPE);
                 // public InventoryView getBukkitView()
                 craftContainerGetBukkitView = craftContainerClazz.getMethod("getBukkitView");
             } catch (Exception e) {
@@ -40,7 +40,7 @@ public class ReflectionUtils {
         }
 
         try {
-            Object container = craftContainerConstructor.newInstance(inventory, entityHuman, (new Random()).nextInt());
+            Object container = craftContainerConstructor.newInstance(inventory, entityPlayer, (new Random()).nextInt());
             return (InventoryView) craftContainerGetBukkitView.invoke(container);
         } catch (Exception e) {
             throw new Error(e);
