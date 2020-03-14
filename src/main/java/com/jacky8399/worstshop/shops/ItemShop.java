@@ -1,5 +1,6 @@
 package com.jacky8399.worstshop.shops;
 
+import com.jacky8399.worstshop.helper.PermStringHelper;
 import com.jacky8399.worstshop.shops.actions.ActionItemShop;
 import com.jacky8399.worstshop.shops.wants.ShopWants;
 import com.jacky8399.worstshop.shops.wants.ShopWantsItem;
@@ -7,14 +8,16 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 
+import java.util.function.Predicate;
+
 public class ItemShop {
 
     String owningShop;
     ActionItemShop shop;
-    String optionalPermission;
+    Predicate<Player> optionalPermission;
     public ItemShop(ActionItemShop orig, String optionalPermission) {
         this.shop = orig;
-        this.optionalPermission = optionalPermission;
+        this.optionalPermission = PermStringHelper.parsePermString(optionalPermission);
         this.owningShop = ShopManager.currentShop;
     }
 
@@ -43,7 +46,7 @@ public class ItemShop {
 
     public boolean isAvailableTo(Player player) {
         return ShopManager.checkPerms(player, owningShop) && (optionalPermission == null ||
-                player.hasPermission(optionalPermission));
+                optionalPermission.test(player));
     }
 
     public boolean isSellable(ItemStack stack, Player player) {

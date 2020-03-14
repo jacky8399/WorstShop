@@ -6,6 +6,7 @@ import co.aikar.commands.annotation.CommandPermission;
 import co.aikar.commands.annotation.Subcommand;
 import com.jacky8399.worstshop.WorstShop;
 import com.jacky8399.worstshop.helper.ItemUtils;
+import com.jacky8399.worstshop.helper.ReflectionUtils;
 import com.jacky8399.worstshop.shops.ItemShop;
 import com.jacky8399.worstshop.shops.ShopManager;
 import com.jacky8399.worstshop.shops.actions.ActionShop;
@@ -15,13 +16,15 @@ import org.bukkit.block.Container;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Event;
 import org.bukkit.event.block.Action;
-import org.bukkit.event.inventory.InventoryMoveItemEvent;
-import org.bukkit.event.inventory.InventoryType;
+import org.bukkit.event.inventory.*;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.Inventory;
+import org.bukkit.inventory.InventoryView;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
 import org.bukkit.util.RayTraceResult;
+
+import java.util.ListIterator;
 
 @CommandAlias("sell")
 @CommandPermission("worstshop.sell")
@@ -50,19 +53,34 @@ public class CommandSell extends BaseCommand {
         return false;
     }
 
+    // lol bukkit api
+
     public static boolean sellInventory(Player player, Inventory inventory) {
         boolean everSucceeded = false;
         boolean skipEventCalls = inventory instanceof PlayerInventory; // skip events call if player is selling their inv
-        for (ItemStack stack : inventory.getStorageContents()) {
+        InventoryView inventoryView = ReflectionUtils.createViewFor(inventory, player);
+        if (!skipEventCalls) { // more events
+            InventoryOpenEvent e = new InventoryOpenEvent(inventoryView);
+            Bukkit.getPluginManager().callEvent(e);
+            if (e.isCancelled())
+                return false;
+        }
+        ListIterator<ItemStack> iterator = inventory.iterator();
+        while (iterator.hasNext()) {
+            int slotIdx = iterator.nextIndex();
+            ItemStack stack = iterator.next();
             if (ItemUtils.isEmpty(stack))
                 continue;
             // superfluous event calls to ensure the player can interact with the item.
             if (!skipEventCalls) {
-                InventoryMoveItemEvent e = new InventoryMoveItemEvent(
-                        inventory, stack, player.getInventory(), false
-                );
-                Bukkit.getPluginManager().callEvent(e);
-                if (e.isCancelled()) // skip this stack if event is cancelled
+                InventoryClickEvent eClick = new InventoryClickEvent(inventoryView, InventoryType.SlotType.CONTAINER, slotIdx, ClickType.SHIFT_LEFT, InventoryAction.PICKUP_ALL);
+                Bukkit.getPluginManager().callEvent(eClick);
+                if (eClick.isCancelled())
+                    continue;
+
+                InventoryMoveItemEvent eMove = new InventoryMoveItemEvent(inventory, stack, player.getInventory(), false);
+                Bukkit.getPluginManager().callEvent(eMove);
+                if (eMove.isCancelled()) // skip this stack if event is cancelled
                     continue;
             }
 
@@ -77,6 +95,11 @@ public class CommandSell extends BaseCommand {
                     }
                 }
             }
+        }
+
+        if (!skipEventCalls) {
+            InventoryCloseEvent e = new InventoryCloseEvent(inventoryView, InventoryCloseEvent.Reason.PLUGIN);
+            Bukkit.getPluginManager().callEvent(e);
         }
         return everSucceeded;
     }

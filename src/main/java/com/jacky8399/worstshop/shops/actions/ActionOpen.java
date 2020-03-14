@@ -29,6 +29,8 @@ public class ActionOpen extends ShopAction {
     public void onClick(InventoryClickEvent e) {
         Player player = (Player) e.getWhoClicked();
         Shop shop = ShopManager.SHOPS.get(this.shop);
+        if (shop == null)
+            throw new IllegalArgumentException(this.shop + " does not exist");
         if (skipPermission || ShopManager.checkPerms(player, shop)) {
             shop.getInventory(player).open(player);
         }

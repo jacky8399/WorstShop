@@ -10,6 +10,7 @@ import com.jacky8399.worstshop.WorstShop;
 import com.jacky8399.worstshop.helper.PermStringHelper;
 import com.jacky8399.worstshop.shops.Shop;
 import com.jacky8399.worstshop.shops.ShopManager;
+import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -42,9 +43,15 @@ public class CommandShop extends BaseCommand {
     @Subcommand("reload")
     @CommandPermission("worstshop.reload")
     public void reload(CommandIssuer issuer) {
-        WorstShop.get().reloadConfig();
+        // close all shops
+        WorstShop plugin = WorstShop.get();
+
+        Bukkit.getOnlinePlayers().forEach(p -> plugin.inventories.getInventory(p).ifPresent(inv -> inv.close(p)));
+
+        plugin.reloadConfig();
         ShopManager.loadShops();
         I18n.loadLang();
+
 
         issuer.sendMessage(I18n.translate("worstshop.messages.config-reloaded"));
     }

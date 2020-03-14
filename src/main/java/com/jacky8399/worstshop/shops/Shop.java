@@ -33,19 +33,19 @@ public class Shop implements InventoryProvider {
     public Shop() { }
 
     // basic properties
-    int rows;
-    InventoryType type;
-    String id;
-    String title;
-    int updateInterval;
+    public int rows;
+    public InventoryType type;
+    public String id;
+    public String title;
+    public int updateInterval;
 
     // parents
-    String parentShop = null;
-    boolean autoSetParentShop = false;
+    public String parentShop = null;
+    public boolean autoSetParentShop = false;
 
     // aliases
-    List<String> aliases;
-    boolean aliasesIgnorePermission;
+    public List<String> aliases;
+    public boolean aliasesIgnorePermission;
 
     public static SmartInventory.Builder getDefaultBuilder() {
         return SmartInventory.builder().manager(WorstShop.get().inventories);

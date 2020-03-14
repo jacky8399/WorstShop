@@ -1,6 +1,7 @@
 package com.jacky8399.worstshop.shops.elements;
 
 import com.google.common.collect.Lists;
+import com.jacky8399.worstshop.WorstShop;
 import com.jacky8399.worstshop.helper.ConfigHelper;
 import com.jacky8399.worstshop.helper.ItemUtils;
 import com.jacky8399.worstshop.shops.Shop;
@@ -80,6 +81,7 @@ public class ShopElement implements Cloneable {
                 onClick(e);
             } catch (Exception ex) {
                 player.sendMessage(ChatColor.RED + "Error while processing item click: " + ex.toString());
+                WorstShop.get().logger.warning("Error while processing item click in shop " + ((Shop) contents.inventory().getProvider()).id);
                 ex.printStackTrace();
             }
         });

@@ -2,6 +2,7 @@ package com.jacky8399.worstshop.shops.actions;
 
 import com.jacky8399.worstshop.WorstShop;
 import fr.minuskube.inv.content.InventoryContents;
+import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.InventoryClickEvent;
 
@@ -24,7 +25,7 @@ public class ActionClose extends ShopAction {
 
         inv.ifPresent(inventory->{
             inventory.setProperty("noParent", noParent);
-            inventory.inventory().close(player);
+            Bukkit.getScheduler().runTaskLater(WorstShop.get(), ()->inventory.inventory().close(player), 1);
         });
     }
 }
