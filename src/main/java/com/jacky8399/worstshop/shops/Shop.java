@@ -67,7 +67,7 @@ public class Shop implements InventoryProvider {
             Optional<SmartInventory> inventory = WorstShop.get().inventories.getInventory(player);
             inventory.ifPresent(inv->{
                 if (inv.getId().startsWith(SHOP_ID_PREFIX)) { // check is shop
-                    parentShop = ((Shop) inv.getProvider()).id;
+                    builder.parent(inv); // oops
                 }
             });
         }
@@ -231,7 +231,11 @@ public class Shop implements InventoryProvider {
 
         // find parent
         SmartInventory openNextTick = of.get().getParent()
-                .orElseGet(()->ShopManager.SHOPS.get(parentShop).getInventory(p, true));
+                .orElseGet(()->
+                        Optional.ofNullable(ShopManager.SHOPS.get(parentShop))
+                                .map(shop -> shop.getInventory(p, true))
+                                .orElse(null)
+                );
 
         if (openNextTick != null) {
             Bukkit.getScheduler().runTask(WorstShop.get(), () -> openNextTick.open(p));

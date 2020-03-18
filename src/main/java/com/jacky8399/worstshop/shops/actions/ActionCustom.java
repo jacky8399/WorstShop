@@ -28,7 +28,8 @@ public class ActionCustom extends ShopAction {
         } else {
             commands = Collections.emptyList();
         }
-        delayInTicks = ((Number) yaml.get("delay")).intValue();
+        if (yaml.containsKey("delay"))
+            delayInTicks = ((Number) yaml.get("delay")).intValue();
     }
 
     public ActionCustom(List<String> commands) {

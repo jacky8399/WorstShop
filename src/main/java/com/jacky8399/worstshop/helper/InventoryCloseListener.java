@@ -22,12 +22,16 @@ public class InventoryCloseListener extends InventoryListener<InventoryCloseEven
             if (!of.isPresent())
                 return;
 
-            Optional<InventoryContents> contents = WorstShop.get().inventories.getContents(p);
+            InventoryContents contents = WorstShop.get().inventories.getContents(p).orElseThrow(()->new IllegalStateException(p.getName() + " is not in shop inventory?"));
 
-            if (!contents.isPresent() || contents.get().property("hasClosed", false)
-                    || contents.get().property("noParent", false))
+            Boolean skipOnce = contents.<Boolean>property("skipOnce");
+            if (skipOnce != null && skipOnce) {
+                contents.setProperty("skipOnce", false);
                 return;
-            contents.get().setProperty("hasClosed", true);
+            }
+            if (contents.property("hasClosed", false) || contents.property("noParent", false))
+                return;
+            contents.setProperty("hasClosed", true);
 
             Optional<SmartInventory> parent = of.get().getParent();
 
