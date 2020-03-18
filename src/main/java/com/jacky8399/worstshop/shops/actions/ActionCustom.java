@@ -1,6 +1,7 @@
 package com.jacky8399.worstshop.shops.actions;
 
 import com.google.common.collect.ImmutableMap;
+import com.jacky8399.worstshop.WorstShop;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
@@ -15,6 +16,7 @@ import java.util.stream.Collectors;
 
 public class ActionCustom extends ShopAction {
     List<String> commands;
+    int delayInTicks = 0;
 
     public ActionCustom(Map<String, Object> yaml) {
         super(yaml);
@@ -26,6 +28,7 @@ public class ActionCustom extends ShopAction {
         } else {
             commands = Collections.emptyList();
         }
+        delayInTicks = ((Number) yaml.get("delay")).intValue();
     }
 
     public ActionCustom(List<String> commands) {
@@ -36,7 +39,10 @@ public class ActionCustom extends ShopAction {
     @Override
     public void onClick(InventoryClickEvent e) {
         super.onClick(e);
-        commands.forEach(s -> parseCommand((Player)e.getWhoClicked(), s));
+        if (delayInTicks > 0)
+            Bukkit.getScheduler().runTaskLater(WorstShop.get(), ()->commands.forEach(s -> parseCommand((Player)e.getWhoClicked(), s)), delayInTicks);
+        else
+            commands.forEach(s -> parseCommand((Player)e.getWhoClicked(), s));
     }
 
     public static void parseCommand(Player player, String in) {

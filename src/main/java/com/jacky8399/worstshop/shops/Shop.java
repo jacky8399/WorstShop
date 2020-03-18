@@ -229,21 +229,12 @@ public class Shop implements InventoryProvider {
             return;
         }
 
-        Optional<SmartInventory> parent = of.get().getParent();
-
-        SmartInventory openNextTick = null;
-        // return to parent
-        if (parent.isPresent()) {
-            //e.getPlayer().closeInventory();
-            openNextTick = parent.get();
-        } else if (parentShop != null) {
-            Shop shop = ShopManager.SHOPS.get(parentShop);
-            openNextTick = shop.getInventory(p, true);
-        }
+        // find parent
+        SmartInventory openNextTick = of.get().getParent()
+                .orElseGet(()->ShopManager.SHOPS.get(parentShop).getInventory(p, true));
 
         if (openNextTick != null) {
-            final SmartInventory finalOpenNextTick = openNextTick; // closure;
-            Bukkit.getScheduler().runTask(WorstShop.get(), () -> finalOpenNextTick.open(p));
+            Bukkit.getScheduler().runTask(WorstShop.get(), () -> openNextTick.open(p));
         }
     }
 }
