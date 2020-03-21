@@ -45,11 +45,12 @@ public class ShopWantsCommand extends ShopWantsCustomizable {
     }
 
     @Override
-    public void grant(Player player) {
+    public double grantOrRefund(Player player) {
         String actualCommand = command.replace("{player}", player.getName());
         for (int i = 0; i < multiplier; i++) {
             doCommandOnce(player, actualCommand);
         }
+        return 0;
     }
 
     public void doCommandOnce(Player player, String command) {

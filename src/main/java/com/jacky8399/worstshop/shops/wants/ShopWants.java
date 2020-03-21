@@ -14,8 +14,9 @@ import org.bukkit.inventory.ItemStack;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Predicate;
 
-public class ShopWants {
+public class ShopWants implements Predicate<Player> {
 
     public static ShopWants fromMap(Map<String, Object> map) {
         String type = (String) map.getOrDefault("type", "free");
@@ -42,9 +43,9 @@ public class ShopWants {
         // read type
         if (yaml instanceof String) { // one string
             // TODO parse simple string
-        } else if (yaml instanceof Map) { // section
+        } else if (yaml instanceof Map<?, ?>) { // section
             return fromMap((Map<String, Object>) yaml);
-        } else if (yaml instanceof List) {
+        } else if (yaml instanceof List<?>) {
             List<ShopWants> wants = Lists.newArrayList();
             for (Map<String, Object> want : (List<Map<String, Object>>)yaml) {
                 wants.add(fromMap(want));
@@ -58,38 +59,71 @@ public class ShopWants {
 
     }
 
+    /**
+     * Denotes whether the commodity can be multiplied with {@link #multiply(double)}
+     * @return whether the commodity can be multiplied
+     */
     public boolean canMultiply() { return true; }
 
+    /**
+     * Multiply the commodity with the specified multiplier, rounded down if decimals are not accepted.
+     * @param multiplier the multiplier
+     * @return a new commodity with the applied multiplier
+     */
     public ShopWants multiply(double multiplier) {
         return this;
     }
 
+    /**
+     * Test if a player matches the commodity's requirements
+     * @param player the player to test
+     * @return whether the player matches
+     */
     public boolean canAfford(Player player) {
         return false;
     }
 
+    /**
+     * Get the amount of the commodity the player already possesses
+     * @param player the player
+     * @return the amount of commodity the player has
+     */
     public String getPlayerTrait(Player player) {
         return "";
     }
 
+    /**
+     * Get the result of a transaction involving the commodity
+     * @param player the player
+     * @param position the role of the commodity in the transaction
+     * @return the result
+     */
     public String getPlayerResult(Player player, ElementPosition position) {
         return "";
     }
 
+    /**
+     * Deduct the commodity from the player
+     * @param player the player
+     */
     public void deduct(Player player) {
 
     }
 
-    @Deprecated
-    protected void grant(Player player) {
-
-    }
-
+    /**
+     * Grant the commodity to the player, optionally refunding if the player cannot accept the commodity
+     * @param player the player
+     * @return the amount to refund
+     */
     public double grantOrRefund(Player player) {
-        grant(player);
         return 0;
     }
 
+    /**
+     * Find the maximum multiplier that the player can still afford
+     * @param player the player
+     * @return the maximum multiplier
+     */
     public int getMaximumMultiplier(Player player) {
         int canAfford = 0;
         while (this.multiply(canAfford + 1).canAfford(player)) {
@@ -103,12 +137,43 @@ public class ShopWants {
         return null;
     }
 
-    public boolean isElementDynamic() {
-        return false;
+    @Override
+    public boolean test(Player player) {
+        return canAfford(player);
     }
 
+    @Override
+    public Predicate<Player> and(Predicate<? super Player> other) {
+        if (other instanceof ShopWants) {
+            // merge into one ShopWantsMultiple
+            List<ShopWants> wants = Lists.newArrayList();
+            if (other instanceof ShopWantsMultiple) {
+                wants.addAll(((ShopWantsMultiple) other).wants);
+            } else {
+                wants.add((ShopWants) other);
+            }
+            if (this instanceof ShopWantsMultiple) {
+                wants.addAll(((ShopWantsMultiple) this).wants);
+            } else {
+                wants.add(this);
+            }
+            return new ShopWantsMultiple(wants);
+        }
+        return p -> test(p) && other.test(p);
+    }
+
+    /**
+     * Denotes the position the ShopElement should be at
+     */
     public enum ElementPosition {
-        COST(1,1), REWARD(1,7);
+        /**
+         * The ShopElement should in the COST slot (left hand side)
+         */
+        COST(1,1),
+        /**
+         * The ShopElement should be in the REWARD slot (right hand side)
+         */
+        REWARD(1,7);
 
         public final SlotPos pos;
         ElementPosition(int row, int column) {
@@ -116,10 +181,26 @@ public class ShopWants {
         }
     }
 
+    /**
+     * Create a ShopElement to be displayed in ActionShop GUIs. Only called once per ActionShop GUI.
+     *
+     * To have the element be updated every tick, override {@link #isElementDynamic()}
+     * @param position position of the returned element
+     * @return the ShopElement to be displayed
+     */
     public ShopElement createElement(ElementPosition position) {
         StaticShopElement elem = StaticShopElement.fromStack(createStack());
         elem.fill = ShopElement.FillType.NONE;
         elem.itemPositions = Collections.singletonList(position.pos);
         return elem;
+    }
+
+    /**
+     * Denotes whether the ShopElement created in {@link #createElement(ElementPosition)} is dynamic.
+     * A dynamic element means that the ShopElement will repopulate its items every tick.
+     * @return whether the ShopElement is dynamic
+     */
+    public boolean isElementDynamic() {
+        return false;
     }
 }

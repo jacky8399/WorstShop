@@ -158,7 +158,7 @@ public class ShopWantsPermission extends ShopWantsCustomizable {
     }
 
     @Override
-    public void grant(Player player) {
+    public double grantOrRefund(Player player) {
         Node permissionNode = createNodeWithDuration(player);
         User user = PERMS.getUser(player.getUniqueId());
 
@@ -171,6 +171,7 @@ public class ShopWantsPermission extends ShopWantsCustomizable {
 
         // save
         PERMS.getUserManager().saveUser(user);
+        return 0;
     }
 
     public String formatPermission() {

@@ -4,6 +4,8 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.io.Files;
 import com.jacky8399.worstshop.WorstShop;
+import fr.minuskube.inv.InventoryManager;
+import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.permissions.Permissible;
@@ -34,7 +36,13 @@ public class ShopManager {
         return checkPerms(player, shop.id);
     }
 
+    public static void closeAllShops() {
+        InventoryManager manager = WorstShop.get().inventories;
+        Bukkit.getOnlinePlayers().forEach(p -> manager.getInventory(p).ifPresent(inv -> inv.close(p)));
+    }
+
     public static void cleanUp() {
+        closeAllShops();
         ShopCommands.removeAliases();
         SHOPS.clear();
         ITEM_SHOPS.clear();

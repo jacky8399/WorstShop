@@ -47,9 +47,10 @@ public class ShopWantsExp extends ShopWants {
     }
 
     @Override
-    public void grant(Player player) {
+    public double grantOrRefund(Player player) {
         player.giveExpLevels(levels);
         player.giveExp(points);
+        return 0;
     }
 
     @Override

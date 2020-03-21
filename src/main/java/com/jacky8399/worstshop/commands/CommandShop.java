@@ -46,7 +46,7 @@ public class CommandShop extends BaseCommand {
         // close all shops
         WorstShop plugin = WorstShop.get();
 
-        Bukkit.getOnlinePlayers().forEach(p -> plugin.inventories.getInventory(p).ifPresent(inv -> inv.close(p)));
+        ShopManager.closeAllShops();
 
         plugin.reloadConfig();
         ShopManager.loadShops();

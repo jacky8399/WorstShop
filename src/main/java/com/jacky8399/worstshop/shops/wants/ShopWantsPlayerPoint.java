@@ -23,24 +23,31 @@ public class ShopWantsPlayerPoint extends ShopWants {
     }
 
     int points;
+    double multiplier;
+    int realPoints;
 
     public ShopWantsPlayerPoint(Map<String, Object> yaml) {
         this(((Number)yaml.get("points")).intValue());
     }
 
     public ShopWantsPlayerPoint(int points) {
+        this(points, 1);
+    }
 
+    public ShopWantsPlayerPoint(int points, double multiplier) {
         this.points = Math.abs(points);
+        this.multiplier = multiplier;
+        this.realPoints = (int) (points * multiplier);
     }
 
     @Override
     public ShopWants multiply(double multiplier) {
-        return new ShopWantsPlayerPoint((int) (points * multiplier));
+        return new ShopWantsPlayerPoint(points, this.multiplier * multiplier);
     }
 
     @Override
     public boolean canAfford(Player player) {
-        return POINTS.look(player.getUniqueId()) > points;
+        return POINTS.look(player.getUniqueId()) > realPoints;
     }
 
     @Override
@@ -50,18 +57,18 @@ public class ShopWantsPlayerPoint extends ShopWants {
 
     @Override
     public void deduct(Player player) {
-        POINTS.take(player.getUniqueId(), points);
+        POINTS.take(player.getUniqueId(), realPoints);
     }
 
     @Override
-    public void grant(Player player) {
-        POINTS.give(player.getUniqueId(), points);
+    public double grantOrRefund(Player player) {
+        boolean success = POINTS.give(player.getUniqueId(), realPoints);
+        return success ? 0 : multiplier;
     }
 
     @Override
     public ItemStack createStack() {
-        return ItemBuilder.of(Material.DIAMOND)
-                .name(formatPoints(points)).build();
+        return ItemBuilder.of(Material.DIAMOND).name(formatPoints(points)).build();
     }
 
     public static String formatPoints(int points) {

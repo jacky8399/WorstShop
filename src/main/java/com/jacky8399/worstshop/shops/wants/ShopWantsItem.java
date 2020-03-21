@@ -128,12 +128,6 @@ public class ShopWantsItem extends ShopWants implements IFlexibleShopWants {
         stack.setAmount(stack.getAmount() - getAmount());
     }
 
-    @Deprecated
-    @Override
-    public void grant(Player player) {
-
-    }
-
     @Override
     public double grantOrRefund(Player player) {
         double refund = 0;

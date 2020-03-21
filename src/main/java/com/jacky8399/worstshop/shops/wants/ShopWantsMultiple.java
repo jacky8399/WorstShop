@@ -19,8 +19,8 @@ import java.util.stream.Collectors;
 public class ShopWantsMultiple extends ShopWants implements IParentElementReader {
     public List<ShopWants> wants;
 
-    int wrapIndexOffset(int idx) {
-        return (wants.size() + itemSequence + idx) % wants.size();
+    int wrapIndexOffset(int orig, int idx) {
+        return (wants.size() + orig + idx) % wants.size();
     }
 
     public ShopWantsMultiple(List<ShopWants> wants) {
@@ -49,7 +49,6 @@ public class ShopWantsMultiple extends ShopWants implements IParentElementReader
         return refund.orElse(0);
     }
 
-    int itemSequence = 0;
     @Override
     public ShopElement createElement(ElementPosition position) {
         if (wants.size() == 1) {
@@ -72,17 +71,23 @@ public class ShopWantsMultiple extends ShopWants implements IParentElementReader
         } else {
             SlotPos pos1 = SlotPos.of(position.pos.getRow() - 1, position.pos.getColumn()),
                     pos3 = SlotPos.of(position.pos.getRow() + 1, position.pos.getColumn());
-            ShopElement elem1 = wants.get(wrapIndexOffset(-1)).createElement(position),
-                    elem2 = wants.get(itemSequence).createElement(position),
-                    elem3 = wants.get(wrapIndexOffset(1)).createElement(position);
-            // sanitize
-            elem1.fill = elem2.fill = elem3.fill = ShopElement.FillType.NONE;
-            elem1.itemPositions = Collections.singletonList(pos1);
-            elem2.itemPositions = Collections.singletonList(position.pos);
-            elem3.itemPositions = Collections.singletonList(pos3);
             return new StaticShopElement() {
                 @Override
                 public void populateItems(Player player, InventoryContents contents, Shop.PaginationHelper pagination) {
+                    int itemSequence = contents.property("shopWantsItemSequence", 0);
+                    int nextItemSequence = wrapIndexOffset(itemSequence, 1);
+
+                    contents.setProperty("shopWantsItemSequence", nextItemSequence);
+
+                    ShopElement elem1 = wants.get(wrapIndexOffset(itemSequence, -1)).createElement(position),
+                            elem2 = wants.get(itemSequence).createElement(position),
+                            elem3 = wants.get(nextItemSequence).createElement(position);
+                    // sanitize
+                    elem1.fill = elem2.fill = elem3.fill = ShopElement.FillType.NONE;
+                    elem1.itemPositions = Collections.singletonList(pos1);
+                    elem2.itemPositions = Collections.singletonList(position.pos);
+                    elem3.itemPositions = Collections.singletonList(pos3);
+
                     elem1.populateItems(player, contents, pagination);
                     elem2.populateItems(player, contents, pagination);
                     elem3.populateItems(player, contents, pagination);
@@ -105,8 +110,7 @@ public class ShopWantsMultiple extends ShopWants implements IParentElementReader
 
     @Override
     public boolean isElementDynamic() {
-        itemSequence = wrapIndexOffset(1);
-        return true;
+        return wants.size() > 3;
     }
 
 

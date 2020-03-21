@@ -162,8 +162,8 @@ public class ActionShop extends ShopAction implements IParentElementReader {
 
         private boolean firstClick = true;
         private ActionShop shop;
-        private ShopWants cost;
-        private ShopWants reward;
+        private ShopWants cost, reward;
+        private ShopElement costElem, rewardElem;
         private ShopGui(ActionShop shop) {
             this.shop = shop;
             this.cost = shop.cost;
@@ -197,8 +197,10 @@ public class ActionShop extends ShopAction implements IParentElementReader {
         public void init(Player player, InventoryContents contents) {
             contents.fill(FILLER);
 
-            cost.createElement(ShopWants.ElementPosition.COST).populateItems(player, contents, null);
-            reward.createElement(ShopWants.ElementPosition.REWARD).populateItems(player, contents, null);
+            costElem = cost.createElement(ShopWants.ElementPosition.COST);
+            costElem.populateItems(player, contents, null);
+            rewardElem = reward.createElement(ShopWants.ElementPosition.REWARD);
+            rewardElem.populateItems(player, contents, null);
 
             updateItemCount(player, contents);
             if (cost.canMultiply() && reward.canMultiply())
@@ -283,8 +285,8 @@ public class ActionShop extends ShopAction implements IParentElementReader {
                         ItemBuilder.of(Material.LIME_STAINED_GLASS)
                                 .name(I18n.translate("worstshop.messages.shops.buy-counts.increase-by", number))
                                 .lores(I18n.translate(
-                                        "worstshop.messages.shops.buy-counts.change-result", correctedBuyCount + number)
-                                )
+                                        "worstshop.messages.shops.buy-counts.change-result", correctedBuyCount + number
+                                ))
                                 .amount(number)
                                 .build(),
                         createBuyCountChanger(number)
@@ -293,8 +295,8 @@ public class ActionShop extends ShopAction implements IParentElementReader {
                         ItemBuilder.of(Material.RED_STAINED_GLASS)
                                 .name(I18n.translate("worstshop.messages.shops.buy-counts.decrease-by", number))
                                 .lores(I18n.translate(
-                                        "worstshop.messages.shops.buy-counts.change-result", Math.max(1 ,correctedBuyCount - number))
-                                )
+                                        "worstshop.messages.shops.buy-counts.change-result", Math.max(1, correctedBuyCount - number)
+                                ))
                                 .amount(number)
                                 .build(),
                         createBuyCountChanger(-number)
@@ -351,10 +353,10 @@ public class ActionShop extends ShopAction implements IParentElementReader {
             // also update item lol
             if (animationSequence == 4) {
                 if (shop.cost.isElementDynamic()) {
-                    shop.cost.createElement(ShopWants.ElementPosition.COST).populateItems(player, contents, null);
+                    costElem.populateItems(player, contents, null);
                 }
                 if (shop.reward.isElementDynamic()) {
-                    shop.reward.createElement(ShopWants.ElementPosition.REWARD).populateItems(player, contents, null);
+                    rewardElem.populateItems(player, contents, null);
                 }
             }
         }
