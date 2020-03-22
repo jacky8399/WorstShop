@@ -91,7 +91,7 @@ public class Shop implements InventoryProvider {
         return builder.title(title).build();
     }
 
-    @SuppressWarnings("unchecked, ConstantConditions, null")
+    @SuppressWarnings({"unchecked", "ConstantConditions", "null"})
     public static Shop fromYaml(String shopName, YamlConfiguration yaml) {
         Shop inst = new Shop();
         inst.id = shopName;

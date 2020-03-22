@@ -2,8 +2,10 @@ package com.jacky8399.worstshop.shops.elements;
 
 import com.jacky8399.worstshop.I18n;
 import com.jacky8399.worstshop.helper.*;
+import com.jacky8399.worstshop.shops.ShopCondition;
 import com.jacky8399.worstshop.shops.actions.IParentElementReader;
 import com.jacky8399.worstshop.shops.actions.ShopAction;
+import com.jacky8399.worstshop.shops.wants.ShopWantsPermissionSimple;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.InventoryClickEvent;
@@ -18,7 +20,7 @@ import java.util.stream.Collectors;
 public class StaticShopElement extends ShopElement {
 
     public ItemStack stack;
-    public String viewPerm;
+    public ShopCondition condition = new ShopCondition();
     public List<ShopAction> actions;
 
     public static StaticShopElement fromStack(ItemStack stack) {
@@ -31,6 +33,7 @@ public class StaticShopElement extends ShopElement {
         return inst;
     }
 
+    @SuppressWarnings("unchecked")
     public static ShopElement fromYaml(Map<String, Object> yaml) {
         // static parsing
         StaticShopElement inst = new StaticShopElement();
@@ -42,7 +45,13 @@ public class StaticShopElement extends ShopElement {
             return null;
 
         // Permissions
-        inst.viewPerm = (String) yaml.get("view-perm");
+        if (yaml.containsKey("view-perm")) {
+             inst.condition.add(new ShopWantsPermissionSimple(yaml.get("view-perm").toString()));
+        }
+
+        if (yaml.containsKey("condition")) {
+            inst.condition.add(ShopCondition.parseFromYaml((Map<String, Object>) yaml.get("condition")));
+        }
 
         // Action parsing
         ShopAction.Builder actionsBuilder = new ShopAction.Builder(yaml);
@@ -125,11 +134,8 @@ public class StaticShopElement extends ShopElement {
     public ItemStack createStack(Player player) {
 
         // perm checks
-        if (viewPerm != null) {
-            // check perms
-            if (!PermStringHelper.parsePermString(viewPerm).test(player)) {
-                return null;
-            }
+        if (!condition.test(player)) {
+            return null;
         }
 
         if (stack == null)
