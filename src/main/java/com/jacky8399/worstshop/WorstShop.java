@@ -61,7 +61,13 @@ public final class WorstShop extends JavaPlugin {
 
         // setup LuckPerms dependency
         if (getServer().getPluginManager().isPluginEnabled("LuckPerms")) {
-            permissions = LuckPermsProvider.get();
+            try {
+                permissions = LuckPermsProvider.get();
+            } catch (NoClassDefFoundError ex) {
+                logger.severe("LuckPermsProvider cannot be found. Are you using LuckPerms 5.0?");
+                logger.severe(ex.toString());
+                permissions = null;
+            }
         }
 
         // setup playerpoints dependency

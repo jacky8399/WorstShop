@@ -18,6 +18,7 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.Damageable;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.SkullMeta;
+import org.yaml.snakeyaml.Yaml;
 
 import java.nio.charset.StandardCharsets;
 import java.util.*;
@@ -78,9 +79,12 @@ public class StaticShopElement extends ShopElement {
 
     public static ItemMeta deserializeBase64ItemMeta(String base64) {
         String decoded = new String(Base64.getDecoder().decode(base64), StandardCharsets.UTF_8);
-
-        YamlConfiguration temp = new YamlConfiguration();
-        return (ItemMeta) ConfigurationSerialization.deserializeObject(temp.getValues(false), ItemStack.class);
+        // Bukkit API what the fuck
+        // Do not use Bukkit YamlConfiguration as it converts embedded Maps into MemorySections,
+        // which SerializableItemMeta (also from Bukkit API) does NOT like
+        Map<String, Object> map = (new Yaml()).load(decoded);
+        ItemMeta deserialized = (ItemMeta) ConfigurationSerialization.deserializeObject(map, ConfigurationSerialization.getClassByAlias("ItemMeta"));
+        return deserialized;
     }
 
     public static String serializeBase64ItemMeta(ItemMeta meta) {

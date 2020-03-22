@@ -115,10 +115,11 @@ public class CommandShop extends BaseCommand {
             serialized.add("skull: " + profile.getUUID());
         }
 
-        player.sendMessage(new ComponentBuilder("Item: ").color(net.md_5.bungee.api.ChatColor.YELLOW)
-                .append("[Click here to copy]").color(net.md_5.bungee.api.ChatColor.GREEN).event(new ClickEvent(ClickEvent.Action.COPY_TO_CLIPBOARD, String.join("\n", serialized)))
-                .create());
         HoverEvent hoverEvent = new HoverEvent(HoverEvent.Action.SHOW_TEXT, TextComponent.fromLegacyText("Click to copy line", net.md_5.bungee.api.ChatColor.WHITE));
+        player.sendMessage(new ComponentBuilder("Item: ").color(net.md_5.bungee.api.ChatColor.YELLOW)
+                .append("[Copy all]").color(net.md_5.bungee.api.ChatColor.GREEN)
+                .event(hoverEvent).event(new ClickEvent(ClickEvent.Action.COPY_TO_CLIPBOARD, String.join("\n", serialized)))
+                .create());
         for (String line : serialized) {
             player.sendMessage(new ComponentBuilder(line).color(net.md_5.bungee.api.ChatColor.WHITE)
                     .event(hoverEvent).event(new ClickEvent(ClickEvent.Action.COPY_TO_CLIPBOARD, line))
