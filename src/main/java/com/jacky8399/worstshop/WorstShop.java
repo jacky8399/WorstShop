@@ -5,8 +5,8 @@ import com.jacky8399.worstshop.commands.Commands;
 import com.jacky8399.worstshop.helper.PaperHelper;
 import com.jacky8399.worstshop.shops.ShopManager;
 import fr.minuskube.inv.InventoryManager;
-import me.lucko.luckperms.LuckPerms;
-import me.lucko.luckperms.api.LuckPermsApi;
+import net.luckperms.api.LuckPerms;
+import net.luckperms.api.LuckPermsProvider;
 import net.milkbowl.vault.economy.Economy;
 import org.black_ixx.playerpoints.PlayerPoints;
 import org.bukkit.Bukkit;
@@ -35,7 +35,7 @@ public final class WorstShop extends JavaPlugin {
     public RegisteredServiceProvider<Economy> economy;
     public PlayerPoints playerPoints;
     public boolean placeholderAPI = false;
-    public LuckPermsApi permissions;
+    public LuckPerms permissions;
 
     public FileConfiguration config;
 
@@ -61,7 +61,7 @@ public final class WorstShop extends JavaPlugin {
 
         // setup LuckPerms dependency
         if (getServer().getPluginManager().isPluginEnabled("LuckPerms")) {
-            permissions = LuckPerms.getApi();
+            permissions = LuckPermsProvider.get();
         }
 
         // setup playerpoints dependency

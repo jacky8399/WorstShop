@@ -4,7 +4,18 @@ import com.jacky8399.worstshop.I18n;
 import com.jacky8399.worstshop.WorstShop;
 import com.jacky8399.worstshop.helper.ConfigHelper;
 import com.jacky8399.worstshop.helper.ItemBuilder;
-import me.lucko.luckperms.api.*;
+import net.luckperms.api.LuckPerms;
+import net.luckperms.api.context.ContextManager;
+import net.luckperms.api.model.data.DataMutateResult;
+import net.luckperms.api.model.data.TemporaryNodeMergeStrategy;
+import net.luckperms.api.model.user.User;
+import net.luckperms.api.node.Node;
+import net.luckperms.api.node.NodeBuilder;
+import net.luckperms.api.node.types.InheritanceNode;
+import net.luckperms.api.node.types.MetaNode;
+import net.luckperms.api.node.types.PrefixNode;
+import net.luckperms.api.node.types.SuffixNode;
+import net.luckperms.api.query.QueryOptions;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
@@ -15,7 +26,7 @@ import java.util.concurrent.TimeUnit;
 
 public class ShopWantsPermission extends ShopWantsCustomizable {
 
-    public static final LuckPermsApi PERMS;
+    public static final LuckPerms PERMS;
 
     static {
         if (WorstShop.get().permissions == null) {
@@ -27,6 +38,7 @@ public class ShopWantsPermission extends ShopWantsCustomizable {
     Node permissionNode;
     String permissionDisplay;
     int durationInSeconds;
+    double multiplier = 1;
     // whether the duration should be added to the existing duration
     boolean durationShouldAppend;
 
@@ -47,21 +59,20 @@ public class ShopWantsPermission extends ShopWantsCustomizable {
 
     public ShopWantsPermission(Map<String, Object> yaml) {
         super(yaml);
-        NodeFactory factory = PERMS.getNodeFactory();
-        Node.Builder builder = null;
+        NodeBuilder builder = null;
         if (yaml.containsKey("permission")) {
             String permName = (String) yaml.get("permission");
-            builder = factory.newBuilder(permName);
+            builder = Node.builder(permName);
             permissionDisplay = permName;
             permType = PermissionType.PERMISSION;
         } else if (yaml.containsKey("group")) {
             String groupName = (String) yaml.get("group");
-            builder = factory.makeGroupNode(groupName);
+            builder = InheritanceNode.builder(groupName);
             permissionDisplay = groupName;
             permType = PermissionType.GROUP;
         } else if (yaml.containsKey("meta")) {
             Map<String, Object> innerData = (Map<String,Object>) yaml.get("meta");
-            builder = factory.makeMetaNode(
+            builder = MetaNode.builder(
                     (String) innerData.get("key"), (String) innerData.get("value")
             );
             permissionDisplay = innerData.get("key") + ": " + innerData.get("value");
@@ -69,16 +80,16 @@ public class ShopWantsPermission extends ShopWantsCustomizable {
         } else if (yaml.containsKey("prefix")) {
             Map<String, Object> innerData = (Map<String,Object>) yaml.get("prefix");
             String prefix = ConfigHelper.translateString((String) innerData.get("prefix"));
-            builder = factory.makePrefixNode(
-                    (int) innerData.getOrDefault("priority", 100), prefix
+            builder = PrefixNode.builder(
+                    prefix, (int) innerData.getOrDefault("priority", 100)
             );
             permissionDisplay = prefix;
             permType = PermissionType.PREFIX;
         } else if (yaml.containsKey("suffix")) {
             Map<String, Object> innerData = (Map<String,Object>) yaml.get("suffix");
             String suffix = ConfigHelper.translateString((String) innerData.get("suffix"));
-            builder = factory.makePrefixNode(
-                    (int) innerData.getOrDefault("priority", 100), suffix
+            builder = SuffixNode.builder(
+                    suffix, (int) innerData.getOrDefault("priority", 100)
             );
             permissionDisplay = suffix;
             permType = PermissionType.SUFFIX;
@@ -90,7 +101,7 @@ public class ShopWantsPermission extends ShopWantsCustomizable {
         }
 
         // toggle
-        builder.setValue((boolean) yaml.getOrDefault("value", true));
+        builder.value((boolean) yaml.getOrDefault("value", true));
         // expiry
         if (yaml.containsKey("duration")) {
             durationInSeconds = (int) yaml.get("duration");
@@ -106,7 +117,8 @@ public class ShopWantsPermission extends ShopWantsCustomizable {
         super(old);
         permissionNode = old.permissionNode;
         permType = old.permType;
-        durationInSeconds = (int) (old.durationInSeconds * multiplier);
+        durationInSeconds = old.durationInSeconds;
+        this.multiplier = multiplier * old.multiplier;
         durationShouldAppend = old.durationShouldAppend;
         revokePermission = old.revokePermission;
         permissionDisplay = old.permissionDisplay;
@@ -125,7 +137,8 @@ public class ShopWantsPermission extends ShopWantsCustomizable {
 
     @Override
     public boolean canAfford(Player player) {
-        return PERMS.getUser(player.getUniqueId()).hasPermission(permissionNode).asBoolean();
+        return PERMS.getUserManager().getUser(player.getUniqueId()).getCachedData().permissionData()
+                .get(QueryOptions.defaultContextualOptions()).checkPermission(permissionNode.getKey()).asBoolean() == permissionNode.getValue();
     }
 
     @Override
@@ -139,18 +152,19 @@ public class ShopWantsPermission extends ShopWantsCustomizable {
     }
 
     public Node createNodeWithDuration(Player player) {
-        Node.Builder builder = PERMS.getNodeFactory().newBuilderFromExisting(permissionNode);
+        NodeBuilder builder = permissionNode.toBuilder();
         if (durationInSeconds > 0)
-                builder.setExpiry(durationInSeconds, TimeUnit.SECONDS);
+                builder.expiry((long) (durationInSeconds * multiplier), TimeUnit.SECONDS);
         return builder.build();
     }
 
     @Override
     public void deduct(Player player) {
         if (revokePermission) {
+            ContextManager ctx = PERMS.getContextManager();
             Node permissionNode = createNodeWithDuration(player);
-            User user = PERMS.getUser(player.getUniqueId());
-            user.unsetPermission(permissionNode);
+            User user = PERMS.getUserManager().getUser(player.getUniqueId());
+            user.data().remove(permissionNode);
 
             // save
             PERMS.getUserManager().saveUser(user);
@@ -160,18 +174,21 @@ public class ShopWantsPermission extends ShopWantsCustomizable {
     @Override
     public double grantOrRefund(Player player) {
         Node permissionNode = createNodeWithDuration(player);
-        User user = PERMS.getUser(player.getUniqueId());
+        User user = PERMS.getUserManager().getUser(player.getUniqueId());
 
-        if (revokePermission)
-            user.unsetPermission(permissionNode);
-        else
-            user.setPermission(permissionNode, durationShouldAppend ?
-                    TemporaryMergeBehaviour.ADD_NEW_DURATION_TO_EXISTING :
-                    TemporaryMergeBehaviour.REPLACE_EXISTING_IF_DURATION_LONGER);
+        DataMutateResult result;
+        if (revokePermission) {
+            result = user.data().remove(permissionNode);
+        } else {
+            result = user.data().add(permissionNode, durationShouldAppend ?
+                    TemporaryNodeMergeStrategy.ADD_NEW_DURATION_TO_EXISTING :
+                    TemporaryNodeMergeStrategy.REPLACE_EXISTING_IF_DURATION_LONGER)
+                    .getResult();
+        }
 
         // save
         PERMS.getUserManager().saveUser(user);
-        return 0;
+        return result.wasSuccessful() ? 0 : multiplier;
     }
 
     public String formatPermission() {

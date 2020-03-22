@@ -1,12 +1,17 @@
 package com.jacky8399.worstshop.shops.elements;
 
 import com.jacky8399.worstshop.I18n;
-import com.jacky8399.worstshop.helper.*;
+import com.jacky8399.worstshop.helper.ConfigHelper;
+import com.jacky8399.worstshop.helper.ItemBuilder;
+import com.jacky8399.worstshop.helper.ItemUtils;
+import com.jacky8399.worstshop.helper.PaperHelper;
 import com.jacky8399.worstshop.shops.ShopCondition;
 import com.jacky8399.worstshop.shops.actions.IParentElementReader;
 import com.jacky8399.worstshop.shops.actions.ShopAction;
 import com.jacky8399.worstshop.shops.wants.ShopWantsPermissionSimple;
 import org.bukkit.Material;
+import org.bukkit.configuration.file.YamlConfiguration;
+import org.bukkit.configuration.serialization.ConfigurationSerialization;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.ItemStack;
@@ -14,6 +19,7 @@ import org.bukkit.inventory.meta.Damageable;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.SkullMeta;
 
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -70,6 +76,21 @@ public class StaticShopElement extends ShopElement {
         return inst;
     }
 
+    public static ItemMeta deserializeBase64ItemMeta(String base64) {
+        String decoded = new String(Base64.getDecoder().decode(base64), StandardCharsets.UTF_8);
+
+        YamlConfiguration temp = new YamlConfiguration();
+        return (ItemMeta) ConfigurationSerialization.deserializeObject(temp.getValues(false), ItemStack.class);
+    }
+
+    public static String serializeBase64ItemMeta(ItemMeta meta) {
+        Map<String, Object> map = meta.serialize();
+        YamlConfiguration temp = new YamlConfiguration();
+        temp.addDefaults(map);
+        temp.options().copyDefaults(true);
+        return new String(Base64.getEncoder().encode(temp.saveToString().getBytes(StandardCharsets.UTF_8)), StandardCharsets.UTF_8);
+    }
+
     public static ItemStack parseItemStack(Map<String, Object> yaml) {
         try {
             Material material = Material.getMaterial(
@@ -84,6 +105,14 @@ public class StaticShopElement extends ShopElement {
             ItemBuilder is = ItemBuilder.of(material);
             is.amount(Math.max((int) yaml.getOrDefault("count", 1), 1));
 
+            if (yaml.containsKey("item-meta")) {
+                String itemMetaStr = (String) yaml.get("item-meta");
+                ItemMeta decoded = deserializeBase64ItemMeta(itemMetaStr);
+                ItemStack stack = is.build();
+                stack.setItemMeta(decoded);
+                return stack;
+            }
+
             int damage = (int) yaml.getOrDefault("damage", 0);
             if (damage != 0) {
                 is.meta(meta-> {
@@ -91,10 +120,21 @@ public class StaticShopElement extends ShopElement {
                         ((Damageable) meta).setDamage(damage);
                 });
             }
+
+            if (yaml.containsKey("custom-model-data")) {
+                is.meta(meta->meta.setCustomModelData(((Number) yaml.get("custom-model-data")).intValue()));
+            }
+
             String displayName = ConfigHelper.translateString((String) yaml.get("name"));
             if (displayName != null) {
                 is.name(displayName);
             }
+
+            String locName = (String) yaml.get("loc-name");
+            if (locName != null) {
+                is.meta(meta->meta.setLocalizedName(locName));
+            }
+
             if (yaml.containsKey("lore")) {
                 List<String> lore = ((List<String>) yaml.getOrDefault("lore", Collections.emptyList()))
                         .stream().map(ConfigHelper::translateString).collect(Collectors.toList());
@@ -121,7 +161,6 @@ public class StaticShopElement extends ShopElement {
                         });
                 }
             }
-
             return is.build();
         } catch (Exception ex) {
             return null;

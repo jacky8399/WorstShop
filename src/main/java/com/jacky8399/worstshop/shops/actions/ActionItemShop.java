@@ -181,7 +181,7 @@ public class ActionItemShop extends ShopAction implements IParentElementReader {
         if (element instanceof StaticShopElement) {
             // add to ItemShop
             StaticShopElement elem = (StaticShopElement) element;
-            getItemShops(elem.stack.getType()).add(new ItemShop(this, elem.viewPerm));
+            getItemShops(elem.stack.getType()).add(new ItemShop(this, elem.condition));
         } else {
             // unsupported
         }
