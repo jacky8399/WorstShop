@@ -8,17 +8,14 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 
-import java.util.function.Predicate;
-
 public class ItemShop {
 
     String owningShop;
     ActionItemShop shop;
-    Predicate<Player> optionalPermission;
-    public ItemShop(ActionItemShop orig, String optionalPermission) {
+    ShopCondition condition;
+    public ItemShop(ActionItemShop orig, ShopCondition condition) {
         this.shop = orig;
-        if (optionalPermission != null)
-            this.optionalPermission = PermStringHelper.parsePermString(optionalPermission);
+        this.condition = condition != null ? condition : new ShopCondition();
         this.owningShop = ShopManager.currentShop;
     }
 
@@ -46,8 +43,8 @@ public class ItemShop {
     }
 
     public boolean isAvailableTo(Player player) {
-        return ShopManager.checkPerms(player, owningShop) && (optionalPermission == null ||
-                optionalPermission.test(player));
+        return ShopManager.getShop(owningShop).map(owner -> owner.canPlayerView(player)).orElse(false) &&
+                (condition == null || condition.test(player));
     }
 
     public boolean isSellable(ItemStack stack, Player player) {

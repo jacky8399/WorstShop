@@ -14,6 +14,7 @@ import java.io.File;
 import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Optional;
 
 public class ShopManager {
 
@@ -26,14 +27,12 @@ public class ShopManager {
      */
     public static String currentShop = null;
 
-    public static boolean checkPerms(Permissible player, String shopName) {
-        return player.hasPermission("worstshop.shops." + shopName);
+    public static Optional<Shop> getShop(String id) {
+        return Optional.ofNullable(SHOPS.get(id));
     }
 
-    public static boolean checkPerms(Permissible player, Shop shop) {
-        if (shop == null)
-            return false;
-        return checkPerms(player, shop.id);
+    public static boolean checkPermsOnly(Permissible player, String shopName) {
+        return player.hasPermission("worstshop.shops." + shopName);
     }
 
     public static void closeAllShops() {
@@ -78,7 +77,7 @@ public class ShopManager {
                     continue;
                 }
 
-                currentShop = shopPath.substring(shopsFolderPath.length() + 1, shopPath.length() - shopExt.length() - 1).replace("\\", "/");
+                currentShop = shopPath.substring(shopsFolderPath.length() + 1, shopPath.length() - shopExt.length() - 1).replace('\\', '/');
                 YamlConfiguration yaml = YamlConfiguration.loadConfiguration(shop);
 
                 SHOPS.put(currentShop, Shop.fromYaml(currentShop, yaml));

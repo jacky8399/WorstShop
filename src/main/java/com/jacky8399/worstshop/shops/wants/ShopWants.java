@@ -142,24 +142,51 @@ public class ShopWants implements Predicate<Player> {
         return canAfford(player);
     }
 
+    private static List<ShopWants> mergeWants(ShopWants orig, ShopWants other) {
+        List<ShopWants> wants = Lists.newArrayList();
+        if (other instanceof ShopWantsMultiple) {
+            wants.addAll(((ShopWantsMultiple) other).wants);
+        } else {
+            wants.add(other);
+        }
+        if (orig instanceof ShopWantsMultiple) {
+            wants.addAll(((ShopWantsMultiple) orig).wants);
+        } else {
+            wants.add(orig);
+        }
+        return wants;
+    }
+
     @Override
     public Predicate<Player> and(Predicate<? super Player> other) {
         if (other instanceof ShopWants) {
             // merge into one ShopWantsMultiple
-            List<ShopWants> wants = Lists.newArrayList();
-            if (other instanceof ShopWantsMultiple) {
-                wants.addAll(((ShopWantsMultiple) other).wants);
-            } else {
-                wants.add((ShopWants) other);
-            }
-            if (this instanceof ShopWantsMultiple) {
-                wants.addAll(((ShopWantsMultiple) this).wants);
-            } else {
-                wants.add(this);
-            }
-            return new ShopWantsMultiple(wants);
+            return new ShopWantsMultiple(mergeWants(this, (ShopWants) other));
         }
-        return p -> test(p) && other.test(p);
+        return Predicate.super.and(other);
+    }
+
+    @Override
+    public Predicate<Player> or(Predicate<? super Player> other) {
+        if (other instanceof ShopWants) {
+            return new ShopWantsMultiple(mergeWants(this, (ShopWants) other)) {
+                @Override
+                public boolean canAfford(Player player) {
+                    return wants.stream().anyMatch(want -> want.canAfford(player));
+                }
+            };
+        }
+        return Predicate.super.or(other);
+    }
+
+    @Override
+    public ShopWants negate() {
+        return new ShopWants() {
+            @Override
+            public boolean canAfford(Player player) {
+                return !ShopWants.this.canAfford(player);
+            }
+        };
     }
 
     /**

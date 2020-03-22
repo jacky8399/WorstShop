@@ -10,7 +10,6 @@ import com.jacky8399.worstshop.WorstShop;
 import com.jacky8399.worstshop.helper.PermStringHelper;
 import com.jacky8399.worstshop.shops.Shop;
 import com.jacky8399.worstshop.shops.ShopManager;
-import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -26,15 +25,16 @@ public class CommandShop extends BaseCommand {
         // register shops autocompletion
         manager.getCommandContexts().registerContext(Shop.class, ctx->{
             String arg = ctx.getFirstArg();
-            if (ShopManager.SHOPS.containsKey(arg) && ShopManager.checkPerms(ctx.getIssuer().getIssuer(), arg)) {
-                return ShopManager.SHOPS.get(arg);
+            Shop shop = ShopManager.SHOPS.get(arg);
+            if (shop != null && shop.checkPlayerPerms(ctx.getIssuer().getIssuer())) {
+                return shop;
             }
             throw new InvalidCommandArgument(I18n.translate("worstshop.errors.invalid-shop", arg));
         });
 
         manager.getCommandCompletions().registerCompletion("shops", ctx-> ShopManager.SHOPS.keySet().stream()
                 .filter(shop->shop.startsWith(ctx.getInput())) // filter once to prevent unnecessary perm checks
-                .filter(shop->ShopManager.checkPerms(ctx.getIssuer().getIssuer(), shop))
+                .filter(shop->ShopManager.checkPermsOnly(ctx.getIssuer().getIssuer(), shop))
                 .collect(Collectors.toList()));
 
         manager.getCommandCompletions().setDefaultCompletion("shops", Shop.class);
@@ -89,11 +89,12 @@ public class CommandShop extends BaseCommand {
     @CommandPermission("worstshop.shop.open")
     @CommandCompletion("*")
     public void open(Player player, @Optional Shop shop) {
-        if (shop != null)
+        if (shop != null && shop.canPlayerView(player))
             shop.getInventory(player).open(player);
         else {
-            if (ShopManager.SHOPS.containsKey("default") && ShopManager.checkPerms(player, "default")) {
-                ShopManager.SHOPS.get("default").getInventory(player).open(player);
+            Shop defaultShop = ShopManager.SHOPS.get("default");
+            if (defaultShop != null && defaultShop.canPlayerView(player)) {
+                defaultShop.getInventory(player).open(player);
             }
         }
     }

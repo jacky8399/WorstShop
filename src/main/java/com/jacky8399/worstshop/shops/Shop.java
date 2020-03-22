@@ -18,9 +18,11 @@ import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.inventory.InventoryType;
+import org.bukkit.permissions.Permissible;
 
 import java.util.*;
 import java.util.function.Supplier;
+import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
 public class Shop implements InventoryProvider {
@@ -39,6 +41,8 @@ public class Shop implements InventoryProvider {
     public String title;
     public int updateInterval;
 
+    public ShopCondition condition = new ShopCondition();
+
     // parents
     public String parentShop = null;
     public boolean autoSetParentShop = false;
@@ -51,13 +55,26 @@ public class Shop implements InventoryProvider {
         return SmartInventory.builder().manager(WorstShop.get().inventories);
     }
 
+    public boolean checkPlayerPerms(Permissible player) {
+        return ShopManager.checkPermsOnly(player, id);
+    }
+
+    public boolean canPlayerView(Player player) {
+        return canPlayerView(player, false);
+    }
+
+    public boolean canPlayerView(Player player, boolean isUsingAlias) {
+        return !isUsingAlias || (!aliasesIgnorePermission && checkPlayerPerms(player))
+                && condition.test(player);
+    }
+
     public SmartInventory getInventory(Player player) {
         return getInventory(player, false);
     }
 
     public SmartInventory getInventory(Player player, boolean skipAutoParent) {
         SmartInventory.Builder builder = getDefaultBuilder();
-        builder.id(SHOP_ID_PREFIX+id).provider(this)
+        builder.id(SHOP_ID_PREFIX + id).provider(this)
                 .listener(new InventoryListener<>(InventoryCloseEvent.class, this::close))
                 .type(type);
         if (type == InventoryType.CHEST) {
@@ -74,12 +91,14 @@ public class Shop implements InventoryProvider {
         return builder.title(title).build();
     }
 
+    @SuppressWarnings("unchecked, ConstantConditions, null")
     public static Shop fromYaml(String shopName, YamlConfiguration yaml) {
         Shop inst = new Shop();
         inst.id = shopName;
 
-        try {
+        Logger logger = WorstShop.get().logger;
 
+        try {
             inst.rows = yaml.getInt("rows", 6);
             inst.type = InventoryType.valueOf(yaml.getString("type", "chest").toUpperCase());
             if (!yaml.isString("title"))
@@ -87,12 +106,29 @@ public class Shop implements InventoryProvider {
             inst.title = ChatColor.translateAlternateColorCodes('&', yaml.getString("title"));
             inst.updateInterval = yaml.getInt("update-interval", 0);
 
+            if (yaml.isSet("condition")) {
+                Object obj = yaml.get("condition");
+                if (obj instanceof Map<?, ?>) {
+                    inst.condition.add(ShopCondition.parseFromYaml((Map<String, Object>) obj));
+                } else if (obj instanceof List<?>) {
+                    logger.warning("Shop condition in shop " + shopName + " should not be a list!");
+                    logger.warning("Please use an 'and' node:");
+                    logger.warning("condition:");
+                    logger.warning("  logic: and");
+                    logger.warning("  conditions:");
+                    logger.warning("  # list of conditions");
+                    // parse anyway lol
+                    for (Object child : ((List<?>) obj)) {
+                        inst.condition.add(ShopCondition.parseFromYaml((Map<String, Object>) obj));
+                    }
+                }
+            }
+
             inst.parentShop = yaml.getString("parent");
             if (inst.parentShop != null && inst.parentShop.equals("auto")) {
                 inst.autoSetParentShop = true;
             }
 
-            @SuppressWarnings("unchecked")
             List<Map<String, Object>> items = (List<Map<String, Object>>) yaml.getList("items", Collections.emptyList());
             for (Map<String, Object> itemSection : items) {
                 ShopElement elem = ShopElement.fromYaml(itemSection);
@@ -115,7 +151,7 @@ public class Shop implements InventoryProvider {
             }
 
         } catch (Exception ex) {
-            WorstShop.get().logger.severe("Error while parsing shop " + shopName + ", skipping.");
+            logger.severe("Error while parsing shop " + shopName + ", skipping.");
             ex.printStackTrace();
         }
         return inst;

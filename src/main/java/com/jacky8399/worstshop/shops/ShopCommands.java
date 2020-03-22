@@ -77,7 +77,9 @@ public class ShopCommands {
         public boolean execute(@NotNull CommandSender sender, @NotNull String commandLabel, @NotNull String[] args) {
             if (sender instanceof Player) {
                 Player player = (Player)sender;
-                ShopManager.SHOPS.get(shopName).getInventory(player).open(player);
+                ShopManager.getShop(shopName)
+                        .filter(shop -> shop.canPlayerView(player, true)) // check conditions
+                        .ifPresent(shop -> shop.getInventory(player).open(player));
             }
             return true;
         }

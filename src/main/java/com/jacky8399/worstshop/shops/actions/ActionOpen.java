@@ -35,7 +35,7 @@ public class ActionOpen extends ShopAction {
         Shop shop = ShopManager.SHOPS.get(this.shop);
         if (shop == null)
             throw new IllegalArgumentException(this.shop + " does not exist");
-        if (skipPermission || ShopManager.checkPerms(player, shop)) {
+        if (skipPermission || shop.canPlayerView(player)) {
             contents.setProperty("skipOnce", true);
             shop.getInventory(player).open(player);
         }
