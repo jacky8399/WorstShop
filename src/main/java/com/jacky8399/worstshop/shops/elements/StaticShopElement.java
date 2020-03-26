@@ -61,15 +61,10 @@ public class StaticShopElement extends ShopElement {
         }
 
         // Action parsing
-        ShopAction.Builder actionsBuilder = new ShopAction.Builder(yaml);
         inst.actions = ((List<?>)yaml.getOrDefault("actions", Collections.emptyList()))
-                .stream().map(obj -> {
-                    if (obj instanceof Map) {
-                        return actionsBuilder.fromYaml((Map<String, Object>) obj);
-                    } else {
-                        return actionsBuilder.fromCommand(((Object) obj).toString());
-                    }
-                }).filter(Objects::nonNull).collect(Collectors.toList());
+                .stream().map(obj -> obj instanceof Map ?
+                        ShopAction.fromYaml((Map<String, Object>) obj) :
+                        ShopAction.fromCommand(obj.toString())).filter(Objects::nonNull).collect(Collectors.toList());
 
         inst.actions.stream().filter(action->action instanceof IParentElementReader)
                 .forEach(action->((IParentElementReader) action).readElement(inst));
@@ -83,8 +78,7 @@ public class StaticShopElement extends ShopElement {
         // Do not use Bukkit YamlConfiguration as it converts embedded Maps into MemorySections,
         // which SerializableItemMeta (also from Bukkit API) does NOT like
         Map<String, Object> map = (new Yaml()).load(decoded);
-        ItemMeta deserialized = (ItemMeta) ConfigurationSerialization.deserializeObject(map, ConfigurationSerialization.getClassByAlias("ItemMeta"));
-        return deserialized;
+        return (ItemMeta) ConfigurationSerialization.deserializeObject(map, ConfigurationSerialization.getClassByAlias("ItemMeta"));
     }
 
     public static String serializeBase64ItemMeta(ItemMeta meta) {

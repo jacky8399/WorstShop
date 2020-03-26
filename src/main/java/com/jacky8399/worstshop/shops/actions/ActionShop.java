@@ -27,7 +27,7 @@ import java.util.function.Consumer;
 
 public class ActionShop extends ShopAction implements IParentElementReader {
     public ShopWants cost, reward;
-    public ActionShop(Map<String, Object> yaml, Map<String, Object> yamlParent) {
+    public ActionShop(Map<String, Object> yaml) {
         super(yaml);
         // if has specific cost
         if (yaml.containsKey("cost")) {

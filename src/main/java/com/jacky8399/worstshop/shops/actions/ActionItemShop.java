@@ -30,7 +30,7 @@ public class ActionItemShop extends ShopAction implements IParentElementReader {
     public double buyPrice = 0, sellPrice = 0;
 
     // shortcut
-    public ActionItemShop(String input, Map<String, Object> yamlParent) {
+    public ActionItemShop(String input) {
         super(null);
         String[] prices = input.split("\\s|,");
         buyPrice = Double.parseDouble(prices[0].trim());
@@ -39,7 +39,7 @@ public class ActionItemShop extends ShopAction implements IParentElementReader {
         sellAll = sellPrice != 0;
     }
 
-    public ActionItemShop(Map<String, Object> yaml, Map<String, Object> yamlParent) {
+    public ActionItemShop(Map<String, Object> yaml) {
         super(yaml);
         if (yaml.containsKey("buyPrice")) {
             buyPrice = ((Number) yaml.get("buyPrice")).doubleValue();

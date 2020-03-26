@@ -8,12 +8,11 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.InventoryClickEvent;
 
 import java.util.Map;
-import java.util.Optional;
 
 public class ActionOpen extends ShopAction {
     boolean skipPermission = false;
     String shop;
-    public ActionOpen(Map<String, Object> yaml, Map<String, Object> yamlParent) {
+    public ActionOpen(Map<String, Object> yaml) {
         super(yaml);
         if (yaml.containsKey("ignore-permission")) {
             skipPermission = (boolean) yaml.get("ignore-permission");
