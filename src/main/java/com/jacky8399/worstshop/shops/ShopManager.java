@@ -11,10 +11,8 @@ import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.permissions.Permissible;
 
 import java.io.File;
-import java.util.EnumMap;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Optional;
+import java.io.IOException;
+import java.util.*;
 
 public class ShopManager {
 
@@ -41,9 +39,23 @@ public class ShopManager {
         Bukkit.getOnlinePlayers().forEach(p -> manager.getInventory(p).ifPresent(inv -> inv.close(p)));
     }
 
+    private static void saveDiscounts() {
+        List<Map<String, Object>> discounts = Lists.newArrayList();
+        ShopDiscount.ALL_DISCOUNTS.values().stream().filter(entry -> !entry.hasExpired())
+                .map(ShopDiscount.Entry::toMap).forEach(discounts::add);
+        YamlConfiguration yaml = new YamlConfiguration();
+        yaml.set("discounts", discounts);
+        try {
+            yaml.save(new File(WorstShop.get().getDataFolder(), "discounts.yml"));
+        } catch (IOException e) {
+            WorstShop.get().logger.severe("Failed to save discounts");
+        }
+    }
+
     public static void cleanUp() {
         closeAllShops();
         ShopCommands.removeAliases();
+        saveDiscounts();
         SHOPS.clear();
         ITEM_SHOPS.clear();
     }
@@ -69,9 +81,10 @@ public class ShopManager {
         File discountFile = new File(plugin.getDataFolder(), "discounts.yml");
         if (discountFile.exists()) {
             YamlConfiguration yaml = YamlConfiguration.loadConfiguration(discountFile);
-            yaml.getList("discounts").forEach(obj -> {
-
-            });
+            yaml.getList("discounts").stream()
+                    .map(obj -> (Map<String, Object>) obj)
+                    .map(ShopDiscount.Entry::fromMap)
+                    .forEach(ShopDiscount::addDiscountEntry);
         }
 
         // walk through all shops

@@ -2,10 +2,12 @@ package com.jacky8399.worstshop.shops;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.*;
 import java.util.function.Predicate;
 
@@ -17,7 +19,7 @@ public class ShopDiscount {
             this.expiry = expiry;
             this.percentage = percentage;
         }
-
+        public UUID uuid = UUID.randomUUID();
         public final LocalDateTime expiry;
         public final double percentage;
         public String shop;
@@ -41,14 +43,62 @@ public class ShopDiscount {
             }
             return this.permission == null || player.hasPermission(permission);
         }
+
+        @Override
+        public int hashCode() {
+            return uuid.hashCode();
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (!(obj instanceof Entry)) {
+                return false;
+            }
+            Entry other = (Entry) obj;
+            return expiry.equals(other.expiry) && percentage == other.percentage &&
+                    Objects.equals(shop, other.shop) && Objects.equals(material, other.material) &&
+                    Objects.equals(player, other.player) && Objects.equals(permission, other.permission);
+        }
+
+        public Map<String, Object> toMap() {
+            Map<String, Object> map = Maps.newHashMap();
+            map.put("uuid", uuid);
+            map.put("expiry", expiry.toEpochSecond(ZoneOffset.UTC)); // doesn't matter, will be read as UTC too
+            map.put("percentage", percentage);
+            if (shop != null)
+                map.put("shop", shop);
+            if (material != null)
+                map.put("material", material.name());
+            if (player != null)
+                map.put("player", player.toString());
+            if (permission != null)
+                map.put("permission", permission);
+            return map;
+        }
+
+        public static Entry fromMap(Map<String, Object> map) {
+            int expiry = ((Number) map.get("expiry")).intValue();
+            double percentage = ((Number) map.get("percentage")).doubleValue();
+            Entry entry = new Entry(LocalDateTime.ofEpochSecond(expiry, 0, ZoneOffset.UTC), percentage);
+            entry.uuid = UUID.fromString((String) map.get("uuid"));
+            if (map.containsKey("shop"))
+                entry.shop = (String) map.get("shop");
+            if (map.containsKey("material"))
+                entry.material = Material.getMaterial((String) map.get("material"));
+            if (map.containsKey("player"))
+                entry.player = UUID.fromString((String) map.get("player"));
+            if (map.containsKey("permission"))
+                entry.permission = (String) map.get("permission");
+            return entry;
+        }
     }
 
-    public static final HashMap<String, List<Entry>> BY_SHOP = Maps.newHashMap();
-    public static final EnumMap<Material, List<Entry>> BY_MATERIAL = Maps.newEnumMap(Material.class);
-    public static final HashMap<UUID, List<Entry>> BY_PLAYER = Maps.newHashMap();
-    public static final List<Entry> NO_CRITERIA = Lists.newArrayList();
+    public static final HashMap<String, Set<Entry>> BY_SHOP = Maps.newHashMap();
+    public static final EnumMap<Material, Set<Entry>> BY_MATERIAL = Maps.newEnumMap(Material.class);
+    public static final HashMap<UUID, Set<Entry>> BY_PLAYER = Maps.newHashMap();
+    public static final Set<Entry> NO_CRITERIA = Sets.newHashSet();
 
-    public static final List<Entry> ALL_DISCOUNTS = Lists.newArrayList();
+    public static final HashMap<UUID, Entry> ALL_DISCOUNTS = Maps.newHashMap();
 
     public static List<Entry> findApplicableEntries(Shop shop, Material material, Player player) {
         Objects.requireNonNull(shop, "shop cannot be null");
@@ -57,7 +107,7 @@ public class ShopDiscount {
         List<Entry> all = Lists.newArrayList();
         Predicate<Entry> applicableCheck = entry -> entry.isApplicableTo(shop, material, player);
         // stale check
-        List<Entry> obsoleteDiscounts = Lists.newArrayList();
+        Set<Entry> obsoleteDiscounts = Sets.newHashSet();
         Predicate<Entry> staleCheck = entry -> {
             if (entry.hasExpired()) {
                 obsoleteDiscounts.add(entry);
@@ -95,17 +145,17 @@ public class ShopDiscount {
      */
     public static void addDiscountEntry(Entry entry) {
         boolean isNoCriteria = true;
-        ALL_DISCOUNTS.add(entry);
+        ALL_DISCOUNTS.put(entry.uuid, entry);
         if (entry.shop != null) {
-            BY_SHOP.computeIfAbsent(entry.shop, key->Lists.newArrayList()).add(entry);
+            BY_SHOP.computeIfAbsent(entry.shop, key->Sets.newHashSet()).add(entry);
             isNoCriteria = false;
         }
         if (entry.material != null) {
-            BY_MATERIAL.computeIfAbsent(entry.material, key->Lists.newArrayList()).add(entry);
+            BY_MATERIAL.computeIfAbsent(entry.material, key->Sets.newHashSet()).add(entry);
             isNoCriteria = false;
         }
         if (entry.player != null) {
-            BY_PLAYER.computeIfAbsent(entry.player, key->Lists.newArrayList()).add(entry);
+            BY_PLAYER.computeIfAbsent(entry.player, key->Sets.newHashSet()).add(entry);
             isNoCriteria = false;
         }
         // the entry cannot be discovered by other criteria
@@ -115,7 +165,7 @@ public class ShopDiscount {
     }
 
     public static void removeDiscountEntry(Entry entry) {
-        ALL_DISCOUNTS.remove(entry);
+        ALL_DISCOUNTS.remove(entry.uuid);
         boolean isNoCriteria = true;
         if (entry.shop != null) {
             BY_SHOP.get(entry.shop).remove(entry);
