@@ -1,5 +1,6 @@
 package com.jacky8399.worstshop.shops.elements;
 
+import com.google.common.collect.Maps;
 import com.jacky8399.worstshop.I18n;
 import com.jacky8399.worstshop.helper.ConfigHelper;
 import com.jacky8399.worstshop.helper.ItemBuilder;
@@ -10,8 +11,10 @@ import com.jacky8399.worstshop.shops.actions.IParentElementReader;
 import com.jacky8399.worstshop.shops.actions.ShopAction;
 import com.jacky8399.worstshop.shops.wants.ShopWantsPermissionSimple;
 import org.bukkit.Material;
+import org.bukkit.NamespacedKey;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.configuration.serialization.ConfigurationSerialization;
+import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.ItemStack;
@@ -89,6 +92,7 @@ public class StaticShopElement extends ShopElement {
         return new String(Base64.getEncoder().encode(temp.saveToString().getBytes(StandardCharsets.UTF_8)), StandardCharsets.UTF_8);
     }
 
+    @SuppressWarnings({"unchecked"})
     public static ItemStack parseItemStack(Map<String, Object> yaml) {
         try {
             Material material = Material.getMaterial(
@@ -123,16 +127,28 @@ public class StaticShopElement extends ShopElement {
                 is.meta(meta->meta.setCustomModelData(((Number) yaml.get("custom-model-data")).intValue()));
             }
 
+            if (yaml.containsKey("enchants")) {
+                Map<String, Object> enchants = (Map<String, Object>) yaml.get("enchants");
+                Map<Enchantment, Integer> enchant = enchants.entrySet().stream().map(entry -> {
+                    String ench = entry.getKey();
+                    int level = ((Number) entry.getValue()).intValue();
+                    Enchantment enchType = Enchantment.getByKey(NamespacedKey.minecraft(ench));
+                    if (enchType != null) {
+                        return Maps.immutableEntry(enchType, level);
+                    }
+                    return null;
+                }).filter(Objects::nonNull).collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+                is.meta(meta -> enchant.forEach((ench, level)-> meta.addEnchant(ench, level, true)));
+            }
+
             String displayName = ConfigHelper.translateString((String) yaml.get("name"));
             if (displayName != null) {
                 is.name(displayName);
             }
-
             String locName = (String) yaml.get("loc-name");
             if (locName != null) {
                 is.meta(meta->meta.setLocalizedName(locName));
             }
-
             if (yaml.containsKey("lore")) {
                 List<String> lore = ((List<String>) yaml.getOrDefault("lore", Collections.emptyList()))
                         .stream().map(ConfigHelper::translateString).collect(Collectors.toList());
