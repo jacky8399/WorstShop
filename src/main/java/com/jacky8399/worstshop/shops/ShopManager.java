@@ -25,7 +25,8 @@ public class ShopManager {
     /**
      * temporary variable for storing the shop currently being parsed
      */
-    public static String currentShop = null;
+    public static String currentShopId = null;
+    public static Shop currentShop = null;
 
     public static Optional<Shop> getShop(String id) {
         return Optional.ofNullable(SHOPS.get(id));
@@ -86,14 +87,15 @@ public class ShopManager {
                     continue;
                 }
 
-                currentShop = shopPath.substring(shopsFolderPath.length() + 1, shopPath.length() - shopExt.length() - 1).replace('\\', '/');
+                currentShopId = shopPath.substring(shopsFolderPath.length() + 1, shopPath.length() - shopExt.length() - 1).replace('\\', '/');
                 YamlConfiguration yaml = YamlConfiguration.loadConfiguration(shop);
 
-                SHOPS.put(currentShop, Shop.fromYaml(currentShop, yaml));
-                plugin.logger.fine("Loaded " + currentShop + ".yml");
+                SHOPS.put(currentShopId, Shop.fromYaml(currentShopId, yaml));
+                plugin.logger.fine("Loaded " + currentShopId + ".yml");
                 count++;
             }
             currentShop = null;
+            currentShopId = null;
 
             // load commands
             ShopCommands.loadAliases();

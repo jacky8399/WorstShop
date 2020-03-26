@@ -51,6 +51,9 @@ public class ShopDiscount {
     public static final List<Entry> ALL_DISCOUNTS = Lists.newArrayList();
 
     public static List<Entry> findApplicableEntries(Shop shop, Material material, Player player) {
+        Objects.requireNonNull(shop, "shop cannot be null");
+        Objects.requireNonNull(material, "material cannot be null");
+        Objects.requireNonNull(player, "player cannot be null");
         List<Entry> all = Lists.newArrayList();
         Predicate<Entry> applicableCheck = entry -> entry.isApplicableTo(shop, material, player);
         // stale check

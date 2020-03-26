@@ -6,6 +6,7 @@ import com.jacky8399.worstshop.helper.ConfigHelper;
 import com.jacky8399.worstshop.helper.ItemBuilder;
 import com.jacky8399.worstshop.helper.ItemUtils;
 import com.jacky8399.worstshop.helper.PaperHelper;
+import com.jacky8399.worstshop.shops.Shop;
 import com.jacky8399.worstshop.shops.ShopCondition;
 import com.jacky8399.worstshop.shops.actions.IParentElementReader;
 import com.jacky8399.worstshop.shops.actions.ShopAction;
@@ -44,9 +45,10 @@ public class StaticShopElement extends ShopElement {
     }
 
     @SuppressWarnings("unchecked")
-    public static ShopElement fromYaml(Map<String, Object> yaml) {
+    public static ShopElement fromYaml(Map<String, Object> yaml, Shop parent) {
         // static parsing
         StaticShopElement inst = new StaticShopElement();
+        inst.owner = parent;
 
         inst.rawStack = parseItemStack(yaml);
 

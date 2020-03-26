@@ -187,6 +187,7 @@ public class ActionItemShop extends ShopAction implements IParentElementReader {
     @Override
     public void readElement(ShopElement element) {
         parentElement = element.clone();
+        parentElement.owner = element.owner;
         if (element instanceof StaticShopElement) {
             // add to ItemShop
             StaticShopElement elem = (StaticShopElement) element;

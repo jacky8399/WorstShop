@@ -1,6 +1,7 @@
 package com.jacky8399.worstshop.shops.wants;
 
 import com.google.common.collect.Lists;
+import com.jacky8399.worstshop.shops.ShopManager;
 import com.jacky8399.worstshop.shops.actions.IParentElementReader;
 import com.jacky8399.worstshop.shops.elements.DynamicShopElement;
 import com.jacky8399.worstshop.shops.elements.ShopElement;
@@ -30,7 +31,7 @@ public abstract class ShopWantsCustomizable extends ShopWants implements IParent
             // defer to later
             return null;
         } else {
-            return ShopElement.fromYaml(yaml);
+            return ShopElement.fromYaml(yaml, ShopManager.currentShop);
         }
     }
 

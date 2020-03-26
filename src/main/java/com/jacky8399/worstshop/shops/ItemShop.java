@@ -14,7 +14,7 @@ public class ItemShop {
     public ItemShop(ActionItemShop orig, ShopCondition condition) {
         this.shop = orig;
         this.condition = condition != null ? condition : new ShopCondition();
-        this.owningShop = ShopManager.currentShop;
+        this.owningShop = ShopManager.currentShopId;
     }
 
     private ShopWantsItem getSellCost(Player player) {

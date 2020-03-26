@@ -87,12 +87,16 @@ public class CommandShop extends BaseCommand {
 
     @Subcommand("discount")
     @CommandPermission("worstshop.discount")
-    public static class Discount {
+    public class Discount extends co.aikar.commands.BaseCommand {
 
-        private static final Pattern TIME_STR = Pattern.compile("(?:(\\d+)d)(?:(\\d+)h)(?:(\\d+)m)(?:(\\d+)s)");
-        private static LocalDateTime parseTimeStr(String str) {
+        private final Pattern TIME_STR = Pattern.compile("(?:(\\d+)d)?(?:(\\d+)h)?(?:(\\d+)m)?(?:(\\d+)s)?");
+
+        public Discount() {}
+
+
+        private LocalDateTime parseTimeStr(String str) {
             Matcher matcher = TIME_STR.matcher(str);
-            if (matcher.matches()) {
+            if (!str.isEmpty() && matcher.matches()) {
                 int secondsIntoFuture = 0;
                 String days = matcher.group(1), hours = matcher.group(2), minutes = matcher.group(3), seconds = matcher.group(4);
                 if (days != null) {
@@ -112,7 +116,7 @@ public class CommandShop extends BaseCommand {
             throw new IllegalArgumentException(str + " is not a valid time string");
         }
 
-        private static String stringifyDiscount(ShopDiscount.Entry discount) {
+        private String stringifyDiscount(ShopDiscount.Entry discount) {
             StringBuilder builder = new StringBuilder(ChatColor.YELLOW.toString());
             builder.append((1 - discount.percentage)*100)
                     .append("% discount ending on ")
@@ -190,7 +194,7 @@ public class CommandShop extends BaseCommand {
         public void listDiscounts(CommandSender sender) {
             sender.sendMessage(ChatColor.GREEN + "Discounts:");
             ShopDiscount.ALL_DISCOUNTS.stream().filter(entry -> !entry.hasExpired())
-                    .map(Discount::stringifyDiscount).forEach(sender::sendMessage);
+                    .map(this::stringifyDiscount).forEach(sender::sendMessage);
         }
 
     }

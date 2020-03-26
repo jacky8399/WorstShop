@@ -94,6 +94,7 @@ public class Shop implements InventoryProvider {
     @SuppressWarnings({"unchecked", "ConstantConditions", "null"})
     public static Shop fromYaml(String shopName, YamlConfiguration yaml) {
         Shop inst = new Shop();
+        ShopManager.currentShop = inst;
         inst.id = shopName;
 
         Logger logger = WorstShop.get().logger;
@@ -131,13 +132,13 @@ public class Shop implements InventoryProvider {
 
             List<Map<String, Object>> items = (List<Map<String, Object>>) yaml.getList("items", Collections.emptyList());
             for (Map<String, Object> itemSection : items) {
-                ShopElement elem = ShopElement.fromYaml(itemSection);
-                elem.owner = inst;
-
-                if (elem instanceof DynamicShopElement)
-                    inst.dynamicElements.add(elem);
-                else
-                    inst.staticElements.add(elem);
+                ShopElement elem = ShopElement.fromYaml(itemSection, inst);
+                if (elem != null) {
+                    if (elem instanceof DynamicShopElement)
+                        inst.dynamicElements.add(elem);
+                    else
+                        inst.staticElements.add(elem);
+                }
             }
 
             // commands
