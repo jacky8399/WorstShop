@@ -144,10 +144,10 @@ public class ActionShop extends ShopAction implements IParentElementReader {
         if (isStatic) {
             StaticShopElement e = (StaticShopElement) element;
             if (cost == null) {
-                cost = new ShopWantsItem(e.stack); // copy from parent
+                cost = new ShopWantsItem(e.rawStack); // copy from parent
             }
             if (reward == null) {
-                reward = new ShopWantsItem(e.stack); // copy from parent
+                reward = new ShopWantsItem(e.rawStack); // copy from parent
             }
         }
         if (cost != null && cost instanceof IParentElementReader) {

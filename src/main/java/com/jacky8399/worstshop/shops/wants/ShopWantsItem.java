@@ -44,7 +44,7 @@ public class ShopWantsItem extends ShopWants implements IFlexibleShopWants {
     @Override
     public ShopWants adjustForPlayer(Player player) {
         // parse placeholders
-        return new ShopWantsItem(StaticShopElement.getPlaceholderStack(player, stack));
+        return new ShopWantsItem(StaticShopElement.replacePlaceholders(player, stack));
     }
 
     @Override

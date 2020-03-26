@@ -24,6 +24,7 @@ public class ShopElement implements Cloneable {
 
     public List<SlotPos> itemPositions = null;
     public FillType fill = FillType.NONE;
+    public Shop owner = null;
 
     public static ShopElement fromYaml(Map<String, Object> yaml) {
         boolean dynamic = (boolean) yaml.getOrDefault("dynamic", false);
@@ -93,7 +94,7 @@ public class ShopElement implements Cloneable {
                 contents.fillBorders(item);
                 break;
             case REMAINING:
-                pagination.forEachRemaining(()->item);
+                pagination.forEachRemaining((row, col)->item);
                 break;
             case NONE:
                 if (itemPositions != null) {

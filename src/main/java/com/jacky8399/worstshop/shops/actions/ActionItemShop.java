@@ -5,12 +5,14 @@ import com.jacky8399.worstshop.I18n;
 import com.jacky8399.worstshop.WorstShop;
 import com.jacky8399.worstshop.helper.ItemBuilder;
 import com.jacky8399.worstshop.shops.ItemShop;
+import com.jacky8399.worstshop.shops.ShopDiscount;
 import com.jacky8399.worstshop.shops.ShopManager;
 import com.jacky8399.worstshop.shops.elements.ShopElement;
 import com.jacky8399.worstshop.shops.elements.StaticShopElement;
 import com.jacky8399.worstshop.shops.wants.ShopWants;
 import com.jacky8399.worstshop.shops.wants.ShopWantsItem;
 import com.jacky8399.worstshop.shops.wants.ShopWantsMoney;
+import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.InventoryClickEvent;
@@ -58,28 +60,28 @@ public class ActionItemShop extends ShopAction implements IParentElementReader {
         sellAll = (boolean) yaml.getOrDefault("allowSellAll", true);
     }
 
-    public ShopWants buildWants(Player player) {
-        // try to get static stack
-        if (!isStackDynamic) {
-            return new ShopWantsItem(((StaticShopElement) parentElement).stack);
-        }
-        return new ShopWantsItem(parentElement.createStack(player));
+    private double getDiscount(Player player) {
+        ItemStack stack = getTargetItemStack(player);
+        return ShopDiscount.calcFinalPrice(ShopDiscount.findApplicableEntries(parentElement.owner, stack.getType(), player));
     }
 
-    public ActionShop buildBuyShop(ShopWants item) {
-        return buyPrice > 0 ? new ActionShop(new ShopWantsMoney(buyPrice), item) : null;
+    public ItemStack getTargetItemStack(Player player) {
+        return isStackDynamic ? parentElement.createStack(player) : ((StaticShopElement) parentElement).createPlaceholderStack(player);
+    }
+
+    public ShopWantsItem buildWantsItem(Player player) {
+        // try to get static stack
+        return new ShopWantsItem(getTargetItemStack(player));
     }
 
     public ActionShop buildBuyShop(Player player) {
-        return buildBuyShop(buildWants(player));
-    }
-
-    public ActionShop buildSellShop(ShopWants item) {
-        return sellPrice > 0 ? new ActionShop(item, new ShopWantsMoney(sellPrice)) : null;
+        double discount = getDiscount(player);
+        return buyPrice > 0 ? new ActionShop(new ShopWantsMoney(buyPrice * discount), buildWantsItem(player)) : null;
     }
 
     public ActionShop buildSellShop(Player player) {
-        return buildSellShop(buildWants(player));
+        double discount = getDiscount(player);
+        return sellPrice > 0 ? new ActionShop(buildWantsItem(player), new ShopWantsMoney(sellPrice * discount)) : null;
     }
 
     public void doBuyTransaction(Player player, double count) {
@@ -152,23 +154,30 @@ public class ActionItemShop extends ShopAction implements IParentElementReader {
 
     @Override
     public void influenceItem(Player player, ItemStack readonlyStack, ItemStack stack) {
-        super.influenceItem(player, readonlyStack, stack);
+        double discount = getDiscount(player);
         ItemBuilder modifier = ItemBuilder.from(stack);
         if (buyPrice > 0) {
             modifier.addLores(
-                    I18n.translate("worstshop.messages.shops.buy-for", formatPrice(buyPrice))
+                    I18n.translate("worstshop.messages.shops.buy-for", formatPriceDiscount(buyPrice, discount))
             );
         }
         if (sellPrice > 0) {
             modifier.addLores(
-                    I18n.translate("worstshop.messages.shops.sell-for", formatPrice(sellPrice))
+                    I18n.translate("worstshop.messages.shops.sell-for", formatPriceDiscount(sellPrice, discount))
             );
         }
         if (sellAll && sellPrice > 0) {
             modifier.addLores(
-                    I18n.translate("worstshop.messages.shops.sell-all", formatPrice(sellPrice))
+                    I18n.translate("worstshop.messages.shops.sell-all", formatPriceDiscount(sellPrice, discount))
             );
         }
+    }
+
+    public String formatPriceDiscount(double price, double discount) {
+        if (discount == 1) {
+            return formatPrice(price);
+        }
+        return ChatColor.STRIKETHROUGH + formatPrice(price) + ChatColor.RESET + " " + formatPrice(price * discount);
     }
 
     public static String formatPrice(double money) {
@@ -181,7 +190,7 @@ public class ActionItemShop extends ShopAction implements IParentElementReader {
         if (element instanceof StaticShopElement) {
             // add to ItemShop
             StaticShopElement elem = (StaticShopElement) element;
-            getItemShops(elem.stack.getType()).add(new ItemShop(this, elem.condition));
+            getItemShops(elem.rawStack.getType()).add(new ItemShop(this, elem.condition));
         } else {
             // unsupported
         }

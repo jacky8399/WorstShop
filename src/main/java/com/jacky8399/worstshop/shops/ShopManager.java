@@ -64,8 +64,17 @@ public class ShopManager {
 
         cleanUp();
 
+        // load discounts
+        File discountFile = new File(plugin.getDataFolder(), "discounts.yml");
+        if (discountFile.exists()) {
+            YamlConfiguration yaml = YamlConfiguration.loadConfiguration(discountFile);
+            yaml.getList("discounts").forEach(obj -> {
+
+            });
+        }
+
         // walk through all shops
-        File shops = plugin.getDataFolder().toPath().resolve("shops").toFile();
+        File shops = new File(plugin.getDataFolder(), "shops");
         String shopsFolderPath = shops.getAbsolutePath();
         if (shops.exists() && shops.isDirectory()) {
             // iterate thru shops

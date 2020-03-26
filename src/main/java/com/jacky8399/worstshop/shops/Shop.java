@@ -21,7 +21,7 @@ import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.permissions.Permissible;
 
 import java.util.*;
-import java.util.function.Supplier;
+import java.util.function.BiFunction;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
@@ -132,6 +132,7 @@ public class Shop implements InventoryProvider {
             List<Map<String, Object>> items = (List<Map<String, Object>>) yaml.getList("items", Collections.emptyList());
             for (Map<String, Object> itemSection : items) {
                 ShopElement elem = ShopElement.fromYaml(itemSection);
+                elem.owner = inst;
 
                 if (elem instanceof DynamicShopElement)
                     inst.dynamicElements.add(elem);
@@ -200,12 +201,17 @@ public class Shop implements InventoryProvider {
             paginationItems.add(item);
         }
 
-        public void forEachRemaining(Supplier<ClickableItem> supplier) {
+        public void forEachRemaining(BiFunction<Integer, Integer, ClickableItem> supplier) {
             doPaginationNow();
-            ClickableItem next;
-            while (!slotIterator.ended() && (next = supplier.get()) != null) {
-                slotIterator.next().set(next);
+            while (!slotIterator.ended()) {
+                slotIterator.next();
+                ClickableItem next = supplier.apply(slotIterator.row(), slotIterator.column());
+                slotIterator.set(next);
             }
+        }
+
+        public InventoryContents getPrimitive() {
+            return contents;
         }
 
         void doPaginationNow() {

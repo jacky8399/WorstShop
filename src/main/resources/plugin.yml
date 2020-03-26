@@ -11,6 +11,16 @@ softdepend:
 author: jacky8399
 description: The worst shop plugin.
 
+permissions:
+  worstshop.discount.*:
+    children:
+      worstshop.discount.create: true
+
+  worstshop.*:
+    default: op
+    children:
+      worstshop.discount.*: true
+
 commands:
   worstshop:
     usage: '/<command> [shop]'

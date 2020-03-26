@@ -1,6 +1,5 @@
 package com.jacky8399.worstshop.shops;
 
-import com.jacky8399.worstshop.helper.PermStringHelper;
 import com.jacky8399.worstshop.shops.actions.ActionItemShop;
 import com.jacky8399.worstshop.shops.wants.ShopWants;
 import com.jacky8399.worstshop.shops.wants.ShopWantsItem;
@@ -9,7 +8,6 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 
 public class ItemShop {
-
     String owningShop;
     ActionItemShop shop;
     ShopCondition condition;

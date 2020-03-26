@@ -29,14 +29,14 @@ import java.util.stream.Collectors;
 
 public class StaticShopElement extends ShopElement {
 
-    public ItemStack stack;
+    public ItemStack rawStack;
     public ShopCondition condition = new ShopCondition();
     public List<ShopAction> actions;
 
     public static StaticShopElement fromStack(ItemStack stack) {
         StaticShopElement inst = new StaticShopElement();
 
-        inst.stack = stack;
+        inst.rawStack = stack;
 
         inst.actions = Collections.emptyList();
 
@@ -48,10 +48,10 @@ public class StaticShopElement extends ShopElement {
         // static parsing
         StaticShopElement inst = new StaticShopElement();
 
-        inst.stack = parseItemStack(yaml);
+        inst.rawStack = parseItemStack(yaml);
 
         // die if null
-        if (ItemUtils.isEmpty(inst.stack))
+        if (ItemUtils.isEmpty(inst.rawStack))
             return null;
 
         // Permissions
@@ -181,22 +181,23 @@ public class StaticShopElement extends ShopElement {
         }
     }
 
-
-
-    @Override
-    public ItemStack createStack(Player player) {
-
-        // perm checks
+    public ItemStack createPlaceholderStack(Player player) {
         if (!condition.test(player)) {
             return null;
         }
 
-        if (stack == null)
+        // parse placeholders
+        return replacePlaceholders(player, this.rawStack);
+    }
+
+    @Override
+    public ItemStack createStack(Player player) {
+
+        final ItemStack readonlyStack = createPlaceholderStack(player);
+
+        if (readonlyStack == null)
             return null;
 
-
-        // parse placeholders
-        final ItemStack readonlyStack = getPlaceholderStack(player, stack);
         final ItemStack actualStack = readonlyStack.clone();
 
         // let actions influence item
@@ -206,7 +207,7 @@ public class StaticShopElement extends ShopElement {
         return actualStack;
     }
 
-    public static ItemStack getPlaceholderStack(Player player, ItemStack stack) {
+    public static ItemStack replacePlaceholders(Player player, ItemStack stack) {
         if (stack == null || stack.getType() == Material.AIR)
             return stack;
 
