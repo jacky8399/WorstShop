@@ -15,10 +15,7 @@ import com.jacky8399.worstshop.shops.Shop;
 import com.jacky8399.worstshop.shops.ShopDiscount;
 import com.jacky8399.worstshop.shops.ShopManager;
 import com.jacky8399.worstshop.shops.elements.StaticShopElement;
-import net.md_5.bungee.api.chat.ClickEvent;
-import net.md_5.bungee.api.chat.ComponentBuilder;
-import net.md_5.bungee.api.chat.HoverEvent;
-import net.md_5.bungee.api.chat.TextComponent;
+import net.md_5.bungee.api.chat.*;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -30,6 +27,8 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.SkullMeta;
 
 import java.time.LocalDateTime;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.function.Predicate;
 import java.util.regex.Matcher;
@@ -91,8 +90,36 @@ public class CommandShop extends BaseCommand {
 
         private final Pattern TIME_STR = Pattern.compile("(?:(\\d+)d)?(?:(\\d+)h)?(?:(\\d+)m)?(?:(\\d+)s)?");
 
-        public Discount() {}
-
+        public Discount() {
+            manager.getCommandCompletions().registerCompletion("discount_argstr", ctx->{
+               String input = ctx.getInput();
+               if (input.contains("=")) {
+                   String[] split = input.split("=");
+                   String left = split[0];
+                   String right =  split.length > 1 ? split[1] : "";
+                   switch (left) {
+                       case "shop":
+                           return ShopManager.SHOPS.keySet().stream()
+                                   .filter(shopName -> shopName.startsWith(right))
+                                   .map(shopName -> "shop=" + shopName).collect(Collectors.toList());
+                       case "material":
+                           return Arrays.stream(Material.values())
+                                   .map(Enum::name)
+                                   .filter(mat -> mat.startsWith(right))
+                                   .map(mat -> "material=" + mat).collect(Collectors.toList());
+                       case "player":
+                           return Bukkit.getOnlinePlayers().stream()
+                                   .map(Player::getName)
+                                   .filter(player -> player.startsWith(right))
+                                   .map(player -> "player=" + player).collect(Collectors.toList());
+                       default:
+                           return Collections.emptyList();
+                   }
+               } else {
+                   return Arrays.asList("shop=", "material=", "player=", "permission=");
+               }
+            });
+        }
 
         private LocalDateTime parseTimeStr(String str) {
             Matcher matcher = TIME_STR.matcher(str);
@@ -116,42 +143,46 @@ public class CommandShop extends BaseCommand {
             throw new IllegalArgumentException(str + " is not a valid time string");
         }
 
-        private String stringifyDiscount(ShopDiscount.Entry discount) {
-            StringBuilder builder = new StringBuilder(ChatColor.YELLOW.toString());
-            builder.append((1 - discount.percentage)*100)
-                    .append("% discount ending on ")
-                    .append(discount.expiry.toString())
-                    .append(" applicable to:");
+        private BaseComponent[] stringifyDiscount(ShopDiscount.Entry discount) {
+            ComponentBuilder builder =
+                    new ComponentBuilder((1 - discount.percentage)*100 + "% discount ").color(net.md_5.bungee.api.ChatColor.YELLOW)
+                    .append("(" + discount.name + ")").color(net.md_5.bungee.api.ChatColor.AQUA);
+
+
+            ComponentBuilder hoverBuilder = new ComponentBuilder("Discount ID: ").color(net.md_5.bungee.api.ChatColor.GREEN)
+                    .append(discount.name).color(net.md_5.bungee.api.ChatColor.YELLOW)
+                    .append("\nApplicable to:").color(net.md_5.bungee.api.ChatColor.GREEN);
             boolean hasCriteria = false;
             if (discount.shop != null) {
-                builder.append("\nShop: ").append(discount.shop);
+                hoverBuilder.append("\nShop: ").append(discount.shop);
                 hasCriteria = true;
             }
             if (discount.material != null) {
-                builder.append("\nMaterial: ").append(discount.material.name());
+                hoverBuilder.append("\nMaterial: ").append(discount.material.name());
                 hasCriteria = true;
             }
             if (discount.player != null) {
-                builder.append("\nPlayer: ").append(Bukkit.getOfflinePlayer(discount.player).getName());
+                hoverBuilder.append("\nPlayer: ").append(Bukkit.getOfflinePlayer(discount.player).getName());
                 hasCriteria = true;
             }
             if (discount.permission != null) {
-                builder.append("\nPlayer w/ permission: ").append(discount.permission);
+                hoverBuilder.append("\nPlayer w/ permission: ").append(discount.permission);
                 hasCriteria = true;
             }
             if (!hasCriteria) {
-                builder.append(" everyone");
+                hoverBuilder.append("\nEveryone");
             }
-            return builder.toString();
+            builder.event(new HoverEvent(HoverEvent.Action.SHOW_TEXT, hoverBuilder.create()));
+            return builder.create();
         }
 
         @Subcommand("create")
         @CommandPermission("worstshop.discount.create")
-        @CommandCompletion("1h|6h|12h|1d|7d|30d 0.5|0.7|0.9 shop=shopname|player=playername|material=material|permission=permission")
-        public void createDiscount(CommandSender sender, String expiry, double discount, String argString) {
+        @CommandCompletion("@nothing 1h|6h|12h|1d|7d|30d 0.5|0.7|0.9 @discount_argstr")
+        public void createDiscount(CommandSender sender, String name, String expiry, double discount, String argString) {
             String[] args = argString.split(" ");
             LocalDateTime expiryTime = parseTimeStr(expiry);
-            ShopDiscount.Entry entry = new ShopDiscount.Entry(expiryTime, discount);
+            ShopDiscount.Entry entry = new ShopDiscount.Entry(name, expiryTime, discount);
             for (String str : args) {
                 String[] strArgs = str.split("[=:]");
                 String specifier = strArgs[0];
@@ -186,15 +217,37 @@ public class CommandShop extends BaseCommand {
                 }
             }
             ShopDiscount.addDiscountEntry(entry);
-            sender.sendMessage(ChatColor.GREEN + "Added " + stringifyDiscount(entry));
+            sender.sendMessage(new ComponentBuilder("Added new ").color(net.md_5.bungee.api.ChatColor.GREEN).append(stringifyDiscount(entry)).create());
         }
 
         @Subcommand("info|list")
         @CommandPermission("worstshop.discount.list")
         public void listDiscounts(CommandSender sender) {
             sender.sendMessage(ChatColor.GREEN + "Discounts:");
-            ShopDiscount.ALL_DISCOUNTS.stream().filter(entry -> !entry.hasExpired())
-                    .map(this::stringifyDiscount).forEach(sender::sendMessage);
+            ShopDiscount.ALL_DISCOUNTS.values().stream().filter(entry -> !entry.hasExpired())
+                    .map(entry -> {
+                        BaseComponent[] components = stringifyDiscount(entry);
+                        return new ComponentBuilder("A ").color(net.md_5.bungee.api.ChatColor.YELLOW)
+                                .append(components)
+                                .append(" ")
+                                .append("[Delete]").color(net.md_5.bungee.api.ChatColor.RED).bold(true)
+                                .event(new HoverEvent(HoverEvent.Action.SHOW_TEXT, TextComponent.fromLegacyText(ChatColor.YELLOW + "Click here to delete the discount")))
+                                .event(new ClickEvent(ClickEvent.Action.SUGGEST_COMMAND, "/worstshop discount delete " + entry.name))
+                                .create();
+                    }).forEach(sender::sendMessage);
+        }
+
+        @Subcommand("delete")
+        @CommandPermission("worstshop.discount.delete")
+        public void deleteDiscount(CommandSender sender, String name) {
+            ShopDiscount.Entry realEntry = ShopDiscount.ALL_DISCOUNTS.get(name);
+            if (realEntry != null) {
+                ShopDiscount.removeDiscountEntry(realEntry);
+                sender.sendMessage(
+                        new ComponentBuilder("Successfully removed ").color(net.md_5.bungee.api.ChatColor.GREEN)
+                        .append(stringifyDiscount(realEntry)).create()
+                );
+            }
         }
 
     }

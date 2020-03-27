@@ -15,11 +15,11 @@ public class ShopDiscount {
 
     public static class Entry {
 
-        public Entry(LocalDateTime expiry, double percentage) {
+        public Entry(String name, LocalDateTime expiry, double percentage) {
             this.expiry = expiry;
             this.percentage = percentage;
         }
-        public UUID uuid = UUID.randomUUID();
+        public String name;
         public final LocalDateTime expiry;
         public final double percentage;
         public String shop;
@@ -46,7 +46,7 @@ public class ShopDiscount {
 
         @Override
         public int hashCode() {
-            return uuid.hashCode();
+            return name.hashCode();
         }
 
         @Override
@@ -62,7 +62,7 @@ public class ShopDiscount {
 
         public Map<String, Object> toMap() {
             Map<String, Object> map = Maps.newHashMap();
-            map.put("uuid", uuid);
+            map.put("name", name);
             map.put("expiry", expiry.toEpochSecond(ZoneOffset.UTC)); // doesn't matter, will be read as UTC too
             map.put("percentage", percentage);
             if (shop != null)
@@ -77,10 +77,10 @@ public class ShopDiscount {
         }
 
         public static Entry fromMap(Map<String, Object> map) {
+            String name = (String) map.get("name");
             int expiry = ((Number) map.get("expiry")).intValue();
             double percentage = ((Number) map.get("percentage")).doubleValue();
-            Entry entry = new Entry(LocalDateTime.ofEpochSecond(expiry, 0, ZoneOffset.UTC), percentage);
-            entry.uuid = UUID.fromString((String) map.get("uuid"));
+            Entry entry = new Entry(name, LocalDateTime.ofEpochSecond(expiry, 0, ZoneOffset.UTC), percentage);
             if (map.containsKey("shop"))
                 entry.shop = (String) map.get("shop");
             if (map.containsKey("material"))
@@ -98,7 +98,7 @@ public class ShopDiscount {
     public static final HashMap<UUID, Set<Entry>> BY_PLAYER = Maps.newHashMap();
     public static final Set<Entry> NO_CRITERIA = Sets.newHashSet();
 
-    public static final HashMap<UUID, Entry> ALL_DISCOUNTS = Maps.newHashMap();
+    public static final HashMap<String, Entry> ALL_DISCOUNTS = Maps.newHashMap();
 
     public static List<Entry> findApplicableEntries(Shop shop, Material material, Player player) {
         Objects.requireNonNull(shop, "shop cannot be null");
@@ -145,7 +145,7 @@ public class ShopDiscount {
      */
     public static void addDiscountEntry(Entry entry) {
         boolean isNoCriteria = true;
-        ALL_DISCOUNTS.put(entry.uuid, entry);
+        ALL_DISCOUNTS.put(entry.name, entry);
         if (entry.shop != null) {
             BY_SHOP.computeIfAbsent(entry.shop, key->Sets.newHashSet()).add(entry);
             isNoCriteria = false;
@@ -165,7 +165,7 @@ public class ShopDiscount {
     }
 
     public static void removeDiscountEntry(Entry entry) {
-        ALL_DISCOUNTS.remove(entry.uuid);
+        ALL_DISCOUNTS.remove(entry.name);
         boolean isNoCriteria = true;
         if (entry.shop != null) {
             BY_SHOP.get(entry.shop).remove(entry);
