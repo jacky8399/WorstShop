@@ -109,7 +109,7 @@ public class PurchaseRecords {
             StringBuilder builder = new StringBuilder(key);
             for (int i = 0; i < builder.length(); i++) {
                 char chr = builder.charAt(i);
-                if (Character.isLowerCase(chr) || Character.isDigit(chr)) continue;
+                if (Character.isLowerCase(chr) || Character.isDigit(chr) || chr == '_') continue;
                 if (Character.isUpperCase(chr)) {
                     // replace with _ and lower
                     builder.replace(i, i + 1, "_" + Character.toLowerCase(chr));
@@ -168,20 +168,23 @@ public class PurchaseRecords {
         @SuppressWarnings({"null", "ConstantConditions"})
         public PurchaseRecords fromPrimitive(@NotNull PersistentDataContainer primitive, @NotNull PersistentDataAdapterContext context) {
             // get keys
+            PurchaseRecords records = new PurchaseRecords();
             Set<NamespacedKey> keys = ReflectionUtils.getPersistentDataContainerKeys(primitive);
             keys.forEach(key -> {
-                PersistentDataContainer nested = primitive.get(key, PersistentDataType.TAG_CONTAINER);
-                long retentionTime = nested.get(RETENTION_TIME, PersistentDataType.LONG);
-                int maxRecords = nested.get(MAX_RECORDS, PersistentDataType.INTEGER);
-                RecordStorage recordStorage = new RecordStorage(Duration.ofSeconds(retentionTime), maxRecords);
-                long[] recordsArr = nested.get(RECORDS, PersistentDataType.LONG_ARRAY);
-                for (int i = 0; i < recordsArr.length; i += 2) {
-                    long timeOfPurchase = recordsArr[i];
-                    int amount = (int) recordsArr[i + 1];
-                    recordStorage.addRecord(LocalDateTime.ofEpochSecond(timeOfPurchase, 0, ZoneOffset.UTC), amount);
-                }
+                try {
+                    PersistentDataContainer nested = primitive.get(key, PersistentDataType.TAG_CONTAINER);
+                    long retentionTime = nested.get(RETENTION_TIME, PersistentDataType.LONG);
+                    int maxRecords = nested.get(MAX_RECORDS, PersistentDataType.INTEGER);
+                    RecordStorage recordStorage = records.create(key.getKey(), Duration.ofSeconds(retentionTime), maxRecords);
+                    long[] recordsArr = nested.get(RECORDS, PersistentDataType.LONG_ARRAY);
+                    for (int i = 0; i < recordsArr.length; i += 2) {
+                        long timeOfPurchase = recordsArr[i];
+                        int amount = (int) recordsArr[i + 1];
+                        recordStorage.addRecord(LocalDateTime.ofEpochSecond(timeOfPurchase, 0, ZoneOffset.UTC), amount);
+                    }
+                } catch (Exception ignored) { }
             });
-            return null;
+            return records;
         }
     }
 }

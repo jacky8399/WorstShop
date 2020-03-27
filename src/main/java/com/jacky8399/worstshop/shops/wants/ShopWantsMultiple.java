@@ -9,7 +9,6 @@ import fr.minuskube.inv.content.InventoryContents;
 import fr.minuskube.inv.content.SlotPos;
 import joptsimple.internal.Strings;
 import org.bukkit.entity.Player;
-import org.bukkit.inventory.ItemStack;
 
 import java.util.Collections;
 import java.util.List;
@@ -34,7 +33,7 @@ public class ShopWantsMultiple extends ShopWants implements IParentElementReader
 
     @Override
     public boolean canAfford(Player player) {
-        return wants.stream().allMatch(want->canAfford(player));
+        return wants.stream().allMatch(want->want.canAfford(player));
     }
 
     @Override

@@ -1,12 +1,8 @@
 package com.jacky8399.worstshop.shops.wants;
 
 import com.google.common.collect.Lists;
-import com.jacky8399.worstshop.helper.ItemUtils;
-import com.jacky8399.worstshop.shops.Shop;
 import com.jacky8399.worstshop.shops.elements.ShopElement;
 import com.jacky8399.worstshop.shops.elements.StaticShopElement;
-import fr.minuskube.inv.ClickableItem;
-import fr.minuskube.inv.content.InventoryContents;
 import fr.minuskube.inv.content.SlotPos;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
@@ -165,29 +161,7 @@ public class ShopWants implements Predicate<Player> {
         }
         return Predicate.super.and(other);
     }
-
-    @Override
-    public Predicate<Player> or(Predicate<? super Player> other) {
-        if (other instanceof ShopWants) {
-            return new ShopWantsMultiple(mergeWants(this, (ShopWants) other)) {
-                @Override
-                public boolean canAfford(Player player) {
-                    return wants.stream().anyMatch(want -> want.canAfford(player));
-                }
-            };
-        }
-        return Predicate.super.or(other);
-    }
-
-    @Override
-    public ShopWants negate() {
-        return new ShopWants() {
-            @Override
-            public boolean canAfford(Player player) {
-                return !ShopWants.this.canAfford(player);
-            }
-        };
-    }
+    // don't override other Predicate methods as it makes no sense to ShopWants
 
     /**
      * Denotes the position the ShopElement should be at

@@ -46,11 +46,11 @@ public class ActionItemShop extends ShopAction implements IParentElementReader {
 
     public ActionItemShop(Map<String, Object> yaml) {
         super(yaml);
-        if (yaml.containsKey("buyPrice")) {
-            buyPrice = ((Number) yaml.get("buyPrice")).doubleValue();
+        if (yaml.containsKey("buy-price")) {
+            buyPrice = ((Number) yaml.get("buy-price")).doubleValue();
         }
-        if (yaml.containsKey("sellPrice")) {
-            sellPrice = ((Number) yaml.get("sellPrice")).doubleValue();
+        if (yaml.containsKey("sell-price")) {
+            sellPrice = ((Number) yaml.get("sell-price")).doubleValue();
         }
 
         // shortcut
@@ -92,7 +92,7 @@ public class ActionItemShop extends ShopAction implements IParentElementReader {
             }
         }
 
-        sellAll = (boolean) yaml.getOrDefault("allowSellAll", true);
+        sellAll = (boolean) yaml.getOrDefault("allow-sell-all", true);
     }
 
     private double getDiscount(Player player) {

@@ -7,6 +7,7 @@ import org.bukkit.inventory.InventoryView;
 import org.bukkit.persistence.PersistentDataContainer;
 
 import java.lang.reflect.Constructor;
+import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.Map;
@@ -62,7 +63,9 @@ public class ReflectionUtils {
     public static Set<NamespacedKey> getPersistentDataContainerKeys(PersistentDataContainer container) {
         Class<? extends PersistentDataContainer> clazz = container.getClass();
         try {
-            return ((Map<String, ?>) clazz.getDeclaredField("customDataTags").get(container)).keySet().stream().map(key -> {
+            Field field = clazz.getDeclaredField("customDataTags");
+            field.setAccessible(true);
+            return ((Map<String, ?>) field.get(container)).keySet().stream().map(key -> {
                 String[] split = key.split(":");
                 // why the fuck is the custom namespace ctor deprecated fuck off
                 return new NamespacedKey(split[0], split[1]);

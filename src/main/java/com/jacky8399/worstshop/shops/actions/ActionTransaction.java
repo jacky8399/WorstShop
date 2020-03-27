@@ -21,6 +21,7 @@ public class ActionTransaction extends ActionShop {
         Player player = (Player) e.getWhoClicked();
         int maxPurchases = getPlayerMaxPurchase(player);
         if (cost.canAfford(player) && maxPurchases >= 1) {
+            cost.deduct(player);
             double refund = reward.grantOrRefund(player);
             cost.multiply(refund).grantOrRefund(player);
         }

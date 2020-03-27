@@ -177,6 +177,11 @@ public class Shop implements InventoryProvider {
     }
 
     public void refreshItems(Player player, InventoryContents contents, boolean updateDynamic) {
+        // clear old items
+        SlotIterator it = contents.newIterator(SlotIterator.Type.HORIZONTAL, 0,0).allowOverride(true);
+        while (!it.ended()) {
+            it.next().set(null);
+        }
         PaginationHelper helper = new PaginationHelper(contents);
         populateElements(staticElements, player, contents, helper);
         if (updateDynamic)
