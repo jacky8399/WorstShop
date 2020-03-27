@@ -3,8 +3,10 @@ package com.jacky8399.worstshop.shops.actions;
 import com.google.common.collect.Lists;
 import com.jacky8399.worstshop.I18n;
 import com.jacky8399.worstshop.WorstShop;
+import com.jacky8399.worstshop.helper.DateTimeUtils;
 import com.jacky8399.worstshop.helper.InventoryCloseListener;
 import com.jacky8399.worstshop.helper.ItemBuilder;
+import com.jacky8399.worstshop.helper.PurchaseRecords;
 import com.jacky8399.worstshop.shops.elements.ShopElement;
 import com.jacky8399.worstshop.shops.elements.StaticShopElement;
 import com.jacky8399.worstshop.shops.wants.IFlexibleShopWants;
@@ -22,11 +24,15 @@ import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.scheduler.BukkitRunnable;
 
+import java.time.Duration;
+import java.time.LocalDateTime;
 import java.util.*;
 import java.util.function.Consumer;
 
 public class ActionShop extends ShopAction implements IParentElementReader {
     public ShopWants cost, reward;
+    public PurchaseRecords.RecordTemplate purchaseLimitTemplate;
+    public int purchaseLimit;
     public ActionShop(Map<String, Object> yaml) {
         super(yaml);
         // if has specific cost
@@ -44,12 +50,24 @@ public class ActionShop extends ShopAction implements IParentElementReader {
             // copy from parent item
             reward = null;
         }
+
+        if (yaml.containsKey("purchase-limit")) {
+            Map<String, Object> purchaseLimitYaml = (Map<String, Object>) yaml.get("purchase-limit");
+            String id = ((String) purchaseLimitYaml.get("id"));
+            int limit = ((Number) purchaseLimitYaml.get("limit")).intValue();
+            Duration retentionTime = DateTimeUtils.parseTimeStr((String) purchaseLimitYaml.get("every"));
+            int maxRecords = ((Number) purchaseLimitYaml.getOrDefault("max-records", 128)).intValue();
+            purchaseLimitTemplate = new PurchaseRecords.RecordTemplate(id, retentionTime, maxRecords);
+            purchaseLimit = limit;
+        }
     }
 
-    public ActionShop(ShopWants cost, ShopWants reward) {
+    public ActionShop(ShopWants cost, ShopWants reward, PurchaseRecords.RecordTemplate purchaseLimitTemplate, int purchaseLimit) {
         super(null);
         this.cost = cost;
         this.reward = reward;
+        this.purchaseLimitTemplate = purchaseLimitTemplate;
+        this.purchaseLimit = purchaseLimit;
     }
 
     public void doTransaction(Player player, double count) {
@@ -59,13 +77,19 @@ public class ActionShop extends ShopAction implements IParentElementReader {
         }
         ActionShop adjusted = adjustForPlayer(player);
         ShopWants multipliedCost = adjusted.cost.multiply(count);
-        if (multipliedCost.canAfford(player)) {
+        int playerMaxPurchases = getPlayerMaxPurchase(player);
+        if (multipliedCost.canAfford(player) && count <= playerMaxPurchases) {
             multipliedCost.deduct(player);
             double refund = adjusted.reward.multiply(count).grantOrRefund(player);
             if (refund > 0) {
                 // refunds DO NOT allow refunding
                 adjusted.cost.multiply(refund).grantOrRefund(player);
                 player.sendMessage(formatRefundMessage(player, refund));
+            }
+            if (purchaseLimitTemplate != null) {
+                PurchaseRecords records = PurchaseRecords.get(player);
+                records.applyTemplate(purchaseLimitTemplate).addRecord(LocalDateTime.now(), (int) (count - refund));
+                records.updateFor(player);
             }
             player.sendMessage(formatPurchaseMessage(player, count - refund));
         } else {
@@ -84,7 +108,18 @@ public class ActionShop extends ShopAction implements IParentElementReader {
                 cost instanceof IFlexibleShopWants ?
                         ((IFlexibleShopWants) cost).adjustForPlayer(player) : cost,
                 reward instanceof IFlexibleShopWants ?
-                        ((IFlexibleShopWants) reward).adjustForPlayer(player) : reward);
+                        ((IFlexibleShopWants) reward).adjustForPlayer(player) : reward,
+                purchaseLimitTemplate, purchaseLimit);
+    }
+
+    public int getPlayerMaxPurchase(Player player) {
+        if (purchaseLimitTemplate == null) {
+            return Integer.MAX_VALUE;
+        }
+        PurchaseRecords records = PurchaseRecords.get(player);
+        PurchaseRecords.RecordStorage storage = records.applyTemplate(purchaseLimitTemplate);
+        int totalPurchases = storage.getTotalPurchases();
+        return purchaseLimit - totalPurchases;
     }
 
     @Override
@@ -170,6 +205,7 @@ public class ActionShop extends ShopAction implements IParentElementReader {
             this.reward = shop.reward;
         }
 
+
         public static SmartInventory getInventory(Player player, ActionShop shop, SmartInventory parent) {
             return SmartInventory.builder()
                     .title(
@@ -230,7 +266,7 @@ public class ActionShop extends ShopAction implements IParentElementReader {
             contents.set(5, 8, ClickableItem.of(
                     ItemBuilder.of(Material.HOPPER)
                         .name(I18n.translate(I18n.Keys.MESSAGES_KEY + "shops.buttons.maximize-purchase"))
-                        .build(), e-> buyCount = cost.getMaximumMultiplier(player)
+                        .build(), e-> buyCount = Math.min(cost.getMaximumMultiplier(player), shop.getPlayerMaxPurchase(player))
             ));
         }
 

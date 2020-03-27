@@ -21,9 +21,13 @@ public class ShopAction {
             return;
         }
         if (yaml.containsKey("on")) {
-            ((List<String>)yaml.get("on")).forEach(this::matchShopTrigger);
+            Object on = yaml.get("on");
+            if (on instanceof List<?>)
+                ((List<String>)yaml.get("on")).forEach(this::matchShopTrigger);
+            else if (on instanceof String)
+                matchShopTrigger((String) on);
         } else {
-            matchShopTrigger((String) yaml.getOrDefault("on", "*"));
+            matchShopTrigger("*");
         }
     }
 

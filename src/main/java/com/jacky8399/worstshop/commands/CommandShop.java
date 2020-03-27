@@ -8,6 +8,7 @@ import co.aikar.commands.bukkit.contexts.OnlinePlayer;
 import com.google.common.collect.Lists;
 import com.jacky8399.worstshop.I18n;
 import com.jacky8399.worstshop.WorstShop;
+import com.jacky8399.worstshop.helper.DateTimeUtils;
 import com.jacky8399.worstshop.helper.ItemUtils;
 import com.jacky8399.worstshop.helper.PaperHelper;
 import com.jacky8399.worstshop.helper.PermStringHelper;
@@ -31,8 +32,6 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.function.Predicate;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 @CommandAlias("worstshop|shop")
@@ -88,12 +87,12 @@ public class CommandShop extends BaseCommand {
     @CommandPermission("worstshop.discount")
     public class Discount extends co.aikar.commands.BaseCommand {
 
-        private final Pattern TIME_STR = Pattern.compile("(?:(\\d+)d)?(?:(\\d+)h)?(?:(\\d+)m)?(?:(\\d+)s)?");
 
         public Discount() {
             manager.getCommandCompletions().registerCompletion("discount_argstr", ctx->{
                String input = ctx.getInput();
                if (input.contains("=")) {
+                   // provide autocomplete based on left hand side
                    String[] split = input.split("=");
                    String left = split[0];
                    String right =  split.length > 1 ? split[1] : "";
@@ -119,28 +118,6 @@ public class CommandShop extends BaseCommand {
                    return Arrays.asList("shop=", "material=", "player=", "permission=");
                }
             });
-        }
-
-        private LocalDateTime parseTimeStr(String str) {
-            Matcher matcher = TIME_STR.matcher(str);
-            if (!str.isEmpty() && matcher.matches()) {
-                int secondsIntoFuture = 0;
-                String days = matcher.group(1), hours = matcher.group(2), minutes = matcher.group(3), seconds = matcher.group(4);
-                if (days != null) {
-                    secondsIntoFuture += Integer.parseInt(days) * 86400;
-                }
-                if (hours != null) {
-                    secondsIntoFuture += Integer.parseInt(hours) * 3600;
-                }
-                if (minutes != null) {
-                    secondsIntoFuture += Integer.parseInt(minutes) * 60;
-                }
-                if (seconds != null) {
-                    secondsIntoFuture += Integer.parseInt(seconds);
-                }
-                return LocalDateTime.now().plusSeconds(secondsIntoFuture);
-            }
-            throw new IllegalArgumentException(str + " is not a valid time string");
         }
 
         private BaseComponent[] stringifyDiscount(ShopDiscount.Entry discount) {
@@ -181,10 +158,10 @@ public class CommandShop extends BaseCommand {
         @CommandCompletion("@nothing 1h|6h|12h|1d|7d|30d 0.5|0.7|0.9 @discount_argstr")
         public void createDiscount(CommandSender sender, String name, String expiry, double discount, String argString) {
             String[] args = argString.split(" ");
-            LocalDateTime expiryTime = parseTimeStr(expiry);
+            LocalDateTime expiryTime = LocalDateTime.now().plus(DateTimeUtils.parseTimeStr(expiry));
             ShopDiscount.Entry entry = new ShopDiscount.Entry(name, expiryTime, discount);
             for (String str : args) {
-                String[] strArgs = str.split("[=:]");
+                String[] strArgs = str.split("=");
                 String specifier = strArgs[0];
                 String value = strArgs[1];
                 switch (specifier) {

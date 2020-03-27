@@ -1,5 +1,6 @@
 package com.jacky8399.worstshop.shops.actions;
 
+import com.jacky8399.worstshop.helper.PurchaseRecords;
 import com.jacky8399.worstshop.shops.wants.ShopWants;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.InventoryClickEvent;
@@ -11,14 +12,15 @@ public class ActionTransaction extends ActionShop {
         super(yaml);
     }
 
-    public ActionTransaction(ShopWants cost, ShopWants reward) {
-        super(cost, reward);
+    public ActionTransaction(ShopWants cost, ShopWants reward, PurchaseRecords.RecordTemplate template, int purchaseLimit) {
+        super(cost, reward, template, purchaseLimit);
     }
 
     @Override
     public void onClick(InventoryClickEvent e) {
         Player player = (Player) e.getWhoClicked();
-        if (cost.canAfford(player)) {
+        int maxPurchases = getPlayerMaxPurchase(player);
+        if (cost.canAfford(player) && maxPurchases >= 1) {
             double refund = reward.grantOrRefund(player);
             cost.multiply(refund).grantOrRefund(player);
         }
