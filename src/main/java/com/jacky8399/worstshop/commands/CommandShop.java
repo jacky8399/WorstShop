@@ -1,5 +1,6 @@
 package com.jacky8399.worstshop.commands;
 
+import co.aikar.commands.CommandHelp;
 import co.aikar.commands.CommandIssuer;
 import co.aikar.commands.InvalidCommandArgument;
 import co.aikar.commands.PaperCommandManager;
@@ -86,8 +87,6 @@ public class CommandShop extends BaseCommand {
     @Subcommand("discount")
     @CommandPermission("worstshop.discount")
     public class Discount extends co.aikar.commands.BaseCommand {
-
-
         public Discount() {
             manager.getCommandCompletions().registerCompletion("discount_argstr", ctx->{
                String input = ctx.getInput();
@@ -121,11 +120,6 @@ public class CommandShop extends BaseCommand {
         }
 
         private BaseComponent[] stringifyDiscount(ShopDiscount.Entry discount) {
-            ComponentBuilder builder =
-                    new ComponentBuilder((1 - discount.percentage)*100 + "% discount ").color(net.md_5.bungee.api.ChatColor.YELLOW)
-                    .append("(" + discount.name + ")").color(net.md_5.bungee.api.ChatColor.AQUA);
-
-
             ComponentBuilder hoverBuilder = new ComponentBuilder("Discount ID: ").color(net.md_5.bungee.api.ChatColor.GREEN)
                     .append(discount.name).color(net.md_5.bungee.api.ChatColor.YELLOW)
                     .append("\nApplicable to:").color(net.md_5.bungee.api.ChatColor.GREEN);
@@ -149,8 +143,8 @@ public class CommandShop extends BaseCommand {
             if (!hasCriteria) {
                 hoverBuilder.append("\nEveryone");
             }
-            builder.event(new HoverEvent(HoverEvent.Action.SHOW_TEXT, hoverBuilder.create()));
-            return builder.create();
+            return new ComponentBuilder((1 - discount.percentage)*100 + "% discount ").color(net.md_5.bungee.api.ChatColor.YELLOW)
+                    .append("(" + discount.name + ")").color(net.md_5.bungee.api.ChatColor.AQUA).event(new HoverEvent(HoverEvent.Action.SHOW_TEXT, hoverBuilder.create())).create();
         }
 
         @Subcommand("create")
@@ -197,7 +191,7 @@ public class CommandShop extends BaseCommand {
             sender.sendMessage(new ComponentBuilder("Added new ").color(net.md_5.bungee.api.ChatColor.GREEN).append(stringifyDiscount(entry)).create());
         }
 
-        @Subcommand("info|list")
+        @Subcommand("list|info")
         @CommandPermission("worstshop.discount.list")
         public void listDiscounts(CommandSender sender) {
             sender.sendMessage(ChatColor.GREEN + "Discounts:");
@@ -308,6 +302,11 @@ public class CommandShop extends BaseCommand {
         } catch (IllegalArgumentException ex) {
             throw new InvalidCommandArgument(ex.getMessage());
         }
+    }
+
+    @HelpCommand
+    public void help(CommandHelp help) {
+        help.showHelp();
     }
 
     @Default
