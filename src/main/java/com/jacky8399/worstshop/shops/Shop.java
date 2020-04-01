@@ -64,7 +64,7 @@ public class Shop implements InventoryProvider {
     }
 
     public boolean canPlayerView(Player player, boolean isUsingAlias) {
-        return !isUsingAlias || (!aliasesIgnorePermission && checkPlayerPerms(player))
+        return (!isUsingAlias || aliasesIgnorePermission || checkPlayerPerms(player))
                 && condition.test(player);
     }
 

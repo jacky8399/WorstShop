@@ -5,6 +5,7 @@ import com.jacky8399.worstshop.I18n;
 import com.jacky8399.worstshop.WorstShop;
 import com.jacky8399.worstshop.helper.PaperHelper;
 import org.bukkit.Bukkit;
+import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandMap;
@@ -80,8 +81,11 @@ public class ShopCommands {
                 ShopManager.getShop(shopName)
                         .filter(shop -> shop.canPlayerView(player, true)) // check conditions
                         .ifPresent(shop -> shop.getInventory(player).open(player));
+                return true;
+            } else {
+                sender.sendMessage(ChatColor.RED + "This command can only be run by a player!");
+                return true;
             }
-            return true;
         }
 
         @NotNull

@@ -2,6 +2,7 @@ package com.jacky8399.worstshop.commands;
 
 import co.aikar.commands.PaperCommandManager;
 import co.aikar.commands.annotation.CommandAlias;
+import co.aikar.commands.annotation.CommandCompletion;
 import co.aikar.commands.annotation.CommandPermission;
 import co.aikar.commands.annotation.Subcommand;
 import com.jacky8399.worstshop.WorstShop;
@@ -11,6 +12,7 @@ import com.jacky8399.worstshop.shops.ItemShop;
 import com.jacky8399.worstshop.shops.ShopManager;
 import com.jacky8399.worstshop.shops.actions.ActionShop;
 import org.bukkit.Bukkit;
+import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.block.Container;
 import org.bukkit.entity.Player;
@@ -159,4 +161,10 @@ public class CommandSell extends BaseCommand {
         }
     }
 
+    @Subcommand("material")
+    @CommandPermission("worstshop.sell.material")
+    @CommandCompletion("*")
+    public void sellMaterial(Player player, Material mat) {
+
+    }
 }

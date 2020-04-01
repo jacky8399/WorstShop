@@ -17,8 +17,8 @@ worstshop:
           prefix: '&fPrefix {0}'
           suffix: '&fSuffix {0}'
 
-      buy-for: '&aBuy price: {0} &b(Left click)'
-      sell-for: '&aSell price: {0} &b(Right click)'
+      buy-for: '&aBuy for {0} &b(Left click)'
+      sell-for: '&aSell for {0} &b(Right click)'
       sell-all: '&aMiddle click to sell all'
       shop: '&6Shop'
       buy-counts:
@@ -31,12 +31,18 @@ worstshop:
         confirm: '&aOK'
         cancel: '&cCancel'
         maximize-purchase: '&b&lPurchase as many as possible'
+        purchase-limit:
+          name: '&bPurchase limit'
+          limit: '&aYou can only purchase &e{0}&a every &e{1}'
+          previous-purchases: '&7Recent purchases'
+          previous-purchase-entry: '&7- x{0} ({1} ago)'
 
       alias:
         description: 'Opens shop {0}'
 
       transaction-message: '&eYou traded &7&o({0} times)&r&e {1} for {2}.'
       transaction-nothing: '&eYou didn''''t trade anything.'
+      transaction-limit-reached: '&eYou can only purchase {0} every {1}. Please try again in {2}.'
       transaction-inv-full: '&cYour inventory cannot fit all the items!'
       transaction-refund: '&eYou were refunded &e{1} &7&o({0} trades)&r&e.'
     config-reloaded: 'Configuration reloaded!'

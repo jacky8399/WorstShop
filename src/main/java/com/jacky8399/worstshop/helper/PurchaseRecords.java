@@ -14,9 +14,8 @@ import org.jetbrains.annotations.NotNull;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Set;
+import java.util.*;
+import java.util.stream.Collectors;
 
 public class PurchaseRecords {
     public static PurchaseRecords get(Player player) {
@@ -87,6 +86,13 @@ public class PurchaseRecords {
         public int getTotalPurchases() {
             LocalDateTime now = LocalDateTime.now();
             return records.stream().filter(record -> !record.shouldBeDeletedAt(now)).mapToInt(record -> record.amount).sum();
+        }
+
+        public List<Map.Entry<LocalDateTime, Integer>> getEntries() {
+            LocalDateTime now = LocalDateTime.now();
+            return records.stream().filter(record -> !record.shouldBeDeletedAt(now))
+                    .map(record -> Maps.immutableEntry(record.timeOfPurchase, record.amount))
+                    .collect(Collectors.toList());
         }
 
         public void purgeOldRecords() {

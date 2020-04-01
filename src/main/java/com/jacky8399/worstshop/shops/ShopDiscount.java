@@ -16,6 +16,7 @@ public class ShopDiscount {
     public static class Entry {
 
         public Entry(String name, LocalDateTime expiry, double percentage) {
+            this.name = name;
             this.expiry = expiry;
             this.percentage = percentage;
         }

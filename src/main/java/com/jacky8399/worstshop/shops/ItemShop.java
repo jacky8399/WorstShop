@@ -46,11 +46,18 @@ public class ItemShop {
     }
 
     public boolean isSellable(ItemStack stack, Player player) {
-        return acceptsSelling() && getSellCost(player).canAfford(stack);
+        return acceptsSelling() && getSellAmount(player, stack) > 0;
     }
 
     public boolean isSellable(Inventory inventory, Player player) {
-        return acceptsSelling() && getSellCost(player).canAfford(inventory);
+        return acceptsSelling() && getSellAmount(player, inventory) > 0;
+    }
+
+    public int getSellAmount(Player player, Inventory inventory) {
+        return Math.min(shop.buildSellShop(player).getPlayerMaxPurchase(player), getSellCost(player).getMaximumMultiplier(inventory));
+    }
+    public int getSellAmount(Player player, ItemStack inventory) {
+        return Math.min(shop.buildSellShop(player).getPlayerMaxPurchase(player), getSellCost(player).getMaximumMultiplier(inventory));
     }
 
     public void sell(ItemStack stack, Player player) {
@@ -69,14 +76,6 @@ public class ItemShop {
     }
 
     public void sellAll(Inventory inventory, Player player) {
-        shop.doSellTransaction(player, inventory, getSellCost(player).getMaximumMultiplier(inventory));
-    }
-
-    public void sellAll(Player player) {
-        shop.doSellTransaction(player, getSellCost(player).getMaximumMultiplier(player));
-    }
-
-    public boolean hasSellableItems(Player player) {
-        return isSellable(player.getInventory(), player);
+        shop.doSellTransaction(player, inventory, getSellAmount(player, inventory));
     }
 }

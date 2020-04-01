@@ -44,6 +44,6 @@ public class DateTimeUtils {
             sb.append(minutes).append("m");
         if (remainingSeconds != 0)
             sb.append(remainingSeconds).append("s");
-        return sb.toString();
+        return sb.length() == 0 ? "0s" : sb.toString();
     }
 }

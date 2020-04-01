@@ -78,7 +78,11 @@ public class ActionShop extends ShopAction implements IParentElementReader {
         ActionShop adjusted = adjustForPlayer(player);
         ShopWants multipliedCost = adjusted.cost.multiply(count);
         int playerMaxPurchases = getPlayerMaxPurchase(player);
-        if (multipliedCost.canAfford(player) && count <= playerMaxPurchases) {
+        if (count > playerMaxPurchases) {
+            player.sendMessage(formatPurchaseLimitMessage(player));
+            return;
+        }
+        if (multipliedCost.canAfford(player)) {
             multipliedCost.deduct(player);
             double refund = adjusted.reward.multiply(count).grantOrRefund(player);
             if (refund > 0) {
@@ -86,6 +90,7 @@ public class ActionShop extends ShopAction implements IParentElementReader {
                 adjusted.cost.multiply(refund).grantOrRefund(player);
                 player.sendMessage(formatRefundMessage(player, refund));
             }
+            // record the sale
             if (purchaseLimitTemplate != null) {
                 PurchaseRecords records = PurchaseRecords.get(player);
                 records.applyTemplate(purchaseLimitTemplate).addRecord(LocalDateTime.now(), (int) (count - refund));
@@ -99,7 +104,7 @@ public class ActionShop extends ShopAction implements IParentElementReader {
 
     public void sellAll(Player player) {
         ActionShop adjusted = adjustForPlayer(player);
-        int transactionCount = adjusted.cost.getMaximumMultiplier(player);
+        int transactionCount = Math.min(adjusted.cost.getMaximumMultiplier(player), getPlayerMaxPurchase(player));
         adjusted.doTransaction(player, transactionCount);
     }
 
@@ -159,6 +164,25 @@ public class ActionShop extends ShopAction implements IParentElementReader {
                 buyCount,
                 adjusted.cost.multiply(buyCount).getPlayerResult(player, ShopWants.ElementPosition.COST),
                 adjusted.reward.multiply(buyCount).getPlayerResult(player, ShopWants.ElementPosition.REWARD)
+        );
+    }
+
+    public String formatPurchaseLimitMessage(Player player) {
+        PurchaseRecords records = PurchaseRecords.get(player);
+        PurchaseRecords.RecordStorage storage = records.applyTemplate(purchaseLimitTemplate);
+        List<Map.Entry<LocalDateTime, Integer>> entries = storage.getEntries();
+        Duration wait;
+        if (entries.size() == 0) {
+            wait = Duration.ofSeconds(0);
+        } else {
+            LocalDateTime firstPurchase = entries.get(0).getKey();
+            LocalDateTime nextPurchase = firstPurchase.plus(storage.retentionTime);
+            wait = Duration.between(LocalDateTime.now(), nextPurchase);
+        }
+        return I18n.translate("worstshop.messages.shops.transaction-limit-reached",
+                purchaseLimit,
+                DateTimeUtils.formatTime(purchaseLimitTemplate.retentionTime),
+                DateTimeUtils.formatTime(wait)
         );
     }
 
@@ -262,6 +286,25 @@ public class ActionShop extends ShopAction implements IParentElementReader {
                             .name(I18n.translate("worstshop.messages.shops.buttons.cancel"))
                             .build(), e-> contents.inventory().close(player)
             ));
+            // purchase limit
+            if (shop.purchaseLimitTemplate != null) {
+                List<String> lore = Lists.newArrayList(I18n.translate(
+                        I18n.Keys.MESSAGES_KEY + "shops.buttons.purchase-limit.limit",
+                        shop.purchaseLimit, DateTimeUtils.formatTime(shop.purchaseLimitTemplate.retentionTime)
+                ), I18n.translate(I18n.Keys.MESSAGES_KEY + "shops.buttons.purchase-limit.previous-purchases"));
+                PurchaseRecords.RecordStorage records = PurchaseRecords.get(player).applyTemplate(shop.purchaseLimitTemplate);
+
+                LocalDateTime now = LocalDateTime.now();
+                records.getEntries().stream().map(entry ->
+                        I18n.translate(I18n.Keys.MESSAGES_KEY + "shops.buttons.purchase-limit.previous-purchase-entry",
+                                entry.getValue(), DateTimeUtils.formatTime(Duration.between(entry.getKey(), now)))
+                ).forEach(lore::add);
+                contents.set(5, 0, ClickableItem.empty(
+                        ItemBuilder.of(Material.CLOCK)
+                                .name(I18n.translate(I18n.Keys.MESSAGES_KEY + "shops.buttons.purchase-limit.name"))
+                                .lore(lore).build()
+                ));
+            }
             // maximize purchase button
             contents.set(5, 8, ClickableItem.of(
                     ItemBuilder.of(Material.HOPPER)
@@ -299,14 +342,10 @@ public class ActionShop extends ShopAction implements IParentElementReader {
         private void doTransaction(InventoryClickEvent e) {
             Player player = (Player) e.getWhoClicked();
             // wow
-            Bukkit.getScheduler().runTask(WorstShop.get(), ()->doTransaction(player));
-        }
-
-        // wow
-        public void doTransaction(Player player) {
-            player.closeInventory();
-            // wow
-            shop.doTransaction(player, buyCount);
+            Bukkit.getScheduler().runTask(WorstShop.get(), ()->{
+                player.closeInventory();
+                shop.doTransaction(player, buyCount);
+            });
         }
 
         private static List<Integer> BUTTON_SIZE = Lists.newArrayList(1, 4, 16, 64);
@@ -359,7 +398,7 @@ public class ActionShop extends ShopAction implements IParentElementReader {
         }
 
         private void updateCanAfford(Player player, InventoryContents contents) {
-            if (shop.cost.multiply(buyCount).canAfford(player)) {
+            if (shop.cost.multiply(buyCount).canAfford(player) && buyCount <= shop.getPlayerMaxPurchase(player)) {
                 // green
                 contents.fillRow(3, GREEN);
             } else {

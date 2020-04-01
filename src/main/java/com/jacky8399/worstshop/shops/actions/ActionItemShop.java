@@ -104,19 +104,44 @@ public class ActionItemShop extends ShopAction implements IParentElementReader {
         return isStackDynamic ? parentElement.createStack(player) : ((StaticShopElement) parentElement).createPlaceholderStack(player);
     }
 
-    public ShopWantsItem buildWantsItem(Player player) {
-        // try to get static stack
-        return new ShopWantsItem(getTargetItemStack(player));
-    }
-
     public ActionShop buildBuyShop(Player player) {
         double discount = getDiscount(player);
-        return buyPrice > 0 ? new ActionShop(new ShopWantsMoney(buyPrice * discount), buildWantsItem(player), buyLimitTemplate, buyLimit) : null;
+        return buyPrice > 0 ? new ActionShop(new ShopWantsMoney(buyPrice * discount), new ShopWantsItem(getTargetItemStack(player)), buyLimitTemplate, buyLimit) : null;
     }
 
     public ActionShop buildSellShop(Player player) {
         double discount = getDiscount(player);
-        return sellPrice > 0 ? new ActionShop(buildWantsItem(player), new ShopWantsMoney(sellPrice * discount), sellLimitTemplate, sellLimit) : null;
+        return sellPrice > 0 ? new ActionShop(new ShopWantsItem(getTargetItemStack(player)), new ShopWantsMoney(sellPrice * discount), sellLimitTemplate, sellLimit) : null;
+    }
+
+    public static ShopWantsItem rerouteWantToInventory(ShopWantsItem item, Inventory inventory) {
+        return new ShopWantsItem(item.createStack()) {
+            @Override
+            public ShopWants multiply(double multiplier) {
+                return rerouteWantToInventory((ShopWantsItem) super.multiply(multiplier), inventory);
+            }
+
+            @Override
+            public boolean canAfford(Player player) {
+                return canAfford(inventory);
+            }
+
+            @Override
+            public int getMaximumMultiplier(Player player) {
+                return getMaximumMultiplier(inventory);
+            }
+
+            @Override
+            public void deduct(Player player) {
+                deduct(inventory);
+            }
+
+            @Override
+            public double grantOrRefund(Player player) {
+                grant(inventory);
+                return 0;
+            }
+        };
     }
 
     public void doBuyTransaction(Player player, double count) {
@@ -124,24 +149,8 @@ public class ActionItemShop extends ShopAction implements IParentElementReader {
             player.sendMessage(ActionShop.formatNothingMessage());
             return;
         }
-        ActionShop shop = buildBuyShop(player);
-        ShopWants multipliedCost = shop.cost.multiply(count);
-        if (multipliedCost.canAfford(player)) {
-            multipliedCost.deduct(player);
-            double refund = shop.reward.multiply(count).grantOrRefund(player);
-            if (refund > 0) {
-                // refunds DO NOT allow refunding
-                shop.cost.multiply(refund).grantOrRefund(player);
-                player.sendMessage(shop.formatRefundMessage(player, refund));
-            }
-            player.sendMessage(shop.formatPurchaseMessage(player, count - refund));
-        } else {
-            player.sendMessage(ActionShop.formatNothingMessage());
-        }
-    }
-
-    public void doSellTransaction(Player player, double count) {
-        doSellTransaction(player, player.getInventory(), count);
+        ActionShop shop = buildBuyShop(player).adjustForPlayer(player);
+        shop.doTransaction(player, count);
     }
 
     public void doSellTransaction(Player player, Inventory inventory, double count) {
@@ -149,20 +158,10 @@ public class ActionItemShop extends ShopAction implements IParentElementReader {
             player.sendMessage(ActionShop.formatNothingMessage());
             return;
         }
-        ActionShop shop = buildSellShop(player);
-        ShopWantsItem multipliedCost = (ShopWantsItem) shop.cost.multiply(count);
-        if (multipliedCost.canAfford(inventory)) {
-            multipliedCost.deduct(inventory);
-            double refund = shop.reward.multiply(count).grantOrRefund(player);
-            if (refund > 0) {
-                // refunds DO NOT allow refunding
-                shop.cost.multiply(refund).grantOrRefund(player);
-                player.sendMessage(shop.formatRefundMessage(player, refund));
-            }
-            player.sendMessage(shop.formatPurchaseMessage(player, count - refund));
-        } else {
-            player.sendMessage(ActionShop.formatNothingMessage());
-        }
+        ActionShop shop = buildSellShop(player).adjustForPlayer(player);
+        // HACK: reroute shop cost
+        shop.cost = rerouteWantToInventory((ShopWantsItem) shop.cost, inventory);
+        shop.doTransaction(player, count);
     }
 
     @Override
