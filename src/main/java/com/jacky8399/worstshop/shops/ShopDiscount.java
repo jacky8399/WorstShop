@@ -101,6 +101,14 @@ public class ShopDiscount {
 
     public static final HashMap<String, Entry> ALL_DISCOUNTS = Maps.newHashMap();
 
+    public static void clearDiscounts() {
+        ALL_DISCOUNTS.clear();
+        BY_SHOP.clear();
+        BY_PLAYER.clear();
+        BY_MATERIAL.clear();
+        NO_CRITERIA.clear();
+    }
+
     public static List<Entry> findApplicableEntries(Shop shop, Material material, Player player) {
         Objects.requireNonNull(shop, "shop cannot be null");
         Objects.requireNonNull(material, "material cannot be null");

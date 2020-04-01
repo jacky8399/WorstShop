@@ -110,6 +110,7 @@ public final class WorstShop extends JavaPlugin {
 
         // Remove shops
         ShopManager.cleanUp();
+        ShopManager.saveDiscounts();
     }
 
     private static WorstShop plugin;

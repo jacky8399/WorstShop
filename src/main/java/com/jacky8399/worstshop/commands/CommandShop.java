@@ -29,7 +29,10 @@ import org.bukkit.inventory.meta.Damageable;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.SkullMeta;
 
+import java.time.Duration;
 import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -66,7 +69,7 @@ public class CommandShop extends BaseCommand {
         WorstShop plugin = WorstShop.get();
 
         ShopManager.closeAllShops();
-
+        ShopManager.saveDiscounts();
         plugin.reloadConfig();
         ShopManager.loadShops();
         I18n.loadLang();
@@ -89,6 +92,7 @@ public class CommandShop extends BaseCommand {
     @CommandPermission("worstshop.discount")
     public class Discount extends co.aikar.commands.BaseCommand {
         public Discount() {
+            manager.getCommandCompletions().registerStaticCompletion("discount_ids", ShopDiscount.ALL_DISCOUNTS::keySet);
             manager.getCommandCompletions().registerCompletion("discount_argstr", ctx->{
                String input = ctx.getInput();
                if (input.contains("=")) {
@@ -123,6 +127,11 @@ public class CommandShop extends BaseCommand {
         private BaseComponent[] stringifyDiscount(ShopDiscount.Entry discount) {
             ComponentBuilder hoverBuilder = new ComponentBuilder("Discount ID: ").color(net.md_5.bungee.api.ChatColor.GREEN)
                     .append(discount.name).color(net.md_5.bungee.api.ChatColor.YELLOW)
+                    .append("\nExpiry: ").color(net.md_5.bungee.api.ChatColor.GREEN)
+                    .append(discount.expiry.atOffset(OffsetDateTime.now().getOffset()).format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))).color(net.md_5.bungee.api.ChatColor.YELLOW)
+                    .append(" (expires in ").color(net.md_5.bungee.api.ChatColor.GOLD)
+                    .append(DateTimeUtils.formatTime(Duration.between(LocalDateTime.now(), discount.expiry))).color(net.md_5.bungee.api.ChatColor.GOLD)
+                    .append(")").color(net.md_5.bungee.api.ChatColor.GOLD)
                     .append("\nApplicable to:").color(net.md_5.bungee.api.ChatColor.GREEN);
             boolean hasCriteria = false;
             if (discount.shop != null) {
@@ -211,6 +220,7 @@ public class CommandShop extends BaseCommand {
 
         @Subcommand("delete")
         @CommandPermission("worstshop.discount.delete")
+        @CommandCompletion("@discount_ids")
         public void deleteDiscount(CommandSender sender, String name) {
             ShopDiscount.Entry realEntry = ShopDiscount.ALL_DISCOUNTS.get(name);
             if (realEntry != null) {

@@ -39,10 +39,11 @@ public class ShopManager {
         Bukkit.getOnlinePlayers().forEach(p -> manager.getInventory(p).ifPresent(inv -> inv.close(p)));
     }
 
-    private static void saveDiscounts() {
+    public static void saveDiscounts() {
         List<Map<String, Object>> discounts = Lists.newArrayList();
         ShopDiscount.ALL_DISCOUNTS.values().stream().filter(entry -> !entry.hasExpired())
                 .map(ShopDiscount.Entry::toMap).forEach(discounts::add);
+        WorstShop.get().logger.info("Saving " + discounts.size() + " discounts");
         YamlConfiguration yaml = new YamlConfiguration();
         yaml.set("discounts", discounts);
         try {
@@ -55,7 +56,6 @@ public class ShopManager {
     public static void cleanUp() {
         closeAllShops();
         ShopCommands.removeAliases();
-        saveDiscounts();
         SHOPS.clear();
         ITEM_SHOPS.clear();
     }
@@ -78,6 +78,7 @@ public class ShopManager {
         cleanUp();
 
         // load discounts
+        ShopDiscount.clearDiscounts();
         File discountFile = new File(plugin.getDataFolder(), "discounts.yml");
         if (discountFile.exists()) {
             YamlConfiguration yaml = YamlConfiguration.loadConfiguration(discountFile);
@@ -85,6 +86,7 @@ public class ShopManager {
                     .map(obj -> (Map<String, Object>) obj)
                     .map(ShopDiscount.Entry::fromMap)
                     .forEach(ShopDiscount::addDiscountEntry);
+            plugin.logger.info("Loaded " + ShopDiscount.ALL_DISCOUNTS.size() + " discounts");
         }
 
         // walk through all shops
