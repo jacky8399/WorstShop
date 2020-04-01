@@ -93,8 +93,8 @@ public class CommandSell extends BaseCommand {
                 // there exists shop for type
                 for (ItemShop shop : ShopManager.ITEM_SHOPS.get(stack.getType())) {
                     if (shop.isAvailableTo(player)) {
-                        if (shop.isSellable(inventory, player)) {
-                            shop.sellAll(inventory, player);
+                        if (shop.isSellable(stack, player)) {
+                            shop.sell(stack, player);
                             everSucceeded = true;
                         }
                     }

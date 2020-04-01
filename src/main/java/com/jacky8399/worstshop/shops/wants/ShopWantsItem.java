@@ -17,7 +17,7 @@ public class ShopWantsItem extends ShopWants implements IFlexibleShopWants {
 
     ItemStack stack;
     // never modify the stack directly
-    double multiplier;
+    public final double multiplier;
     public ShopWantsItem(Map<String, Object> yaml) {
         // parse itemstack
         this(StaticShopElement.parseItemStack(yaml), 1);

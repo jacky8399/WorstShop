@@ -56,23 +56,12 @@ public class ItemShop {
     public int getSellAmount(Player player, Inventory inventory) {
         return Math.min(shop.buildSellShop(player).getPlayerMaxPurchase(player), getSellCost(player).getMaximumMultiplier(inventory));
     }
-    public int getSellAmount(Player player, ItemStack inventory) {
-        return Math.min(shop.buildSellShop(player).getPlayerMaxPurchase(player), getSellCost(player).getMaximumMultiplier(inventory));
+    public int getSellAmount(Player player, ItemStack stack) {
+        return Math.min(shop.buildSellShop(player).getPlayerMaxPurchase(player), getSellCost(player).getMaximumMultiplier(stack));
     }
 
     public void sell(ItemStack stack, Player player) {
-        ShopWantsItem sellCost = getSellCost(player);
-        // find max sellable
-        int multiplier = sellCost.getMaximumMultiplier(stack);
-        if (multiplier > 0) {
-            ((ShopWantsItem) sellCost.multiply(multiplier)).deduct(stack);
-            double refund = getSellReward(player).multiply(multiplier).grantOrRefund(player);
-            if (refund > 0) {
-                sellCost.multiply(refund).grantOrRefund(player);
-            }
-        }
-        // send message
-        player.sendMessage(shop.buildSellShop(player).formatPurchaseMessage(player, multiplier));
+        shop.doSellTransaction(player, stack, getSellAmount(player, stack));
     }
 
     public void sellAll(Inventory inventory, Player player) {

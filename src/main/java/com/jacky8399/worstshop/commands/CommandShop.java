@@ -18,6 +18,7 @@ import com.jacky8399.worstshop.shops.ShopDiscount;
 import com.jacky8399.worstshop.shops.ShopManager;
 import com.jacky8399.worstshop.shops.elements.StaticShopElement;
 import net.md_5.bungee.api.chat.*;
+import org.apache.commons.lang.StringUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -276,7 +277,7 @@ public class CommandShop extends BaseCommand {
         }
         player.sendMessage(ChatColor.YELLOW + "For more complex items (e.g. plugin items), use the following:");
         String metaStr = "item-meta: " + StaticShopElement.serializeBase64ItemMeta(meta);
-        player.sendMessage(new ComponentBuilder(metaStr).color(net.md_5.bungee.api.ChatColor.WHITE)
+        player.sendMessage(new ComponentBuilder(StringUtils.abbreviate(metaStr, 25)).color(net.md_5.bungee.api.ChatColor.WHITE)
                 .event(hoverEvent).event(new ClickEvent(ClickEvent.Action.COPY_TO_CLIPBOARD, metaStr))
                 .create()
         );

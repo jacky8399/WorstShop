@@ -115,7 +115,7 @@ public class ActionItemShop extends ShopAction implements IParentElementReader {
     }
 
     public static ShopWantsItem rerouteWantToInventory(ShopWantsItem item, Inventory inventory) {
-        return new ShopWantsItem(item.createStack()) {
+        return new ShopWantsItem(item.createStack(), item.multiplier) {
             @Override
             public ShopWants multiply(double multiplier) {
                 return rerouteWantToInventory((ShopWantsItem) super.multiply(multiplier), inventory);
@@ -141,6 +141,40 @@ public class ActionItemShop extends ShopAction implements IParentElementReader {
                 grant(inventory);
                 return 0;
             }
+
+            @Override
+            public ShopWants adjustForPlayer(Player player) {
+                return rerouteWantToInventory((ShopWantsItem) super.adjustForPlayer(player), inventory);
+            }
+        };
+    }
+
+    public static ShopWantsItem rerouteWantToStack(ShopWantsItem item, ItemStack stack) {
+        return new ShopWantsItem(item.createStack(), item.multiplier) {
+            @Override
+            public ShopWants multiply(double multiplier) {
+                return rerouteWantToStack((ShopWantsItem) super.multiply(multiplier), stack);
+            }
+
+            @Override
+            public boolean canAfford(Player player) {
+                return canAfford(stack);
+            }
+
+            @Override
+            public int getMaximumMultiplier(Player player) {
+                return getMaximumMultiplier(stack);
+            }
+
+            @Override
+            public void deduct(Player player) {
+                deduct(stack);
+            }
+
+            @Override
+            public ShopWants adjustForPlayer(Player player) {
+                return rerouteWantToStack((ShopWantsItem) super.adjustForPlayer(player), stack);
+            }
         };
     }
 
@@ -158,9 +192,19 @@ public class ActionItemShop extends ShopAction implements IParentElementReader {
             player.sendMessage(ActionShop.formatNothingMessage());
             return;
         }
-        ActionShop shop = buildSellShop(player).adjustForPlayer(player);
+        ActionShop shop = buildSellShop(player);
         // HACK: reroute shop cost
         shop.cost = rerouteWantToInventory((ShopWantsItem) shop.cost, inventory);
+        shop.doTransaction(player, count);
+    }
+    public void doSellTransaction(Player player, ItemStack stack, double count) {
+        if (count == 0) {
+            player.sendMessage(ActionShop.formatNothingMessage());
+            return;
+        }
+        ActionShop shop = buildSellShop(player);
+        // HACK: reroute shop cost
+        shop.cost = rerouteWantToStack((ShopWantsItem) shop.cost, stack);
         shop.doTransaction(player, count);
     }
 

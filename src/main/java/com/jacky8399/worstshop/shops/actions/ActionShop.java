@@ -129,7 +129,6 @@ public class ActionShop extends ShopAction implements IParentElementReader {
 
     @Override
     public void onClick(InventoryClickEvent e) {
-        super.onClick(e);
         Player player = (Player)e.getWhoClicked();
         Optional<InventoryContents> parentContentsOptional = WorstShop.get().inventories.getContents(player);
         if (parentContentsOptional.isPresent()) {
@@ -218,7 +217,6 @@ public class ActionShop extends ShopAction implements IParentElementReader {
     }
 
     public static class ShopGui implements InventoryProvider {
-
         private boolean firstClick = true;
         private ActionShop shop;
         private ShopWants cost, reward;
@@ -228,7 +226,6 @@ public class ActionShop extends ShopAction implements IParentElementReader {
             this.cost = shop.cost;
             this.reward = shop.reward;
         }
-
 
         public static SmartInventory getInventory(Player player, ActionShop shop, SmartInventory parent) {
             return SmartInventory.builder()
