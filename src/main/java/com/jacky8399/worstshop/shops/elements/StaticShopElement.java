@@ -18,6 +18,7 @@ import org.bukkit.configuration.serialization.ConfigurationSerialization;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.Damageable;
 import org.bukkit.inventory.meta.ItemMeta;
@@ -152,9 +153,18 @@ public class StaticShopElement extends ShopElement {
                 is.meta(meta->meta.setLocalizedName(locName));
             }
             if (yaml.containsKey("lore")) {
-                List<String> lore = ((List<String>) yaml.getOrDefault("lore", Collections.emptyList()))
-                        .stream().map(ConfigHelper::translateString).collect(Collectors.toList());
+                List<String> lore = ((List<String>) yaml.get("lore")).stream()
+                        .map(ConfigHelper::translateString)
+                        .collect(Collectors.toList());
                 is.lore(lore);
+            }
+            if (yaml.containsKey("hide-flags")) {
+                ItemFlag[] flags = ((List<String>) yaml.get("hide-flags")).stream()
+                        .map(str -> !str.startsWith("hide") ? "HIDE_" + str : str)
+                        .map(str -> str.toUpperCase().replace(' ', '_'))
+                        .map(ItemFlag::valueOf)
+                        .toArray(ItemFlag[]::new);
+                is.meta(meta -> meta.addItemFlags(flags));
             }
             // skull
             if (yaml.containsKey("skull")) {
@@ -179,7 +189,7 @@ public class StaticShopElement extends ShopElement {
             }
             return is.build();
         } catch (Exception ex) {
-            return null;
+            throw new IllegalArgumentException(ex);
         }
     }
 
@@ -239,7 +249,6 @@ public class StaticShopElement extends ShopElement {
 
     @Override
     public void onClick(InventoryClickEvent e) {
-        super.onClick(e);
         for (ShopAction action : actions) {
             if (action.shouldTrigger(e)) {
                 action.onClick(e);

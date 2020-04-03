@@ -24,6 +24,7 @@ import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.Damageable;
 import org.bukkit.inventory.meta.ItemMeta;
@@ -246,6 +247,8 @@ public class CommandShop extends BaseCommand {
         serialized.add("item: " + stack.getType().name().toLowerCase().replace('_', ' '));
         serialized.add("count: " + stack.getAmount());
         ItemMeta meta = stack.getItemMeta();
+
+        //<editor-fold defaultstate="collapsed" desc="Item meta serialization">
         if (meta instanceof Damageable) {
             Damageable damageable = (Damageable) meta;
             if (damageable.hasDamage()) {
@@ -260,20 +263,29 @@ public class CommandShop extends BaseCommand {
             meta.getEnchants().forEach((ench, level)->serialized.add("  " + ench.getKey().getKey() + ": " + level));
         }
         if (meta.hasDisplayName()) {
-            serialized.add("name: " + replaceColor(meta.getDisplayName()));
+            serialized.add("name: '" + replaceColor(meta.getDisplayName()) + "'");
         }
         if (meta.hasLocalizedName()) {
-            serialized.add("loc-name: " + meta.getLocalizedName());
+            serialized.add("loc-name: '" + meta.getLocalizedName() + "'");
         }
         if (meta.hasLore()) {
             serialized.add("lore:");
-            meta.getLore().forEach(lore -> serialized.add("- " + replaceColor(lore)));
+            meta.getLore().forEach(lore -> serialized.add("- '" + replaceColor(lore) + "'"));
+        }
+        if (meta.getItemFlags().size() != 0) {
+            serialized.add("hide-flags:");
+            meta.getItemFlags().stream().map(ItemFlag::name)
+                    .map(str -> str.substring("HIDE_".length())) // strip hide
+                    .map(str -> str.toLowerCase().replace('_', ' ')) // to lowercase
+                    .map(str -> "- " + str)
+                    .forEach(serialized::add);
         }
         if (meta instanceof SkullMeta) {
             SkullMeta skullMeta = (SkullMeta) meta;
             PaperHelper.GameProfile profile = PaperHelper.getSkullMetaProfile(skullMeta);
             serialized.add("skull: " + profile.getUUID());
         }
+        //</editor-fold>
 
         HoverEvent hoverEvent = new HoverEvent(HoverEvent.Action.SHOW_TEXT, TextComponent.fromLegacyText("Click to copy line", net.md_5.bungee.api.ChatColor.WHITE));
         player.sendMessage(new ComponentBuilder("Item: ").color(net.md_5.bungee.api.ChatColor.YELLOW)
