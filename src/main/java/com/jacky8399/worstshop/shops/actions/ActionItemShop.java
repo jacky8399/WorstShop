@@ -25,7 +25,7 @@ import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 
-public class ActionItemShop extends ShopAction implements IParentElementReader {
+public class ActionItemShop extends Action implements IParentElementReader {
 
     boolean isStackDynamic = false;
     ShopElement parentElement;

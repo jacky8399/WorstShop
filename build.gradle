@@ -7,11 +7,10 @@ plugins {
 group = pluginGroup
 version = pluginVersion
 
-sourceCompatibility = '1.8'
-targetCompatibility = '1.8'
+sourceCompatibility = JavaVersion.VERSION_1_8
+targetCompatibility = JavaVersion.VERSION_1_8
 
 repositories {
-    mavenLocal()
     mavenCentral()
     maven {
         name = 'papermc'
@@ -24,6 +23,8 @@ repositories {
     maven { url = 'https://jitpack.io' }
     maven { url = "https://repo.aikar.co/content/groups/aikar/" }
     maven { url = 'http://repo.extendedclip.com/content/repositories/placeholderapi/' }
+
+    mavenLocal()
 }
 
 configurations.all {

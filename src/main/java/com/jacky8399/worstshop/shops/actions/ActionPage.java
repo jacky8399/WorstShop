@@ -9,7 +9,7 @@ import org.bukkit.event.inventory.InventoryClickEvent;
 import java.util.Map;
 import java.util.Optional;
 
-public class ActionPage extends ShopAction {
+public class ActionPage extends Action {
 
     int pageOffset;
     public ActionPage(Map<String, Object> yaml) {

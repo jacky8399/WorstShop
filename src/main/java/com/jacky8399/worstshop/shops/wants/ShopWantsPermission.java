@@ -61,7 +61,7 @@ public class ShopWantsPermission extends ShopWantsCustomizable {
         super(yaml);
         if (PERMS == null)
             throw new IllegalStateException();
-        NodeBuilder builder = null;
+        NodeBuilder<?, ?> builder = null;
         if (yaml.containsKey("permission")) {
             String permName = (String) yaml.get("permission");
             builder = Node.builder(permName);

@@ -9,7 +9,7 @@ import org.bukkit.event.inventory.InventoryClickEvent;
 
 import java.util.Map;
 
-public class ActionOpen extends ShopAction {
+public class ActionOpen extends Action {
     boolean skipPermission = false;
     String shop;
     public ActionOpen(Map<String, Object> yaml) {

@@ -8,7 +8,7 @@ import org.bukkit.event.inventory.InventoryClickEvent;
 
 import java.util.Map;
 
-public class ActionRefresh extends ShopAction {
+public class ActionRefresh extends Action {
     public ActionRefresh(Map<String, Object> yaml) {
         super(yaml);
     }

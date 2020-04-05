@@ -199,7 +199,7 @@ public class CommandShop extends BaseCommand {
                 }
             }
             ShopDiscount.addDiscountEntry(entry);
-            sender.sendMessage(new ComponentBuilder("Added new ").color(net.md_5.bungee.api.ChatColor.GREEN).append(stringifyDiscount(entry)).create());
+            sender.spigot().sendMessage(new ComponentBuilder("Added new ").color(net.md_5.bungee.api.ChatColor.GREEN).append(stringifyDiscount(entry)).create());
         }
 
         @Subcommand("list|info")
@@ -216,7 +216,7 @@ public class CommandShop extends BaseCommand {
                                 .event(new HoverEvent(HoverEvent.Action.SHOW_TEXT, TextComponent.fromLegacyText(ChatColor.YELLOW + "Click here to delete the discount")))
                                 .event(new ClickEvent(ClickEvent.Action.SUGGEST_COMMAND, "/worstshop discount delete " + entry.name))
                                 .create();
-                    }).forEach(sender::sendMessage);
+                    }).forEach(sender.spigot()::sendMessage);
         }
 
         @Subcommand("delete")
@@ -226,7 +226,7 @@ public class CommandShop extends BaseCommand {
             ShopDiscount.Entry realEntry = ShopDiscount.ALL_DISCOUNTS.get(name);
             if (realEntry != null) {
                 ShopDiscount.removeDiscountEntry(realEntry);
-                sender.sendMessage(
+                sender.spigot().sendMessage(
                         new ComponentBuilder("Successfully removed ").color(net.md_5.bungee.api.ChatColor.GREEN)
                         .append(stringifyDiscount(realEntry)).create()
                 );
@@ -288,18 +288,18 @@ public class CommandShop extends BaseCommand {
         //</editor-fold>
 
         HoverEvent hoverEvent = new HoverEvent(HoverEvent.Action.SHOW_TEXT, TextComponent.fromLegacyText("Click to copy line", net.md_5.bungee.api.ChatColor.WHITE));
-        player.sendMessage(new ComponentBuilder("Item: ").color(net.md_5.bungee.api.ChatColor.YELLOW)
+        player.spigot().sendMessage(new ComponentBuilder("Item: ").color(net.md_5.bungee.api.ChatColor.YELLOW)
                 .append("[Copy all]").color(net.md_5.bungee.api.ChatColor.GREEN)
                 .event(hoverEvent).event(new ClickEvent(ClickEvent.Action.COPY_TO_CLIPBOARD, String.join("\n", serialized)))
                 .create());
         for (String line : serialized) {
-            player.sendMessage(new ComponentBuilder(line).color(net.md_5.bungee.api.ChatColor.WHITE)
+            player.spigot().sendMessage(new ComponentBuilder(line).color(net.md_5.bungee.api.ChatColor.WHITE)
                     .event(hoverEvent).event(new ClickEvent(ClickEvent.Action.COPY_TO_CLIPBOARD, line))
                     .create());
         }
         player.sendMessage(ChatColor.YELLOW + "For more complex items (e.g. plugin items), use the following:");
         String metaStr = "item-meta: " + StaticShopElement.serializeBase64ItemMeta(meta);
-        player.sendMessage(new ComponentBuilder(StringUtils.abbreviate(metaStr, 25)).color(net.md_5.bungee.api.ChatColor.WHITE)
+        player.spigot().sendMessage(new ComponentBuilder(StringUtils.abbreviate(metaStr, 25)).color(net.md_5.bungee.api.ChatColor.WHITE)
                 .event(hoverEvent).event(new ClickEvent(ClickEvent.Action.COPY_TO_CLIPBOARD, metaStr))
                 .create()
         );

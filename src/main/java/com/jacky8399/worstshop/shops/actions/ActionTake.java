@@ -8,7 +8,7 @@ import org.bukkit.inventory.ItemStack;
 import java.util.Map;
 import java.util.Optional;
 
-public class ActionTake extends ShopAction {
+public class ActionTake extends Action {
     boolean unlimited;
     public ActionTake(Map<String, Object> yaml) {
         super(yaml);

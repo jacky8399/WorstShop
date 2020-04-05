@@ -9,7 +9,7 @@ import com.jacky8399.worstshop.helper.PaperHelper;
 import com.jacky8399.worstshop.shops.Shop;
 import com.jacky8399.worstshop.shops.ShopCondition;
 import com.jacky8399.worstshop.shops.actions.IParentElementReader;
-import com.jacky8399.worstshop.shops.actions.ShopAction;
+import com.jacky8399.worstshop.shops.actions.Action;
 import com.jacky8399.worstshop.shops.wants.ShopWantsPermissionSimple;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
@@ -33,7 +33,7 @@ public class StaticShopElement extends ShopElement {
 
     public ItemStack rawStack;
     public ShopCondition condition = new ShopCondition();
-    public List<ShopAction> actions;
+    public List<Action> actions;
 
     public static StaticShopElement fromStack(ItemStack stack) {
         StaticShopElement inst = new StaticShopElement();
@@ -69,8 +69,8 @@ public class StaticShopElement extends ShopElement {
         // Action parsing
         inst.actions = ((List<?>)yaml.getOrDefault("actions", Collections.emptyList()))
                 .stream().map(obj -> obj instanceof Map ?
-                        ShopAction.fromYaml((Map<String, Object>) obj) :
-                        ShopAction.fromCommand(obj.toString())).filter(Objects::nonNull).collect(Collectors.toList());
+                        Action.fromYaml((Map<String, Object>) obj) :
+                        Action.fromCommand(obj.toString())).filter(Objects::nonNull).collect(Collectors.toList());
 
         inst.actions.stream().filter(action->action instanceof IParentElementReader)
                 .forEach(action->((IParentElementReader) action).readElement(inst));
@@ -249,7 +249,7 @@ public class StaticShopElement extends ShopElement {
 
     @Override
     public void onClick(InventoryClickEvent e) {
-        for (ShopAction action : actions) {
+        for (Action action : actions) {
             if (action.shouldTrigger(e)) {
                 action.onClick(e);
             }

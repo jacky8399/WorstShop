@@ -9,7 +9,7 @@ import org.bukkit.event.inventory.InventoryClickEvent;
 import java.util.Map;
 import java.util.Optional;
 
-public class ActionClose extends ShopAction {
+public class ActionClose extends Action {
 
     boolean noParent;
 

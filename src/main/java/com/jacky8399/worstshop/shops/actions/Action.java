@@ -10,42 +10,38 @@ import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
 
-public class ShopAction {
+public class Action {
 
     //List<InventoryAction> triggerOnAction;
-    EnumSet<ClickType> triggerOnClick;
-    public ShopAction(Map<String, Object> yaml) {
-        triggerOnClick = EnumSet.noneOf(ClickType.class);
+    EnumSet<ClickType> triggerOnClick = EnumSet.noneOf(ClickType.class);
+    public Action(Map<String, Object> yaml) {
         if (yaml == null) {
             matchShopTrigger("*");
             return;
         }
-        if (yaml.containsKey("on")) {
-            Object on = yaml.get("on");
-            if (on instanceof List<?>)
-                ((List<String>)yaml.get("on")).forEach(this::matchShopTrigger);
-            else if (on instanceof String)
-                matchShopTrigger((String) on);
+        if (yaml.containsKey("click")) {
+            Object click = yaml.get("click");
+            if (click instanceof List<?>)
+                ((List<String>) click).forEach(this::matchShopTrigger);
+            else if (click instanceof String)
+                matchShopTrigger((String) click);
         } else {
             matchShopTrigger("*");
         }
     }
 
     private void matchShopTrigger(String input) {
-        switch (input) {
-            case "*":
-            case "all":
-            case "any":
-                triggerOnClick = EnumSet.allOf(ClickType.class);
-                break;
-            default:
-                triggerOnClick.add(ClickType.valueOf(input.replace(' ', '_').toUpperCase()));
-                break;
+        if (input.equals("*")) {
+            triggerOnClick = EnumSet.allOf(ClickType.class);
+        } else {
+            ClickType type = ClickType.valueOf(input.replace(' ', '_').toUpperCase());
+            if (!triggerOnClick.add(type))
+                throw new IllegalStateException(type.name() + " is already bound to!");
         }
     }
 
 
-    public static ShopAction fromShorthand(String input) {
+    public static Action fromShorthand(String input) {
         String classSpecifier = input.substring(0, input.indexOf("!"))
                 .replace(' ', '_').toLowerCase();
         String classArgument = input.substring(input.indexOf("!") + 1);
@@ -62,7 +58,7 @@ public class ShopAction {
         return new ActionCustom(Collections.singletonList(command));
     }
 
-    public static ShopAction fromYaml(Map<String, Object> yaml) {
+    public static Action fromYaml(Map<String, Object> yaml) {
         String preset = (String) yaml.get("preset");
         if (preset != null) {
             // ULTIMATE SHORTCUT
@@ -89,6 +85,8 @@ public class ShopAction {
                     return new ActionClose(yaml);
                 case "refresh":
                     return new ActionRefresh(yaml);
+                case "delay":
+                    return new ActionDelay(yaml);
                 default:
                     return new ActionCustom(yaml);
             }

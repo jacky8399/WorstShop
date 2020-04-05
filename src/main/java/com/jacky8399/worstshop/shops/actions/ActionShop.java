@@ -29,7 +29,7 @@ import java.time.LocalDateTime;
 import java.util.*;
 import java.util.function.Consumer;
 
-public class ActionShop extends ShopAction implements IParentElementReader {
+public class ActionShop extends Action implements IParentElementReader {
     public ShopWants cost, reward;
     public PurchaseRecords.RecordTemplate purchaseLimitTemplate;
     public int purchaseLimit;
@@ -303,11 +303,12 @@ public class ActionShop extends ShopAction implements IParentElementReader {
                 ));
             }
             // maximize purchase button
-            contents.set(5, 8, ClickableItem.of(
-                    ItemBuilder.of(Material.HOPPER)
-                        .name(I18n.translate(I18n.Keys.MESSAGES_KEY + "shops.buttons.maximize-purchase"))
-                        .build(), e-> buyCount = Math.min(cost.getMaximumMultiplier(player), shop.getPlayerMaxPurchase(player))
-            ));
+            if (cost.canMultiply() && reward.canMultiply())
+                contents.set(5, 8, ClickableItem.of(
+                        ItemBuilder.of(Material.HOPPER)
+                            .name(I18n.translate(I18n.Keys.MESSAGES_KEY + "shops.buttons.maximize-purchase"))
+                            .build(), e-> buyCount = Math.min(cost.getMaximumMultiplier(player), shop.getPlayerMaxPurchase(player))
+                ));
         }
 
         // animation
@@ -334,11 +335,8 @@ public class ActionShop extends ShopAction implements IParentElementReader {
             };
         }
 
-        // wow
-        // TODO cleanup
         private void doTransaction(InventoryClickEvent e) {
             Player player = (Player) e.getWhoClicked();
-            // wow
             Bukkit.getScheduler().runTask(WorstShop.get(), ()->{
                 player.closeInventory();
                 shop.doTransaction(player, buyCount);
