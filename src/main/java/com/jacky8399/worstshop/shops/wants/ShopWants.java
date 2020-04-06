@@ -153,16 +153,6 @@ public class ShopWants implements Predicate<Player> {
         return wants;
     }
 
-    @Override
-    public Predicate<Player> and(Predicate<? super Player> other) {
-        if (other instanceof ShopWants) {
-            // merge into one ShopWantsMultiple
-            return new ShopWantsMultiple(mergeWants(this, (ShopWants) other));
-        }
-        return Predicate.super.and(other);
-    }
-    // don't override other Predicate methods as it makes no sense to ShopWants
-
     /**
      * Denotes the position the ShopElement should be at
      */

@@ -12,10 +12,11 @@ import com.jacky8399.worstshop.WorstShop;
 import com.jacky8399.worstshop.helper.DateTimeUtils;
 import com.jacky8399.worstshop.helper.ItemUtils;
 import com.jacky8399.worstshop.helper.PaperHelper;
-import com.jacky8399.worstshop.helper.PermStringHelper;
 import com.jacky8399.worstshop.shops.Shop;
 import com.jacky8399.worstshop.shops.ShopDiscount;
 import com.jacky8399.worstshop.shops.ShopManager;
+import com.jacky8399.worstshop.shops.conditions.Condition;
+import com.jacky8399.worstshop.shops.conditions.ConditionPermission;
 import com.jacky8399.worstshop.shops.elements.StaticShopElement;
 import net.md_5.bungee.api.chat.*;
 import org.apache.commons.lang.StringUtils;
@@ -37,7 +38,6 @@ import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 @CommandAlias("worstshop|shop")
@@ -317,7 +317,7 @@ public class CommandShop extends BaseCommand {
     @CommandPermission("worstshop.shop.testpermission")
     public void testPermString(CommandSender sender, OnlinePlayer player, String permString) {
         try {
-            Predicate<Player> test = PermStringHelper.parsePermString(permString);
+            Condition test = ConditionPermission.fromPermString(permString);
             boolean result = test.test(player.player);
             sender.sendMessage(ChatColor.WHITE + "Perm string " + ChatColor.YELLOW + permString + ChatColor.WHITE + "(" +
                     test.toString() + ") evaluated to " +

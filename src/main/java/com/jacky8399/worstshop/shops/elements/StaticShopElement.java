@@ -2,15 +2,17 @@ package com.jacky8399.worstshop.shops.elements;
 
 import com.google.common.collect.Maps;
 import com.jacky8399.worstshop.I18n;
+import com.jacky8399.worstshop.WorstShop;
 import com.jacky8399.worstshop.helper.ConfigHelper;
 import com.jacky8399.worstshop.helper.ItemBuilder;
 import com.jacky8399.worstshop.helper.ItemUtils;
 import com.jacky8399.worstshop.helper.PaperHelper;
 import com.jacky8399.worstshop.shops.Shop;
 import com.jacky8399.worstshop.shops.ShopCondition;
-import com.jacky8399.worstshop.shops.actions.IParentElementReader;
 import com.jacky8399.worstshop.shops.actions.Action;
-import com.jacky8399.worstshop.shops.wants.ShopWantsPermissionSimple;
+import com.jacky8399.worstshop.shops.actions.IParentElementReader;
+import com.jacky8399.worstshop.shops.conditions.ConditionPermission;
+import me.clip.placeholderapi.PlaceholderAPI;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.configuration.file.YamlConfiguration;
@@ -59,7 +61,7 @@ public class StaticShopElement extends ShopElement {
 
         // Permissions
         if (yaml.containsKey("view-perm")) {
-             inst.condition.add(new ShopWantsPermissionSimple(yaml.get("view-perm").toString()));
+             inst.condition.add(ConditionPermission.fromPermString((String) yaml.get("view-perm")));
         }
 
         if (yaml.containsKey("condition")) {
@@ -239,8 +241,15 @@ public class StaticShopElement extends ShopElement {
         if (meta instanceof SkullMeta) {
             SkullMeta skullMeta = (SkullMeta) meta;
             PaperHelper.GameProfile profile = PaperHelper.getSkullMetaProfile(skullMeta);
-            if (profile != null && profile.getName() != null && profile.getName().equals("{player}")) {
-                skullMeta.setOwningPlayer(player);
+            if (profile != null && profile.getName() != null) {
+                if (profile.getName().equals("{player}")){
+                    skullMeta.setOwningPlayer(player);
+                } else if (profile.getName().contains("%") && WorstShop.get().placeholderAPI) {
+                    // replace placeholders too
+                    String newName = PlaceholderAPI.setPlaceholders(player, profile.getName());
+                    PaperHelper.GameProfile newProfile = PaperHelper.createProfile(null, newName);
+                    PaperHelper.setSkullMetaProfile(skullMeta, newProfile);
+                }
             }
         }
         stack.setItemMeta(meta);
