@@ -7,7 +7,6 @@ import org.jetbrains.annotations.NotNull;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.function.Predicate;
 
 public class ConditionOr extends Condition {
     private ArrayList<Condition> conditions;
@@ -32,15 +31,6 @@ public class ConditionOr extends Condition {
             newConditions.add(other);
             return new ConditionOr(newConditions);
         }
-    }
-
-    @NotNull
-    @Override
-    public Predicate<Player> or(@NotNull Predicate<? super Player> other) {
-         if (other instanceof Condition) {
-             return or((Condition) other);
-         }
-         return super.or(other);
     }
 
     @Override

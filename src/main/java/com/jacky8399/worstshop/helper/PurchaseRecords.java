@@ -50,6 +50,11 @@ public class PurchaseRecords {
             this.retentionTime = retentionTime;
             this.maxRecords = maxRecords;
         }
+
+        public static RecordTemplate fromMap(Map<String, Object> map) {
+            return new RecordTemplate((String) map.get("id"), DateTimeUtils.parseTimeStr((String) map.get("every")), ((Number) map.getOrDefault("max-records", 128)).intValue());
+        }
+
         public final String id;
         public final Duration retentionTime;
         public final int maxRecords;

@@ -1,9 +1,9 @@
 package com.jacky8399.worstshop.shops.actions;
 
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 import com.jacky8399.worstshop.I18n;
 import com.jacky8399.worstshop.WorstShop;
-import com.jacky8399.worstshop.helper.DateTimeUtils;
 import com.jacky8399.worstshop.helper.ItemBuilder;
 import com.jacky8399.worstshop.helper.PurchaseRecords;
 import com.jacky8399.worstshop.shops.ItemShop;
@@ -21,7 +21,7 @@ import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 
-import java.time.Duration;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 
@@ -33,6 +33,7 @@ public class ActionItemShop extends Action implements IParentElementReader {
     public double buyPrice = 0, sellPrice = 0;
     public PurchaseRecords.RecordTemplate buyLimitTemplate, sellLimitTemplate;
     public int buyLimit, sellLimit;
+    public HashSet<ShopWantsItem.ItemMatcher> itemMatchers = Sets.newHashSet(ShopWantsItem.SIMILAR);
 
     // shortcut
     public ActionItemShop(String input) {
@@ -60,34 +61,30 @@ public class ActionItemShop extends Action implements IParentElementReader {
             sellPrice = Double.parseDouble(prices[1].trim());
         }
 
+        // item matchers
+        if (yaml.containsKey("matches") /* not a typo */) {
+            itemMatchers.clear();
+            ((List<String>) yaml.get("matches")).stream().map(s -> s.toLowerCase().replace(' ', '_'))
+                    .map(ShopWantsItem.ITEM_MATCHERS::get).forEach(itemMatchers::add);
+        }
+
+        // purchase limits
         if (yaml.containsKey("purchase-limits")) {
             Map<String, Object> purchaseLimitsYaml = (Map<String, Object>) yaml.get("purchase-limits");
             if (purchaseLimitsYaml.containsKey("both")) {
                 Map<String, Object> purchaseLimitYaml = (Map<String, Object>) purchaseLimitsYaml.get("both");
-                String id = ((String) purchaseLimitYaml.get("id"));
-                int limit = ((Number) purchaseLimitYaml.get("limit")).intValue();
-                Duration retentionTime = DateTimeUtils.parseTimeStr((String) purchaseLimitYaml.get("every"));
-                int maxRecords = ((Number) purchaseLimitYaml.getOrDefault("max-records", 128)).intValue();
-                buyLimitTemplate = sellLimitTemplate = new PurchaseRecords.RecordTemplate(id, retentionTime, maxRecords);
-                buyLimit = sellLimit = limit;
+                buyLimitTemplate = sellLimitTemplate = PurchaseRecords.RecordTemplate.fromMap(purchaseLimitYaml);
+                buyLimit = sellLimit = ((Number) purchaseLimitYaml.get("limit")).intValue();
             } else {
                 if (purchaseLimitsYaml.containsKey("buy")) {
                     Map<String, Object> purchaseLimitYaml = (Map<String, Object>) purchaseLimitsYaml.get("buy");
-                    String id = ((String) purchaseLimitYaml.get("id"));
-                    int limit = ((Number) purchaseLimitYaml.get("limit")).intValue();
-                    Duration retentionTime = DateTimeUtils.parseTimeStr((String) purchaseLimitYaml.get("every"));
-                    int maxRecords = ((Number) purchaseLimitYaml.getOrDefault("max-records", 128)).intValue();
-                    buyLimitTemplate = new PurchaseRecords.RecordTemplate(id, retentionTime, maxRecords);
-                    buyLimit = limit;
+                    buyLimitTemplate = PurchaseRecords.RecordTemplate.fromMap(purchaseLimitYaml);
+                    buyLimit = ((Number) purchaseLimitYaml.get("limit")).intValue();
                 }
                 if (purchaseLimitsYaml.containsKey("sell")) {
                     Map<String, Object> purchaseLimitYaml = (Map<String, Object>) purchaseLimitsYaml.get("sell");
-                    String id = ((String) purchaseLimitYaml.get("id"));
-                    int limit = ((Number) purchaseLimitYaml.get("limit")).intValue();
-                    Duration retentionTime = DateTimeUtils.parseTimeStr((String) purchaseLimitYaml.get("every"));
-                    int maxRecords = ((Number) purchaseLimitYaml.getOrDefault("max-records", 128)).intValue();
-                    sellLimitTemplate = new PurchaseRecords.RecordTemplate(id, retentionTime, maxRecords);
-                    sellLimit = limit;
+                    sellLimitTemplate = PurchaseRecords.RecordTemplate.fromMap(purchaseLimitYaml);
+                    sellLimit = ((Number) purchaseLimitYaml.get("limit")).intValue();
                 }
             }
         }
@@ -106,16 +103,26 @@ public class ActionItemShop extends Action implements IParentElementReader {
 
     public ActionShop buildBuyShop(Player player) {
         double discount = getDiscount(player);
-        return buyPrice > 0 ? new ActionShop(new ShopWantsMoney(buyPrice * discount), new ShopWantsItem(getTargetItemStack(player)), buyLimitTemplate, buyLimit) : null;
+        return buyPrice > 0 ?
+                new ActionShop(
+                        new ShopWantsMoney(buyPrice * discount),
+                        new ShopWantsItem(getTargetItemStack(player)).setItemMatchers(itemMatchers),
+                        buyLimitTemplate, buyLimit
+                ) : null;
     }
 
     public ActionShop buildSellShop(Player player) {
         double discount = getDiscount(player);
-        return sellPrice > 0 ? new ActionShop(new ShopWantsItem(getTargetItemStack(player)), new ShopWantsMoney(sellPrice * discount), sellLimitTemplate, sellLimit) : null;
+        return sellPrice > 0 ?
+                new ActionShop(
+                        new ShopWantsItem(getTargetItemStack(player)).setItemMatchers(itemMatchers),
+                        new ShopWantsMoney(sellPrice * discount),
+                        sellLimitTemplate, sellLimit
+                ) : null;
     }
 
     public static ShopWantsItem rerouteWantToInventory(ShopWantsItem item, Inventory inventory) {
-        return new ShopWantsItem(item.createStack(), item.multiplier) {
+        return new ShopWantsItem(item) {
             @Override
             public ShopWants multiply(double multiplier) {
                 return rerouteWantToInventory((ShopWantsItem) super.multiply(multiplier), inventory);
@@ -150,7 +157,7 @@ public class ActionItemShop extends Action implements IParentElementReader {
     }
 
     public static ShopWantsItem rerouteWantToStack(ShopWantsItem item, ItemStack stack) {
-        return new ShopWantsItem(item.createStack(), item.multiplier) {
+        return new ShopWantsItem(item) {
             @Override
             public ShopWants multiply(double multiplier) {
                 return rerouteWantToStack((ShopWantsItem) super.multiply(multiplier), stack);

@@ -2,6 +2,7 @@ package com.jacky8399.worstshop.shops.conditions;
 
 import com.google.common.collect.Lists;
 import org.bukkit.entity.Player;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -16,6 +17,19 @@ public class ConditionAnd extends Condition {
     public ConditionAnd(Collection<? extends Condition> conditions) {
         this.conditions = Lists.newArrayList();
         this.conditions.addAll(conditions);
+    }
+
+    @NotNull
+    @Override
+    public Condition and(@NotNull Condition condition) {
+        if (condition instanceof ConditionAnd) {
+            ArrayList<Condition> newCondition = Lists.newArrayList(conditions);
+            newCondition.addAll(((ConditionAnd) condition).conditions);
+            return new ConditionAnd(newCondition);
+        }
+        ArrayList<Condition> newCondition = Lists.newArrayList(conditions);
+        newCondition.add(condition);
+        return new ConditionAnd(newCondition);
     }
 
     @Override

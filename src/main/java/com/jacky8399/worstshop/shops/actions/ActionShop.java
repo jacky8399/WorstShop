@@ -53,12 +53,8 @@ public class ActionShop extends Action implements IParentElementReader {
 
         if (yaml.containsKey("purchase-limit")) {
             Map<String, Object> purchaseLimitYaml = (Map<String, Object>) yaml.get("purchase-limit");
-            String id = ((String) purchaseLimitYaml.get("id"));
-            int limit = ((Number) purchaseLimitYaml.get("limit")).intValue();
-            Duration retentionTime = DateTimeUtils.parseTimeStr((String) purchaseLimitYaml.get("every"));
-            int maxRecords = ((Number) purchaseLimitYaml.getOrDefault("max-records", 128)).intValue();
-            purchaseLimitTemplate = new PurchaseRecords.RecordTemplate(id, retentionTime, maxRecords);
-            purchaseLimit = limit;
+            purchaseLimitTemplate = PurchaseRecords.RecordTemplate.fromMap(purchaseLimitYaml);
+            purchaseLimit = ((Number) purchaseLimitYaml.get("limit")).intValue();
         }
     }
 
