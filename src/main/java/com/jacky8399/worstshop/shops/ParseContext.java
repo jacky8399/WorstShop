@@ -3,6 +3,7 @@ package com.jacky8399.worstshop.shops;
 import com.google.common.collect.Maps;
 
 import java.util.HashMap;
+import java.util.OptionalInt;
 import java.util.Stack;
 import java.util.stream.Collectors;
 
@@ -29,20 +30,26 @@ public class ParseContext {
     }
 
     public static <T> T findFirst(Class<? extends T> clazz) {
-        Stack<Integer> integerStack = CLAZZ_LOCATION.get(clazz);
-        if (integerStack != null && !integerStack.empty()) {
-            int first = integerStack.firstElement();
-            Object obj = STACK.get(first);
+        // handle superclasses
+        OptionalInt clazzLocation = CLAZZ_LOCATION.entrySet().stream()
+                .filter(entry -> clazz.isAssignableFrom(entry.getKey()))
+                .mapToInt(entry -> entry.getValue().firstElement())
+                .min();
+        if (clazzLocation.isPresent()) {
+            Object obj = STACK.get(clazzLocation.getAsInt());
             return (T) obj;
         }
         return null;
     }
 
     public static <T> T findLatest(Class<? extends T> clazz) {
-        Stack<Integer> integerStack = CLAZZ_LOCATION.get(clazz);
-        if (integerStack != null && !integerStack.empty()) {
-            int first = integerStack.firstElement();
-            Object obj = STACK.get(first);
+        // handle superclasses
+        OptionalInt clazzLocation = CLAZZ_LOCATION.entrySet().stream()
+                .filter(entry -> clazz.isAssignableFrom(entry.getKey()))
+                .mapToInt(entry -> entry.getValue().firstElement())
+                .max();
+        if (clazzLocation.isPresent()) {
+            Object obj = STACK.get(clazzLocation.getAsInt());
             return (T) obj;
         }
         return null;

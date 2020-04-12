@@ -3,8 +3,10 @@ package com.jacky8399.worstshop.shops.elements.dynamic;
 import com.google.common.collect.Lists;
 import com.jacky8399.worstshop.shops.ParseContext;
 import com.jacky8399.worstshop.shops.Shop;
+import com.jacky8399.worstshop.shops.actions.Action;
 import com.jacky8399.worstshop.shops.elements.DynamicShopElement;
 import com.jacky8399.worstshop.shops.elements.ShopElement;
+import com.jacky8399.worstshop.shops.elements.StaticShopElement;
 import fr.minuskube.inv.content.InventoryContents;
 import org.apache.commons.lang.Validate;
 import org.bukkit.entity.Player;
@@ -36,6 +38,9 @@ public class AnimationShopElement extends DynamicShopElement {
 
     @Override
     public void populateItems(Player player, InventoryContents contents, Shop.PaginationHelper pagination) {
+        if (!condition.test(player)) {
+            return;
+        }
         int animationSequence = contents.property(self + "_animationSequence", 0);
         int ticksPassed = contents.property(self + "_ticksPassed", 0);
         if (++ticksPassed >= intervalInTicks) {
@@ -46,7 +51,17 @@ public class AnimationShopElement extends DynamicShopElement {
         } else {
             contents.setProperty(self + "_ticksPassed", ticksPassed);
         }
-        ShopElement current = elements.get(animationSequence);
+        // clone the element to add our actions
+        ShopElement current = elements.get(animationSequence).clone();
+        // override the list as the cloned element still has the same ref to list of action
+        List<Action> newAction = Lists.newArrayList(actions);
+        if (current instanceof StaticShopElement) {
+            newAction.addAll(((StaticShopElement) current).actions);
+            ((StaticShopElement) current).actions = newAction;
+        } else {
+            newAction.addAll(((DynamicShopElement) current).actions);
+            ((DynamicShopElement) current).actions = newAction;
+        }
         current.populateItems(player, contents, pagination);
     }
 }

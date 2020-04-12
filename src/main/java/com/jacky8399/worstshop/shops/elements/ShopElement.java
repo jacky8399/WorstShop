@@ -16,8 +16,10 @@ import org.bukkit.inventory.ItemStack;
 import java.util.List;
 import java.util.Map;
 
-public class ShopElement implements Cloneable {
-
+public abstract class ShopElement implements Cloneable {
+    public interface SlotFiller {
+        void fill(Player player, InventoryContents contents, Shop.PaginationHelper pagination);
+    }
     public enum FillType {
         ALL, BORDER_1, NONE, REMAINING
     }

@@ -6,6 +6,7 @@ import com.google.common.collect.Sets;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 
+import javax.annotation.Nullable;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.*;
@@ -15,12 +16,13 @@ public class ShopDiscount {
 
     public static class Entry {
 
-        public Entry(String name, LocalDateTime expiry, double percentage) {
+        public Entry(String name, @Nullable LocalDateTime expiry, double percentage) {
             this.name = name;
             this.expiry = expiry;
             this.percentage = percentage;
         }
         public String name;
+        @Nullable
         public final LocalDateTime expiry;
         public final double percentage;
         public String shop;
@@ -29,7 +31,7 @@ public class ShopDiscount {
         public String permission;
 
         public boolean hasExpired() {
-            return LocalDateTime.now().isAfter(expiry);
+            return expiry != null && LocalDateTime.now().isAfter(expiry);
         }
 
         public boolean isApplicableTo(Shop shop, Material material, Player player) {
@@ -56,7 +58,7 @@ public class ShopDiscount {
                 return false;
             }
             Entry other = (Entry) obj;
-            return expiry.equals(other.expiry) && percentage == other.percentage &&
+            return Objects.equals(expiry, other.expiry) && percentage == other.percentage &&
                     Objects.equals(shop, other.shop) && Objects.equals(material, other.material) &&
                     Objects.equals(player, other.player) && Objects.equals(permission, other.permission);
         }
@@ -64,7 +66,7 @@ public class ShopDiscount {
         public Map<String, Object> toMap() {
             Map<String, Object> map = Maps.newHashMap();
             map.put("name", name);
-            map.put("expiry", expiry.toEpochSecond(ZoneOffset.UTC)); // doesn't matter, will be read as UTC too
+            map.put("expiry", expiry != null ? expiry.toEpochSecond(ZoneOffset.UTC) : -1); // doesn't matter, will be read as UTC too
             map.put("percentage", percentage);
             if (shop != null)
                 map.put("shop", shop);
@@ -79,9 +81,9 @@ public class ShopDiscount {
 
         public static Entry fromMap(Map<String, Object> map) {
             String name = (String) map.get("name");
-            int expiry = ((Number) map.get("expiry")).intValue();
+            long expiry = ((Number) map.get("expiry")).longValue();
             double percentage = ((Number) map.get("percentage")).doubleValue();
-            Entry entry = new Entry(name, LocalDateTime.ofEpochSecond(expiry, 0, ZoneOffset.UTC), percentage);
+            Entry entry = new Entry(name, expiry != -1 ? LocalDateTime.ofEpochSecond(expiry, 0, ZoneOffset.UTC) : null, percentage);
             if (map.containsKey("shop"))
                 entry.shop = (String) map.get("shop");
             if (map.containsKey("material"))

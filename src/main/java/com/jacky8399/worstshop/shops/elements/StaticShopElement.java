@@ -71,8 +71,8 @@ public class StaticShopElement extends ShopElement {
         }
 
         // Action parsing
-        inst.actions = ((List<?>) yaml.getOrDefault("actions", Collections.emptyList()))
-                .stream().map(obj -> obj instanceof Map ?
+        inst.actions = ((List<?>) yaml.getOrDefault("actions", Collections.emptyList())).stream()
+                .map(obj -> obj instanceof Map ?
                         Action.fromYaml((Map<String, Object>) obj) :
                         Action.fromCommand(obj.toString())).filter(Objects::nonNull).collect(Collectors.toList());
 
