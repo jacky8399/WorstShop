@@ -101,7 +101,11 @@ public class I18n {
     }
 
     public static String nameStack(ItemStack stack) {
-        return translate(Keys.ITEM_KEY, stack.getAmount(), PaperHelper.getItemName(stack));
+        return nameStack(stack, stack.getAmount());
+    }
+    public static String nameStack(ItemStack stack, int amount) {
+        return translate(Keys.ITEM_KEY, amount,
+                stack.getItemMeta().hasDisplayName() ? stack.getItemMeta().getDisplayName() : PaperHelper.getItemName(stack));
     }
 
     public static String translate(String path, Object... args) {

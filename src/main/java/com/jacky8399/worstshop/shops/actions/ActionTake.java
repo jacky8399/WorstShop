@@ -17,7 +17,6 @@ public class ActionTake extends Action {
 
     @Override
     public void onClick(InventoryClickEvent e) {
-        super.onClick(e);
         e.setResult(Event.Result.ALLOW);
         ItemStack current = e.getCurrentItem();
         e.getWhoClicked().setItemOnCursor(current);

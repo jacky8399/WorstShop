@@ -13,6 +13,7 @@ import org.bukkit.entity.Player;
 import java.util.Collections;
 import java.util.List;
 import java.util.OptionalDouble;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 public class ShopWantsMultiple extends ShopWants implements IParentElementReader {
@@ -70,13 +71,14 @@ public class ShopWantsMultiple extends ShopWants implements IParentElementReader
         } else {
             SlotPos pos1 = SlotPos.of(position.pos.getRow() - 1, position.pos.getColumn()),
                     pos3 = SlotPos.of(position.pos.getRow() + 1, position.pos.getColumn());
+            String self = UUID.randomUUID().toString();
             return new StaticShopElement() {
                 @Override
                 public void populateItems(Player player, InventoryContents contents, Shop.PaginationHelper pagination) {
                     int itemSequence = contents.property("shopWantsItemSequence", 0);
                     int nextItemSequence = wrapIndexOffset(itemSequence, 1);
 
-                    contents.setProperty("shopWantsItemSequence", nextItemSequence);
+                    contents.setProperty(self + "_shopWantsItemSequence", nextItemSequence);
 
                     ShopElement elem1 = wants.get(wrapIndexOffset(itemSequence, -1)).createElement(position),
                             elem2 = wants.get(itemSequence).createElement(position),

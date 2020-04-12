@@ -1,0 +1,52 @@
+package com.jacky8399.worstshop.shops.elements.dynamic;
+
+import com.google.common.collect.Lists;
+import com.jacky8399.worstshop.shops.ParseContext;
+import com.jacky8399.worstshop.shops.Shop;
+import com.jacky8399.worstshop.shops.elements.DynamicShopElement;
+import com.jacky8399.worstshop.shops.elements.ShopElement;
+import fr.minuskube.inv.content.InventoryContents;
+import org.apache.commons.lang.Validate;
+import org.bukkit.entity.Player;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+
+public class AnimationShopElement extends DynamicShopElement {
+    int intervalInTicks;
+    // to prevent overlapping with other AnimationShopElements
+    private String self = UUID.randomUUID().toString();
+    ArrayList<ShopElement> elements;
+    public AnimationShopElement(Map<String, Object> yaml) {
+        intervalInTicks = ((Number) yaml.getOrDefault("interval", 1)).intValue();
+        elements = Lists.newArrayList();
+        ParseContext.pushContext(this);
+        for (Map<String, Object> childYaml : ((List<Map<String, Object>>) yaml.get("elements"))) {
+            elements.add(ShopElement.fromYaml(childYaml));
+        }
+        ParseContext.popContext();
+        Validate.notEmpty(elements, "Elements cannot be empty!");
+    }
+
+    private int wrapIndexOffset(int orig, int idx) {
+        return (elements.size() + orig + idx) % elements.size();
+    }
+
+    @Override
+    public void populateItems(Player player, InventoryContents contents, Shop.PaginationHelper pagination) {
+        int animationSequence = contents.property(self + "_animationSequence", 0);
+        int ticksPassed = contents.property(self + "_ticksPassed", 0);
+        if (++ticksPassed >= intervalInTicks) {
+            // next element
+            animationSequence = wrapIndexOffset(animationSequence, 1);
+            contents.setProperty(self + "_animationSequence", animationSequence);
+            contents.setProperty(self + "_ticksPassed", 0);
+        } else {
+            contents.setProperty(self + "_ticksPassed", ticksPassed);
+        }
+        ShopElement current = elements.get(animationSequence);
+        current.populateItems(player, contents, pagination);
+    }
+}

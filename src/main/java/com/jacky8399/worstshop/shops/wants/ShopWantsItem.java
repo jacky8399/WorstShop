@@ -3,7 +3,6 @@ package com.jacky8399.worstshop.shops.wants;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.jacky8399.worstshop.I18n;
-import com.jacky8399.worstshop.helper.PaperHelper;
 import com.jacky8399.worstshop.shops.elements.StaticShopElement;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
@@ -119,9 +118,7 @@ public class ShopWantsItem extends ShopWants implements IFlexibleShopWants {
     }
 
     public String getInventoryMatchingFormatted(Inventory inventory) {
-        return I18n.translate("worstshop.messages.shops.wants.items", getInventoryMatching(inventory),
-                PaperHelper.getItemName(stack)
-        );
+        return I18n.nameStack(stack, getInventoryMatching(inventory));
     }
 
     public int getInventoryMatching(Inventory inventory) {
@@ -182,9 +179,7 @@ public class ShopWantsItem extends ShopWants implements IFlexibleShopWants {
 
     @Override
     public String getPlayerResult(Player player, ElementPosition position) {
-        return I18n.translate("worstshop.messages.shops.wants.items", getAmount(),
-                PaperHelper.getItemName(stack)
-        );
+        return I18n.nameStack(stack, getAmount());
     }
 
     public static final ItemMatcher SIMILAR = ItemStack::isSimilar;

@@ -7,6 +7,7 @@ import com.jacky8399.worstshop.helper.ConfigHelper;
 import com.jacky8399.worstshop.helper.ItemBuilder;
 import com.jacky8399.worstshop.helper.ItemUtils;
 import com.jacky8399.worstshop.helper.PaperHelper;
+import com.jacky8399.worstshop.shops.ParseContext;
 import com.jacky8399.worstshop.shops.Shop;
 import com.jacky8399.worstshop.shops.ShopCondition;
 import com.jacky8399.worstshop.shops.actions.Action;
@@ -48,10 +49,10 @@ public class StaticShopElement extends ShopElement {
     }
 
     @SuppressWarnings("unchecked")
-    public static ShopElement fromYaml(Map<String, Object> yaml, Shop parent) {
+    public static ShopElement fromYaml(Map<String, Object> yaml) {
         // static parsing
         StaticShopElement inst = new StaticShopElement();
-        inst.owner = parent;
+        inst.owner = ParseContext.findLatest(Shop.class);
 
         inst.rawStack = parseItemStack(yaml);
 
@@ -59,9 +60,10 @@ public class StaticShopElement extends ShopElement {
         if (ItemUtils.isEmpty(inst.rawStack))
             return null;
 
+        ParseContext.pushContext(inst);
         // Permissions
         if (yaml.containsKey("view-perm")) {
-             inst.condition.add(ConditionPermission.fromPermString((String) yaml.get("view-perm")));
+            inst.condition.add(ConditionPermission.fromPermString((String) yaml.get("view-perm")));
         }
 
         if (yaml.containsKey("condition")) {
@@ -69,14 +71,15 @@ public class StaticShopElement extends ShopElement {
         }
 
         // Action parsing
-        inst.actions = ((List<?>)yaml.getOrDefault("actions", Collections.emptyList()))
+        inst.actions = ((List<?>) yaml.getOrDefault("actions", Collections.emptyList()))
                 .stream().map(obj -> obj instanceof Map ?
                         Action.fromYaml((Map<String, Object>) obj) :
                         Action.fromCommand(obj.toString())).filter(Objects::nonNull).collect(Collectors.toList());
 
-        inst.actions.stream().filter(action->action instanceof IParentElementReader)
-                .forEach(action->((IParentElementReader) action).readElement(inst));
+        inst.actions.stream().filter(action -> action instanceof IParentElementReader)
+                .forEach(action -> ((IParentElementReader) action).readElement(inst));
 
+        ParseContext.popContext();
         return inst;
     }
 

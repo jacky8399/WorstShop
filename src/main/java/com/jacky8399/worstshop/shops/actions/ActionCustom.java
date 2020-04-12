@@ -38,7 +38,6 @@ public class ActionCustom extends Action {
 
     @Override
     public void onClick(InventoryClickEvent e) {
-        super.onClick(e);
         if (delayInTicks > 0)
             Bukkit.getScheduler().runTaskLater(WorstShop.get(), ()->commands.forEach(s -> parseCommand((Player)e.getWhoClicked(), s)), delayInTicks);
         else

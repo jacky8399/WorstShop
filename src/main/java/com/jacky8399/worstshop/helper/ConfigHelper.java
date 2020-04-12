@@ -1,37 +1,53 @@
 package com.jacky8399.worstshop.helper;
 
-import com.google.common.collect.Lists;
+import net.md_5.bungee.api.chat.*;
 import org.bukkit.ChatColor;
-import org.bukkit.configuration.ConfigurationSection;
-import org.bukkit.configuration.MemoryConfiguration;
 
-import java.util.Collections;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class ConfigHelper {
-    @Deprecated
-    public static List<ConfigurationSection> getConfigList(ConfigurationSection config, String path) {
-        if (!config.isList(path)) return Collections.emptyList();
-
-        LinkedList<ConfigurationSection> list = Lists.newLinkedList();
-        for (Object thing : config.getList(path)) {
-            if (thing instanceof Map) {
-                MemoryConfiguration mem = new MemoryConfiguration();
-                mem.addDefaults((Map<String, Object>) thing);
-
-                list.add(mem);
-            }
-        }
-        return list;
-    }
-
     public static <T extends Enum<T>> T parseEnum(String input, Class<T> clazz) {
         return Enum.valueOf(clazz, input.toUpperCase().replace(' ', '_'));
     }
 
     public static String translateString(String input) {
         return input != null ? ChatColor.translateAlternateColorCodes('&', input) : null;
+    }
+
+    private static final Pattern SPECIAL = Pattern.compile("\\((.+?)\\)\\[(.*?)(?<!\\\\)]");
+    // don't split on escaped semicolons
+    private static final Pattern EVENT_SPLITTER = Pattern.compile("(?<!\\\\);");
+    public static BaseComponent[] parseComponentString(String input) {
+        int index = 0;
+        Matcher matcher = SPECIAL.matcher(input);
+        ComponentBuilder builder = new ComponentBuilder();
+        while (matcher.find()) {
+            // append text before
+            builder.append(translateString(input.substring(index, matcher.start() - 1)))
+                    // append text in brackets
+                    .append(translateString(matcher.group(0)));
+            String eventsString = matcher.group(1).replace("\\\\]", ";");
+            // parse string in square brackets
+            if (!eventsString.trim().isEmpty()) {
+                String[] split = EVENT_SPLITTER.split(eventsString);
+                for (String s : split) {
+                    // split on first '='
+                    int idx = s.indexOf("=");
+                    String eventType = s.substring(0, idx);
+                    String arg = translateString(s.substring(idx + 1).replaceAll("\\\\;",";"));
+                    if ("hover".equals(eventType)) {
+                        builder.event(new HoverEvent(HoverEvent.Action.SHOW_TEXT, TextComponent.fromLegacyText(arg)));
+                    } else {
+                        ClickEvent.Action action = parseEnum(eventType, ClickEvent.Action.class);
+                        builder.event(new ClickEvent(action, arg));
+                    }
+                }
+            }
+            index = matcher.end();
+        }
+        // append remaining text
+        builder.append(translateString(input.substring(index)));
+        return builder.create();
     }
 }

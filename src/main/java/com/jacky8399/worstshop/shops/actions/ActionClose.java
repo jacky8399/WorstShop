@@ -18,14 +18,17 @@ public class ActionClose extends Action {
         noParent = yaml.get("preset").equals("close");
     }
 
-    @Override
-    public void onClick(InventoryClickEvent e) {
-        Player player = (Player) e.getWhoClicked();
+    public static void closeInv(Player player, boolean noParent) {
         Optional<InventoryContents> inv = WorstShop.get().inventories.getContents(player);
 
         inv.ifPresent(inventory->{
             inventory.setProperty("noParent", noParent);
             Bukkit.getScheduler().runTaskLater(WorstShop.get(), ()->inventory.inventory().close(player), 1);
         });
+    }
+
+    @Override
+    public void onClick(InventoryClickEvent e) {
+        closeInv((Player) e.getWhoClicked(), noParent);
     }
 }

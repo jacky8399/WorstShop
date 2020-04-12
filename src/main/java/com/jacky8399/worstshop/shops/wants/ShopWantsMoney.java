@@ -79,7 +79,7 @@ public class ShopWantsMoney extends ShopWants {
 
     @Override
     public String getPlayerResult(Player player, ElementPosition position) {
-        return (position == ElementPosition.REWARD ? ChatColor.GREEN + "+" : ChatColor.RED + "-" ) + formatMoney(realMoney);
+        return formatMoney(realMoney);
     }
 
     public static String formatMoney(double money) {

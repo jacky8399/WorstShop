@@ -10,7 +10,7 @@ import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
 
-public class Action {
+public abstract class Action {
 
     //List<InventoryAction> triggerOnAction;
     EnumSet<ClickType> triggerOnClick = EnumSet.noneOf(ClickType.class);
@@ -87,6 +87,8 @@ public class Action {
                     return new ActionRefresh(yaml);
                 case "delay":
                     return new ActionDelay(yaml);
+                case "book":
+                    return new ActionBook(yaml);
                 default:
                     return new ActionCustom(yaml);
             }
@@ -100,11 +102,9 @@ public class Action {
         return triggerOnClick.contains(e.getClick());
     }
 
-    public void influenceItem(Player player, ItemStack readonlyStack, ItemStack stack) {
+    public void influenceItem(Player player, final ItemStack readonlyStack, ItemStack stack) {
 
     }
 
-    public void onClick(InventoryClickEvent e) {
-
-    }
+    public abstract void onClick(InventoryClickEvent e);
 }

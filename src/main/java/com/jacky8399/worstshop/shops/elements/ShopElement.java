@@ -26,10 +26,10 @@ public class ShopElement implements Cloneable {
     public FillType fill = FillType.NONE;
     public Shop owner = null;
 
-    public static ShopElement fromYaml(Map<String, Object> yaml, Shop parent) {
+    public static ShopElement fromYaml(Map<String, Object> yaml) {
         boolean dynamic = (boolean) yaml.getOrDefault("dynamic", false);
 
-        ShopElement element = dynamic ? DynamicShopElement.fromYaml(yaml, parent) : StaticShopElement.fromYaml(yaml, parent);
+        ShopElement element = dynamic ? DynamicShopElement.fromYaml(yaml) : StaticShopElement.fromYaml(yaml);
 
         if (element == null) {
             return null;

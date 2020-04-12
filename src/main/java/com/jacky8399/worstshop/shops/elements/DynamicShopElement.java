@@ -2,6 +2,7 @@ package com.jacky8399.worstshop.shops.elements;
 
 import com.jacky8399.worstshop.helper.ItemBuilder;
 import com.jacky8399.worstshop.shops.Shop;
+import com.jacky8399.worstshop.shops.elements.dynamic.AnimationShopElement;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
@@ -11,9 +12,17 @@ import java.util.Map;
 
 public class DynamicShopElement extends ShopElement {
     public static DynamicShopElement fromYaml(Map<String, Object> yaml, Shop parent) {
-        DynamicShopElement inst = new DynamicShopElement();
+        DynamicShopElement inst;
+        String preset = (String) yaml.get("preset");
+        switch (preset) {
+            case "animation": {
+                inst = new AnimationShopElement(yaml);
+            }
+            break;
+            default:
+                throw new IllegalArgumentException(preset + " is not a valid preset!");
+        }
         inst.owner = parent;
-        // TODO parse dynamic items
         return inst;
     }
 

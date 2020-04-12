@@ -100,6 +100,8 @@ public class Shop implements InventoryProvider {
         Logger logger = WorstShop.get().logger;
 
         try {
+            ParseContext.pushContext(inst);
+
             inst.rows = yaml.getInt("rows", 6);
             inst.type = InventoryType.valueOf(yaml.getString("type", "chest").toUpperCase());
             if (!yaml.isString("title"))
@@ -126,13 +128,13 @@ public class Shop implements InventoryProvider {
             }
 
             inst.parentShop = yaml.getString("parent");
-            if (inst.parentShop != null && inst.parentShop.equals("auto")) {
+            if ("auto".equals(inst.parentShop)) {
                 inst.autoSetParentShop = true;
             }
 
             List<Map<String, Object>> items = (List<Map<String, Object>>) yaml.getList("items", Collections.emptyList());
             for (Map<String, Object> itemSection : items) {
-                ShopElement elem = ShopElement.fromYaml(itemSection, inst);
+                ShopElement elem = ShopElement.fromYaml(itemSection);
                 if (elem != null) {
                     if (elem instanceof DynamicShopElement)
                         inst.dynamicElements.add(elem);
@@ -152,8 +154,13 @@ public class Shop implements InventoryProvider {
                 inst.aliasesIgnorePermission = yaml.getBoolean("alias-ignore-permission", false);
             }
 
+            // should be self
+            if (ParseContext.popContext() != inst) {
+                throw new IllegalStateException("Stack is broken??");
+            }
         } catch (Exception ex) {
             logger.severe("Error while parsing shop " + shopName + ", skipping.");
+            logger.severe("Stack: " + ParseContext.getHierarchy());
             ex.printStackTrace();
         }
         return inst;
