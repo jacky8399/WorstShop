@@ -33,6 +33,7 @@ public class ParseContext {
         // handle superclasses
         OptionalInt clazzLocation = CLAZZ_LOCATION.entrySet().stream()
                 .filter(entry -> clazz.isAssignableFrom(entry.getKey()))
+                .filter(entry -> !entry.getValue().isEmpty())
                 .mapToInt(entry -> entry.getValue().firstElement())
                 .min();
         if (clazzLocation.isPresent()) {
@@ -46,7 +47,8 @@ public class ParseContext {
         // handle superclasses
         OptionalInt clazzLocation = CLAZZ_LOCATION.entrySet().stream()
                 .filter(entry -> clazz.isAssignableFrom(entry.getKey()))
-                .mapToInt(entry -> entry.getValue().firstElement())
+                .filter(entry -> !entry.getValue().isEmpty())
+                .mapToInt(entry -> entry.getValue().lastElement())
                 .max();
         if (clazzLocation.isPresent()) {
             Object obj = STACK.get(clazzLocation.getAsInt());

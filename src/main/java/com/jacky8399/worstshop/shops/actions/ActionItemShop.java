@@ -6,9 +6,8 @@ import com.jacky8399.worstshop.I18n;
 import com.jacky8399.worstshop.WorstShop;
 import com.jacky8399.worstshop.helper.ItemBuilder;
 import com.jacky8399.worstshop.helper.PurchaseRecords;
-import com.jacky8399.worstshop.shops.ItemShop;
-import com.jacky8399.worstshop.shops.ShopDiscount;
-import com.jacky8399.worstshop.shops.ShopManager;
+import com.jacky8399.worstshop.shops.*;
+import com.jacky8399.worstshop.shops.elements.DynamicShopElement;
 import com.jacky8399.worstshop.shops.elements.ShopElement;
 import com.jacky8399.worstshop.shops.elements.StaticShopElement;
 import com.jacky8399.worstshop.shops.wants.ShopWants;
@@ -25,10 +24,11 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 
-public class ActionItemShop extends Action implements IParentElementReader {
+public class ActionItemShop extends Action {
 
     boolean isStackDynamic = false;
     ShopElement parentElement;
+    Shop parentShop;
     boolean sellAll;
     public double buyPrice = 0, sellPrice = 0;
     public PurchaseRecords.RecordTemplate buyLimitTemplate, sellLimitTemplate;
@@ -43,10 +43,13 @@ public class ActionItemShop extends Action implements IParentElementReader {
         sellPrice = Double.parseDouble(prices[1].trim());
 
         sellAll = sellPrice != 0;
+
+        getParent();
     }
 
     public ActionItemShop(Map<String, Object> yaml) {
         super(yaml);
+
         if (yaml.containsKey("buy-price")) {
             buyPrice = ((Number) yaml.get("buy-price")).doubleValue();
         }
@@ -90,11 +93,23 @@ public class ActionItemShop extends Action implements IParentElementReader {
         }
 
         sellAll = (boolean) yaml.getOrDefault("allow-sell-all", true);
+
+        getParent();
+    }
+
+    private void getParent() {
+        parentShop = ParseContext.findLatest(Shop.class);
+        parentElement = ParseContext.findLatest(ShopElement.class).clone();
+        isStackDynamic = parentElement instanceof DynamicShopElement;
+
+        if (parentElement instanceof StaticShopElement) {
+            getItemShops(((StaticShopElement) parentElement).rawStack.getType()).add(new ItemShop(this, ((StaticShopElement) parentElement).condition));
+        }
     }
 
     private double getDiscount(Player player) {
         ItemStack stack = getTargetItemStack(player);
-        return ShopDiscount.calcFinalPrice(ShopDiscount.findApplicableEntries(parentElement.owner, stack.getType(), player));
+        return ShopDiscount.calcFinalPrice(ShopDiscount.findApplicableEntries(parentShop, stack.getType(), player));
     }
 
     public ItemStack getTargetItemStack(Player player) {
@@ -267,19 +282,6 @@ public class ActionItemShop extends Action implements IParentElementReader {
 
     public static String formatPrice(double money) {
         return WorstShop.get().economy.getProvider().format(money);
-    }
-
-    @Override
-    public void readElement(ShopElement element) {
-        parentElement = element.clone();
-        parentElement.owner = element.owner;
-        if (element instanceof StaticShopElement) {
-            // add to ItemShop
-            StaticShopElement elem = (StaticShopElement) element;
-            getItemShops(elem.rawStack.getType()).add(new ItemShop(this, elem.condition));
-        } else {
-            // unsupported
-        }
     }
 
     private static List<ItemShop> getItemShops(Material key) {
