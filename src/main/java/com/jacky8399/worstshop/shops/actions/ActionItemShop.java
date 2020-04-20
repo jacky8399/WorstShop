@@ -4,6 +4,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.jacky8399.worstshop.I18n;
 import com.jacky8399.worstshop.WorstShop;
+import com.jacky8399.worstshop.helper.Config;
 import com.jacky8399.worstshop.helper.ItemBuilder;
 import com.jacky8399.worstshop.helper.PurchaseRecords;
 import com.jacky8399.worstshop.shops.*;
@@ -22,7 +23,7 @@ import org.bukkit.inventory.ItemStack;
 
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
+import java.util.Optional;
 
 public class ActionItemShop extends Action {
 
@@ -47,52 +48,45 @@ public class ActionItemShop extends Action {
         getParent();
     }
 
-    public ActionItemShop(Map<String, Object> yaml) {
+    public ActionItemShop(Config yaml) {
         super(yaml);
 
-        if (yaml.containsKey("buy-price")) {
-            buyPrice = ((Number) yaml.get("buy-price")).doubleValue();
-        }
-        if (yaml.containsKey("sell-price")) {
-            sellPrice = ((Number) yaml.get("sell-price")).doubleValue();
-        }
+        yaml.find("buy-price", Number.class).ifPresent(num -> buyPrice = num.doubleValue());
+        yaml.find("sell-price", Number.class).ifPresent(num -> sellPrice = num.doubleValue());
 
         // shortcut
-        if (yaml.containsKey("prices")) {
-            String[] prices = ((String) yaml.get("prices")).split("\\s|,");
+        yaml.find("prices", String.class).ifPresent(price -> {
+            String[] prices = price.split("\\s|,");
             buyPrice = Double.parseDouble(prices[0].trim());
             sellPrice = Double.parseDouble(prices[1].trim());
-        }
+        });
 
         // item matchers
-        if (yaml.containsKey("matches") /* not a typo */) {
+        yaml.findList("matches" /* not a typo */, String.class).ifPresent(list -> {
             itemMatchers.clear();
-            ((List<String>) yaml.get("matches")).stream().map(s -> s.toLowerCase().replace(' ', '_'))
+            list.stream().map(s -> s.toLowerCase().replace(' ', '_'))
                     .map(ShopWantsItem.ITEM_MATCHERS::get).forEach(itemMatchers::add);
-        }
+        });
 
         // purchase limits
-        if (yaml.containsKey("purchase-limits")) {
-            Map<String, Object> purchaseLimitsYaml = (Map<String, Object>) yaml.get("purchase-limits");
-            if (purchaseLimitsYaml.containsKey("both")) {
-                Map<String, Object> purchaseLimitYaml = (Map<String, Object>) purchaseLimitsYaml.get("both");
-                buyLimitTemplate = sellLimitTemplate = PurchaseRecords.RecordTemplate.fromMap(purchaseLimitYaml);
-                buyLimit = sellLimit = ((Number) purchaseLimitYaml.get("limit")).intValue();
+        yaml.find("purchase-limits", Config.class).ifPresent(purchaseLimitsYaml -> {
+            Optional<Config> both = purchaseLimitsYaml.find("both", Config.class);
+            if (both.isPresent()) {
+                buyLimitTemplate = sellLimitTemplate = PurchaseRecords.RecordTemplate.fromConfig(both.get());
+                buyLimit = sellLimit = both.get().get("limit", Number.class).intValue();
             } else {
-                if (purchaseLimitsYaml.containsKey("buy")) {
-                    Map<String, Object> purchaseLimitYaml = (Map<String, Object>) purchaseLimitsYaml.get("buy");
-                    buyLimitTemplate = PurchaseRecords.RecordTemplate.fromMap(purchaseLimitYaml);
+                purchaseLimitsYaml.find("buy", Config.class).ifPresent(purchaseLimitYaml -> {
+                    buyLimitTemplate = PurchaseRecords.RecordTemplate.fromConfig(purchaseLimitYaml);
                     buyLimit = ((Number) purchaseLimitYaml.get("limit")).intValue();
-                }
-                if (purchaseLimitsYaml.containsKey("sell")) {
-                    Map<String, Object> purchaseLimitYaml = (Map<String, Object>) purchaseLimitsYaml.get("sell");
-                    sellLimitTemplate = PurchaseRecords.RecordTemplate.fromMap(purchaseLimitYaml);
+                });
+                purchaseLimitsYaml.find("sell", Config.class).ifPresent(purchaseLimitYaml -> {
+                    sellLimitTemplate = PurchaseRecords.RecordTemplate.fromConfig(purchaseLimitYaml);
                     sellLimit = ((Number) purchaseLimitYaml.get("limit")).intValue();
-                }
+                });
             }
-        }
+        });
 
-        sellAll = (boolean) yaml.getOrDefault("allow-sell-all", true);
+        sellAll = yaml.find("allow-sell-all", Boolean.class).orElse(true);
 
         getParent();
     }

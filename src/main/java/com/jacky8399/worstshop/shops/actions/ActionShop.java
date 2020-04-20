@@ -3,10 +3,7 @@ package com.jacky8399.worstshop.shops.actions;
 import com.google.common.collect.Lists;
 import com.jacky8399.worstshop.I18n;
 import com.jacky8399.worstshop.WorstShop;
-import com.jacky8399.worstshop.helper.DateTimeUtils;
-import com.jacky8399.worstshop.helper.InventoryCloseListener;
-import com.jacky8399.worstshop.helper.ItemBuilder;
-import com.jacky8399.worstshop.helper.PurchaseRecords;
+import com.jacky8399.worstshop.helper.*;
 import com.jacky8399.worstshop.shops.elements.ShopElement;
 import com.jacky8399.worstshop.shops.elements.StaticShopElement;
 import com.jacky8399.worstshop.shops.wants.IFlexibleShopWants;
@@ -33,29 +30,20 @@ public class ActionShop extends Action implements IParentElementReader {
     public ShopWants cost, reward;
     public PurchaseRecords.RecordTemplate purchaseLimitTemplate;
     public int purchaseLimit;
-    public ActionShop(Map<String, Object> yaml) {
+    public ActionShop(Config yaml) {
         super(yaml);
-        // if has specific cost
-        if (yaml.containsKey("cost")) {
-            cost = ShopWants.fromYamlNode(yaml.get("cost"));
-        } else {
-            // copy from parent item
-            cost = null; // defer
-        }
+        yaml.find("cost", String.class, Config.class, List.class)
+                .map(ShopWants::fromYamlNode)
+                .ifPresent(cost -> this.cost = cost);
 
-        // if has specific reward
-        if (yaml.containsKey("reward")) {
-            reward = ShopWants.fromYamlNode(yaml.get("reward"));
-        } else {
-            // copy from parent item
-            reward = null;
-        }
+        yaml.find("reward", String.class, Config.class, List.class)
+                .map(ShopWants::fromYamlNode)
+                .ifPresent(reward -> this.reward = reward);
 
-        if (yaml.containsKey("purchase-limit")) {
-            Map<String, Object> purchaseLimitYaml = (Map<String, Object>) yaml.get("purchase-limit");
-            purchaseLimitTemplate = PurchaseRecords.RecordTemplate.fromMap(purchaseLimitYaml);
+        yaml.find("purchase-limit", Config.class).ifPresent(purchaseLimitYaml -> {
+            purchaseLimitTemplate = PurchaseRecords.RecordTemplate.fromConfig(purchaseLimitYaml);
             purchaseLimit = ((Number) purchaseLimitYaml.get("limit")).intValue();
-        }
+        });
     }
 
     public ActionShop(ShopWants cost, ShopWants reward, PurchaseRecords.RecordTemplate purchaseLimitTemplate, int purchaseLimit) {

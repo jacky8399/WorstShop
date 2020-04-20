@@ -113,17 +113,6 @@ public class Shop implements InventoryProvider {
                 Object obj = yaml.get("condition");
                 if (obj instanceof Map<?, ?>) {
                     inst.condition.add(ShopCondition.parseFromYaml((Map<String, Object>) obj));
-                } else if (obj instanceof List<?>) {
-                    logger.warning("Shop condition in shop " + shopName + " should not be a list!");
-                    logger.warning("Please use an 'and' node:");
-                    logger.warning("condition:");
-                    logger.warning("  logic: and");
-                    logger.warning("  conditions:");
-                    logger.warning("  # list of conditions");
-                    // parse anyway lol
-                    for (Object child : ((List<?>) obj)) {
-                        inst.condition.add(ShopCondition.parseFromYaml((Map<String, Object>) obj));
-                    }
                 }
             }
 
@@ -162,12 +151,15 @@ public class Shop implements InventoryProvider {
             logger.severe("Error while parsing shop " + shopName + ", skipping.");
             logger.severe("Stack: " + ParseContext.getHierarchy());
             ex.printStackTrace();
+        } finally {
+            ParseContext.clear();
         }
         return inst;
     }
 
     public void populateElements(List<ShopElement> elementList,
                                  Player player, InventoryContents contents, PaginationHelper helper) {
+        Logger logger = WorstShop.get().logger;
         ListIterator<ShopElement> iterator = elementList.listIterator();
         while (iterator.hasNext()) {
             int index = iterator.nextIndex();
@@ -178,6 +170,7 @@ public class Shop implements InventoryProvider {
                 element.populateItems(player, contents, helper);
             } catch (Exception ex) {
                 player.sendMessage(ChatColor.RED + "Error while populating item " + index + ": " + ex.toString());
+                logger.severe("Error while populating item " + index + " in shop " + id);
                 ex.printStackTrace();
             }
         }

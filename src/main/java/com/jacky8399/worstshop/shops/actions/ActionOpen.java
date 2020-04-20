@@ -1,23 +1,20 @@
 package com.jacky8399.worstshop.shops.actions;
 
 import com.jacky8399.worstshop.WorstShop;
+import com.jacky8399.worstshop.helper.Config;
 import com.jacky8399.worstshop.shops.Shop;
 import com.jacky8399.worstshop.shops.ShopManager;
 import fr.minuskube.inv.content.InventoryContents;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.InventoryClickEvent;
 
-import java.util.Map;
-
 public class ActionOpen extends Action {
     boolean skipPermission = false;
     String shop;
-    public ActionOpen(Map<String, Object> yaml) {
+    public ActionOpen(Config yaml) {
         super(yaml);
-        if (yaml.containsKey("ignore-permission")) {
-            skipPermission = (boolean) yaml.get("ignore-permission");
-        }
-        shop = (String)yaml.get("shop");
+        yaml.find("ignore-permission", Boolean.class).ifPresent(bool -> skipPermission = bool);
+        shop = yaml.get("shop", String.class);
     }
 
     // shortcut

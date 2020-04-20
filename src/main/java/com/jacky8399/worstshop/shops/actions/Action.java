@@ -1,5 +1,6 @@
 package com.jacky8399.worstshop.shops.actions;
 
+import com.jacky8399.worstshop.helper.Config;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.ClickType;
 import org.bukkit.event.inventory.InventoryClickEvent;
@@ -13,21 +14,18 @@ import java.util.Map;
 public abstract class Action {
 
     //List<InventoryAction> triggerOnAction;
-    EnumSet<ClickType> triggerOnClick = EnumSet.noneOf(ClickType.class);
-    public Action(Map<String, Object> yaml) {
+    EnumSet<ClickType> triggerOnClick = EnumSet.allOf(ClickType.class);
+    public Action(Config yaml) {
         if (yaml == null) {
-            matchShopTrigger("*");
             return;
         }
-        if (yaml.containsKey("click")) {
-            Object click = yaml.get("click");
-            if (click instanceof List<?>)
-                ((List<String>) click).forEach(this::matchShopTrigger);
-            else if (click instanceof String)
-                matchShopTrigger((String) click);
-        } else {
-            matchShopTrigger("*");
-        }
+        yaml.find("click", List.class, String.class).ifPresent(obj -> {
+            triggerOnClick.clear();
+            if (obj instanceof List<?>)
+                ((List<String>) obj).forEach(this::matchShopTrigger);
+            else if (obj instanceof String)
+                matchShopTrigger((String) obj);
+        });
     }
 
     private void matchShopTrigger(String input) {
@@ -58,14 +56,14 @@ public abstract class Action {
         return new ActionCustom(Collections.singletonList(command));
     }
 
-    public static Action fromYaml(Map<String, Object> yaml) {
-        String preset = (String) yaml.get("preset");
+    public static Action fromYaml(Map<String, Object> map) {
+        String preset = (String) map.get("preset");
+        Config yaml = new Config(map);
         if (preset != null) {
             // ULTIMATE SHORTCUT
             if (preset.contains("!")) {
                 return fromShorthand(preset);
             }
-
             switch (preset.replace(' ', '_').toLowerCase()) {
                 case "shop":
                     return new ActionShop(yaml);
@@ -90,7 +88,7 @@ public abstract class Action {
                 case "book":
                     return new ActionBook(yaml);
                 default:
-                    return new ActionCustom(yaml);
+                    throw new IllegalArgumentException(preset + " is not a valid preset!");
             }
         } else {
             return new ActionCustom(yaml);

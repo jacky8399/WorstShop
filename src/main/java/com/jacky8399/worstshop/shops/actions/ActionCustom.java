@@ -2,6 +2,7 @@ package com.jacky8399.worstshop.shops.actions;
 
 import com.google.common.collect.ImmutableMap;
 import com.jacky8399.worstshop.WorstShop;
+import com.jacky8399.worstshop.helper.Config;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
@@ -9,7 +10,7 @@ import org.bukkit.event.inventory.InventoryClickEvent;
 
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
+import java.util.Optional;
 import java.util.function.BiConsumer;
 import java.util.stream.Collectors;
 
@@ -17,18 +18,23 @@ public class ActionCustom extends Action {
     List<String> commands;
     int delayInTicks = 0;
 
-    public ActionCustom(Map<String, Object> yaml) {
+    public ActionCustom(Config yaml) {
         super(yaml);
-        Object comms = yaml.get("commands");
-        if (comms instanceof List) {
-            commands = ((List<Object>) comms).stream().map(Object::toString).collect(Collectors.toList());
-        } else if (comms instanceof String) {
-            commands = Collections.singletonList((String) comms);
+        Optional<Object> optional = yaml.find("commands", List.class, String.class);
+        if (optional.isPresent()) {
+            Object comms = optional.get();
+            if (comms instanceof List) {
+                commands = ((List<Object>) comms).stream().map(Object::toString).collect(Collectors.toList());
+            } else if (comms instanceof String) {
+                commands = Collections.singletonList((String) comms);
+            }
         } else {
             commands = Collections.emptyList();
         }
-        if (yaml.containsKey("delay"))
-            delayInTicks = ((Number) yaml.get("delay")).intValue();
+        yaml.find("delay", Number.class).ifPresent(num -> {
+            WorstShop.get().logger.warning("'delay' on commands is deprecated. Please use 'preset: delay' instead");
+            delayInTicks = num.intValue();
+        });
     }
 
     public ActionCustom(List<String> commands) {

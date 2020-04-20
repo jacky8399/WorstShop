@@ -24,16 +24,19 @@ public class ConfigHelper {
         ComponentBuilder builder = new ComponentBuilder();
         while (matcher.find()) {
             // append text before
-            builder.append(translateString(input.substring(index, matcher.start() - 1)))
+            builder.append(translateString(input.substring(index, matcher.start())))
                     // append text in brackets
-                    .append(translateString(matcher.group(0)));
-            String eventsString = matcher.group(1).replace("\\\\]", ";");
+                    .append(translateString(matcher.group(1)));
+            String eventsString = matcher.group(2).replace("\\\\]", ";");
             // parse string in square brackets
             if (!eventsString.trim().isEmpty()) {
                 String[] split = EVENT_SPLITTER.split(eventsString);
                 for (String s : split) {
                     // split on first '='
                     int idx = s.indexOf("=");
+                    if (idx == -1) {
+                        throw new IllegalArgumentException("Invalid event specifier " + s + ", should be in format event=value");
+                    }
                     String eventType = s.substring(0, idx);
                     String arg = translateString(s.substring(idx + 1).replaceAll("\\\\;",";"));
                     if ("hover".equals(eventType)) {

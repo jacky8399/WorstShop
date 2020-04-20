@@ -1,20 +1,21 @@
 package com.jacky8399.worstshop.shops.actions;
 
 import com.jacky8399.worstshop.WorstShop;
+import com.jacky8399.worstshop.helper.Config;
 import org.bukkit.Bukkit;
 import org.bukkit.event.inventory.InventoryClickEvent;
 
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
 
 public class ActionDelay extends Action {
     int delay = 0;
     List<Action> actions;
-    public ActionDelay(Map<String, Object> yaml) {
+    public ActionDelay(Config yaml) {
         super(yaml);
-        delay = ((Number) yaml.get("delay")).intValue();
-        actions = ((List<Map<String, Object>>) yaml.get("actions")).stream()
+        delay = yaml.get("delay", Number.class).intValue();
+        actions = yaml.getList("actions", Config.class).stream()
+                .map(Config::getPrimitiveMap)
                 .map(Action::fromYaml).collect(Collectors.toList());
     }
 

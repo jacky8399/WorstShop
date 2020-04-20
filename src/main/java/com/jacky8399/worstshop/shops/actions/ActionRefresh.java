@@ -1,15 +1,14 @@
 package com.jacky8399.worstshop.shops.actions;
 
 import com.jacky8399.worstshop.WorstShop;
+import com.jacky8399.worstshop.helper.Config;
 import com.jacky8399.worstshop.shops.Shop;
 import fr.minuskube.inv.SmartInventory;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.InventoryClickEvent;
 
-import java.util.Map;
-
 public class ActionRefresh extends Action {
-    public ActionRefresh(Map<String, Object> yaml) {
+    public ActionRefresh(Config yaml) {
         super(yaml);
     }
 

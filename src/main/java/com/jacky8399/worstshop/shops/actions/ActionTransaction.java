@@ -1,14 +1,13 @@
 package com.jacky8399.worstshop.shops.actions;
 
+import com.jacky8399.worstshop.helper.Config;
 import com.jacky8399.worstshop.helper.PurchaseRecords;
 import com.jacky8399.worstshop.shops.wants.ShopWants;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.InventoryClickEvent;
 
-import java.util.Map;
-
 public class ActionTransaction extends ActionShop {
-    public ActionTransaction(Map<String, Object> yaml) {
+    public ActionTransaction(Config yaml) {
         super(yaml);
     }
 

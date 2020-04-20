@@ -51,8 +51,10 @@ public class PurchaseRecords {
             this.maxRecords = maxRecords;
         }
 
-        public static RecordTemplate fromMap(Map<String, Object> map) {
-            return new RecordTemplate((String) map.get("id"), DateTimeUtils.parseTimeStr((String) map.get("every")), ((Number) map.getOrDefault("max-records", 128)).intValue());
+        public static RecordTemplate fromConfig(Config map) {
+            return new RecordTemplate(
+                    map.get("id", String.class), DateTimeUtils.parseTimeStr(map.get("every", String.class)), map.find("max-records", Number.class).orElse(128).intValue()
+            );
         }
 
         public final String id;
