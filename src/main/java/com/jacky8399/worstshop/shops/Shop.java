@@ -25,7 +25,7 @@ import java.util.function.BiFunction;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
-public class Shop implements InventoryProvider {
+public class Shop implements InventoryProvider, ParseContext.NamedContext {
 
     public static String SHOP_ID_PREFIX = "worstshop:shop/";
 
@@ -50,6 +50,11 @@ public class Shop implements InventoryProvider {
     // aliases
     public List<String> aliases;
     public boolean aliasesIgnorePermission;
+
+    @Override
+    public String getHierarchyName() {
+        return "Shop[" + id + "]";
+    }
 
     public static SmartInventory.Builder getDefaultBuilder() {
         return SmartInventory.builder().manager(WorstShop.get().inventories);
@@ -131,7 +136,6 @@ public class Shop implements InventoryProvider {
                         inst.staticElements.add(elem);
                 }
             }
-
             // commands
             if (yaml.isString("alias")) {
                 String aliasString = yaml.getString("alias");

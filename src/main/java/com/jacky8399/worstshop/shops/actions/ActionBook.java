@@ -13,7 +13,6 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.BookMeta;
 
 import java.util.ArrayList;
-import java.util.List;
 
 public class ActionBook extends Action {
     public final ArrayList<BaseComponent[]> pages;
@@ -21,7 +20,7 @@ public class ActionBook extends Action {
     public ActionBook(Config yaml) {
         super(yaml);
         pages = Lists.newArrayList();
-        for (String page : (List<String>) yaml.get("pages", List.class)) {
+        for (String page : yaml.getList("pages", String.class)) {
             pages.add(ConfigHelper.parseComponentString(page));
         }
     }

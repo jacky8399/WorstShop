@@ -30,8 +30,9 @@ public class ShopWants implements Predicate<Player> {
             case "perm":
                 return new ShopWantsPermission(map);
             case "free":
-            default:
                 return new ShopWantsFree();
+            default:
+                throw new IllegalArgumentException("Invalid commodity type " + type);
         }
     }
 

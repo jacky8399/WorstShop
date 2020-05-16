@@ -3,8 +3,10 @@ package com.jacky8399.worstshop.shops.actions;
 import com.google.common.collect.ImmutableMap;
 import com.jacky8399.worstshop.WorstShop;
 import com.jacky8399.worstshop.helper.Config;
+import com.jacky8399.worstshop.helper.ConfigHelper;
+import com.jacky8399.worstshop.shops.ParseContext;
+import net.md_5.bungee.api.ChatMessageType;
 import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.InventoryClickEvent;
 
@@ -33,6 +35,7 @@ public class ActionCustom extends Action {
         }
         yaml.find("delay", Number.class).ifPresent(num -> {
             WorstShop.get().logger.warning("'delay' on commands is deprecated. Please use 'preset: delay' instead");
+            WorstShop.get().logger.warning("Parse context: " + ParseContext.getHierarchy());
             delayInTicks = num.intValue();
         });
     }
@@ -68,8 +71,12 @@ public class ActionCustom extends Action {
     }
 
     public static final ImmutableMap<String, BiConsumer<Player, String>> PREDIFINED_FUNCTIONS = ImmutableMap.<String, BiConsumer<Player, String>>builder()
-            .put("chat:", (p, in)->p.sendMessage(ChatColor.translateAlternateColorCodes('&', in.trim())))
-            .put("actionbar:", (p, in)->p.sendActionBar(ChatColor.translateAlternateColorCodes('&', in.trim())))
+            .put("chat:", (p, in)->
+                    p.spigot().sendMessage(ConfigHelper.parseComponentString(in.trim()))
+            )
+            .put("actionbar:", (p, in)->
+                    p.spigot().sendMessage(ChatMessageType.ACTION_BAR, ConfigHelper.parseComponentString(in.trim()))
+            )
             .put("op:", (p, in)->{
                 boolean oldOp = p.isOp();
                 if (!oldOp)

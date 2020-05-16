@@ -30,6 +30,7 @@ import org.yaml.snakeyaml.Yaml;
 
 import java.nio.charset.StandardCharsets;
 import java.util.*;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 public class StaticShopElement extends ShopElement {
@@ -37,6 +38,11 @@ public class StaticShopElement extends ShopElement {
     public ItemStack rawStack;
     public ShopCondition condition = new ShopCondition();
     public List<Action> actions;
+
+    // for faster client load times
+    private PaperHelper.GameProfile skullCache;
+
+    public static final PaperHelper.GameProfile VIEWER_SKULL = PaperHelper.createProfile(null, "{player}");
 
     public static StaticShopElement fromStack(ItemStack stack) {
         StaticShopElement inst = new StaticShopElement();
@@ -48,17 +54,39 @@ public class StaticShopElement extends ShopElement {
         return inst;
     }
 
+    private static final Pattern VALID_MC_NAME = Pattern.compile("[A-Za-z0-9_]{1,16}");
     @SuppressWarnings("unchecked")
     public static ShopElement fromYaml(Map<String, Object> yaml) {
         // static parsing
         StaticShopElement inst = new StaticShopElement();
+
+        if (yaml.containsKey("id")) {
+            inst.id = (String) yaml.get("id");
+        } else {
+            // try to assign random id
+            Shop shop = ParseContext.findLatest(Shop.class);
+            if (shop != null) {
+                inst.id = "index=" + (shop.staticElements.size() + shop.dynamicElements.size());
+            }
+        }
+
         inst.owner = ParseContext.findLatest(Shop.class);
 
         inst.rawStack = parseItemStack(yaml);
 
         // die if null
-        if (ItemUtils.isEmpty(inst.rawStack))
+        if (ItemUtils.isEmpty(inst.rawStack) && !((Boolean) yaml.getOrDefault("preserve-space", false)))
             return null;
+
+        // obtain the skull meta
+        if (inst.rawStack.getType() == Material.PLAYER_HEAD) {
+            SkullMeta meta = (SkullMeta) inst.rawStack.getItemMeta();
+            PaperHelper.GameProfile profile = PaperHelper.getSkullMetaProfile(meta);
+            if (profile != null && profile.getName() != null &&
+                    VALID_MC_NAME.matcher(profile.getName()).matches() && !profile.hasSkin()) {
+                profile.completeProfile().thenAccept(ignored -> inst.skullCache = profile);
+            }
+        }
 
         ParseContext.pushContext(inst);
         // Permissions
@@ -125,14 +153,14 @@ public class StaticShopElement extends ShopElement {
 
             int damage = (int) yaml.getOrDefault("damage", 0);
             if (damage != 0) {
-                is.meta(meta-> {
+                is.meta(meta -> {
                     if (meta instanceof Damageable)
                         ((Damageable) meta).setDamage(damage);
                 });
             }
 
             if (yaml.containsKey("custom-model-data")) {
-                is.meta(meta->meta.setCustomModelData(((Number) yaml.get("custom-model-data")).intValue()));
+                is.meta(meta -> meta.setCustomModelData(((Number) yaml.get("custom-model-data")).intValue()));
             }
 
             if (yaml.containsKey("enchants")) {
@@ -146,7 +174,7 @@ public class StaticShopElement extends ShopElement {
                     }
                     return null;
                 }).filter(Objects::nonNull).collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
-                is.meta(meta -> enchant.forEach((ench, level)-> meta.addEnchant(ench, level, true)));
+                is.meta(meta -> enchant.forEach((ench, level) -> meta.addEnchant(ench, level, true)));
             }
 
             String displayName = ConfigHelper.translateString((String) yaml.get("name"));
@@ -155,7 +183,7 @@ public class StaticShopElement extends ShopElement {
             }
             String locName = (String) yaml.get("loc-name");
             if (locName != null) {
-                is.meta(meta->meta.setLocalizedName(locName));
+                is.meta(meta -> meta.setLocalizedName(locName));
             }
             if (yaml.containsKey("lore")) {
                 List<String> lore = ((List<String>) yaml.get("lore")).stream()
@@ -173,24 +201,37 @@ public class StaticShopElement extends ShopElement {
             }
             // skull
             if (yaml.containsKey("skull")) {
-                if (yaml.get("skull") instanceof String) {
-                    String uuidOrName = (String) yaml.get("skull");
-                        UUID uuid = null;
-                        try {
-                            uuid = UUID.fromString(uuidOrName);
-                            uuidOrName = null; // make name null
-                        } catch (Exception ex) {
-                            // not uuid
+                String uuidOrName = yaml.get("skull").toString();
+                UUID uuid = null;
+                try {
+                    uuid = UUID.fromString(uuidOrName);
+                    uuidOrName = null; // make name null
+                } catch (IllegalArgumentException ignored) { }
+                final UUID finalUuid = uuid;
+                final String finalName = uuidOrName;
+                is.meta(meta -> {
+                    if (meta instanceof SkullMeta) {
+                        if ("{player}".equals(finalName)) {
+                            PaperHelper.setSkullMetaProfile((SkullMeta) meta, VIEWER_SKULL);
+                        } else {
+                            PaperHelper.setSkullMetaProfile((SkullMeta) meta,
+                                    PaperHelper.createProfile(finalUuid, finalName));
                         }
-                        final UUID finalUuid = uuid;
-                        final String finalName = uuidOrName;
-                        is.meta(meta -> {
-                            if (meta instanceof SkullMeta) {
-                                PaperHelper.setSkullMetaProfile((SkullMeta) meta,
-                                        PaperHelper.createProfile(finalUuid, finalName));
-                            }
-                        });
-                }
+                    } else {
+                        throw new IllegalArgumentException("skin can only be used on player heads!");
+                    }
+                });
+            } else if (yaml.containsKey("skin")) {
+                String skin = (String) yaml.get("skin");
+                PaperHelper.GameProfile profile = PaperHelper.createProfile(UUID.randomUUID(), null);
+                profile.setSkin(skin);
+                is.meta(meta -> {
+                    if (meta instanceof SkullMeta) {
+                        PaperHelper.setSkullMetaProfile((SkullMeta) meta, profile);
+                    } else {
+                        throw new IllegalArgumentException("skin can only be used on player heads!");
+                    }
+                });
             }
             return is.build();
         } catch (Exception ex) {
@@ -204,7 +245,14 @@ public class StaticShopElement extends ShopElement {
         }
 
         // parse placeholders
-        return replacePlaceholders(player, this.rawStack);
+        ItemStack stack = replacePlaceholders(player, this.rawStack);
+        // try to apply cache
+        if (skullCache != null && stack.getType() == Material.PLAYER_HEAD) {
+            SkullMeta meta = (SkullMeta) stack.getItemMeta();
+            PaperHelper.setSkullMetaProfile(meta, skullCache);
+            stack.setItemMeta(meta);
+        }
+        return stack;
     }
 
     @Override
@@ -218,7 +266,7 @@ public class StaticShopElement extends ShopElement {
         final ItemStack actualStack = readonlyStack.clone();
 
         // let actions influence item
-        actions.forEach(action->action.influenceItem(player, readonlyStack.clone(), actualStack));
+        actions.forEach(action -> action.influenceItem(player, readonlyStack.clone(), actualStack));
 
 
         return actualStack;
@@ -231,9 +279,9 @@ public class StaticShopElement extends ShopElement {
         stack = stack.clone();
         ItemMeta meta = stack.getItemMeta();
         if (meta.hasLore()) {
-            meta.setLore(
-                    meta.getLore().stream().map(lore-> I18n.doPlaceholders(player, lore))
-                            .collect(Collectors.toList())
+            meta.setLore(meta.getLore().stream()
+                    .map(lore -> I18n.doPlaceholders(player, lore))
+                    .collect(Collectors.toList())
             );
         }
         if (meta.hasDisplayName()) {
@@ -244,10 +292,10 @@ public class StaticShopElement extends ShopElement {
         if (meta instanceof SkullMeta) {
             SkullMeta skullMeta = (SkullMeta) meta;
             PaperHelper.GameProfile profile = PaperHelper.getSkullMetaProfile(skullMeta);
-            if (profile != null && profile.getName() != null) {
-                if (profile.getName().equals("{player}")){
+            if (profile != null) {
+                if (profile.equals(VIEWER_SKULL)) {
                     skullMeta.setOwningPlayer(player);
-                } else if (profile.getName().contains("%") && WorstShop.get().placeholderAPI) {
+                } else if (profile.getName() != null && profile.getName().contains("%") && WorstShop.get().placeholderAPI) {
                     // replace placeholders too
                     String newName = PlaceholderAPI.setPlaceholders(player, profile.getName());
                     PaperHelper.GameProfile newProfile = PaperHelper.createProfile(null, newName);

@@ -27,8 +27,9 @@ public abstract class Condition implements Predicate<Player> {
             case "true":
             case "false":
                 return ConditionConstant.valueOf(Boolean.parseBoolean(preset));
+            default:
+                throw new IllegalArgumentException("Unknown condition preset " + preset);
         }
-        return null;
     }
 
     @NotNull

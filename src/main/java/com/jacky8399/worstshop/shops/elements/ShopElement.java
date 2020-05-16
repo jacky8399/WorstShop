@@ -4,6 +4,7 @@ import com.google.common.collect.Lists;
 import com.jacky8399.worstshop.WorstShop;
 import com.jacky8399.worstshop.helper.ConfigHelper;
 import com.jacky8399.worstshop.helper.ItemUtils;
+import com.jacky8399.worstshop.shops.ParseContext;
 import com.jacky8399.worstshop.shops.Shop;
 import fr.minuskube.inv.ClickableItem;
 import fr.minuskube.inv.content.InventoryContents;
@@ -16,7 +17,7 @@ import org.bukkit.inventory.ItemStack;
 import java.util.List;
 import java.util.Map;
 
-public abstract class ShopElement implements Cloneable {
+public abstract class ShopElement implements Cloneable, ParseContext.NamedContext {
     public interface SlotFiller {
         void fill(Player player, InventoryContents contents, Shop.PaginationHelper pagination);
     }
@@ -24,6 +25,15 @@ public abstract class ShopElement implements Cloneable {
         ALL, BORDER_1, NONE, REMAINING
     }
 
+    // for debugging
+    public String id;
+
+    @Override
+    public String getHierarchyName() {
+        return getClass().getSimpleName() + "[" + (id != null ? id : "?") + "]";
+    }
+
+    // populateItems properties
     public List<SlotPos> itemPositions = null;
     public FillType fill = FillType.NONE;
     public Shop owner = null;

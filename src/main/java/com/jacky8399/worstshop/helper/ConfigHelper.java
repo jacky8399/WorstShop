@@ -15,9 +15,17 @@ public class ConfigHelper {
         return input != null ? ChatColor.translateAlternateColorCodes('&', input) : null;
     }
 
+    // haha regex magic
     private static final Pattern SPECIAL = Pattern.compile("\\((.+?)\\)\\[(.*?)(?<!\\\\)]");
     // don't split on escaped semicolons
     private static final Pattern EVENT_SPLITTER = Pattern.compile("(?<!\\\\);");
+
+    /**
+     * Parse strings with Markdown-like link specifiers into {@link BaseComponent}s <br>
+     * e.g. {@code Click (here)[hover=Click me!]}
+     * @param input input string
+     * @return resultant {@link BaseComponent}s
+     */
     public static BaseComponent[] parseComponentString(String input) {
         int index = 0;
         Matcher matcher = SPECIAL.matcher(input);

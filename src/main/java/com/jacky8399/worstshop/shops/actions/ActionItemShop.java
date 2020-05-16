@@ -77,11 +77,11 @@ public class ActionItemShop extends Action {
             } else {
                 purchaseLimitsYaml.find("buy", Config.class).ifPresent(purchaseLimitYaml -> {
                     buyLimitTemplate = PurchaseRecords.RecordTemplate.fromConfig(purchaseLimitYaml);
-                    buyLimit = ((Number) purchaseLimitYaml.get("limit")).intValue();
+                    buyLimit = purchaseLimitYaml.get("limit", Number.class).intValue();
                 });
                 purchaseLimitsYaml.find("sell", Config.class).ifPresent(purchaseLimitYaml -> {
                     sellLimitTemplate = PurchaseRecords.RecordTemplate.fromConfig(purchaseLimitYaml);
-                    sellLimit = ((Number) purchaseLimitYaml.get("limit")).intValue();
+                    sellLimit = purchaseLimitYaml.get("limit", Number.class).intValue();
                 });
             }
         });

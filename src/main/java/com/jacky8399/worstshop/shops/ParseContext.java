@@ -7,7 +7,7 @@ import java.util.OptionalInt;
 import java.util.Stack;
 import java.util.stream.Collectors;
 
-public class ParseContext {
+public final class ParseContext {
     public static final Stack<Object> STACK = new Stack<>();
     public static final HashMap<Class<?>, Stack<Integer>> CLAZZ_LOCATION = Maps.newHashMap();
 
@@ -38,7 +38,7 @@ public class ParseContext {
                 .min();
         if (clazzLocation.isPresent()) {
             Object obj = STACK.get(clazzLocation.getAsInt());
-            return (T) obj;
+            return clazz.cast(obj);
         }
         return null;
     }
@@ -52,7 +52,7 @@ public class ParseContext {
                 .max();
         if (clazzLocation.isPresent()) {
             Object obj = STACK.get(clazzLocation.getAsInt());
-            return (T) obj;
+            return clazz.cast(obj);
         }
         return null;
     }
@@ -63,6 +63,21 @@ public class ParseContext {
     }
 
     public static String getHierarchy() {
-        return STACK.stream().map(Object::getClass).map(Class::getSimpleName).collect(Collectors.joining(" > "));
+        return STACK.stream()
+                .filter(obj -> !(obj instanceof OmittedContext) || !((OmittedContext) obj).shouldBeOmitted())
+                .map(obj -> obj instanceof NamedContext ? ((NamedContext) obj).getHierarchyName() : obj.getClass().getSimpleName())
+                .collect(Collectors.joining(" > "));
+    }
+
+    public interface NamedContext {
+        default String getHierarchyName() {
+            return toString();
+        }
+    }
+
+    public interface OmittedContext {
+        default boolean shouldBeOmitted() {
+            return true;
+        }
     }
 }

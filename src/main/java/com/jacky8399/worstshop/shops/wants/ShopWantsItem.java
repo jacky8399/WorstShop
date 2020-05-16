@@ -7,10 +7,14 @@ import com.jacky8399.worstshop.shops.elements.StaticShopElement;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.Damageable;
 import org.bukkit.inventory.meta.ItemMeta;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
 import java.util.function.BiFunction;
+import java.util.function.Function;
+import java.util.function.Predicate;
 
 public class ShopWantsItem extends ShopWants implements IFlexibleShopWants {
 
@@ -82,6 +86,8 @@ public class ShopWantsItem extends ShopWants implements IFlexibleShopWants {
     }
 
     public boolean stackMatches(ItemStack stack) {
+        if (stack == null)
+            return false;
         for (ItemMatcher matcher : itemMatchers) {
             if (!matcher.apply(this.stack, stack)) {
                 return false;
@@ -143,7 +149,7 @@ public class ShopWantsItem extends ShopWants implements IFlexibleShopWants {
             if (stackMatches(playerStack)) {
                 if (playerStack.getAmount() >= amount) {
                     // has more than enough
-                    playerStack.subtract(amount);
+                    playerStack.setAmount(playerStack.getAmount() - amount);
                     break; // exit loop
                 } else {
                     // does not have enough
@@ -182,18 +188,27 @@ public class ShopWantsItem extends ShopWants implements IFlexibleShopWants {
         return I18n.nameStack(stack, getAmount());
     }
 
+    private static <T> ItemMatcher compareProperty(Function<ItemMeta, @Nullable T> mapper) {
+        return (s1, s2) -> {
+            ItemMeta m1 = s1.getItemMeta(), m2 = s2.getItemMeta();
+            return Objects.equals(mapper.apply(m1), mapper.apply(m2));
+        };
+    }
+    private static <T> ItemMatcher compareProperty(Predicate<ItemMeta> precondition, Function<ItemMeta, @Nullable T> mapper) {
+        return (s1, s2) -> {
+            ItemMeta m1 = s1.getItemMeta(), m2 = s2.getItemMeta();
+            return precondition.test(m1) == precondition.test(m2) &&
+                    (!(precondition.test(m1)) || Objects.equals(mapper.apply(m1), mapper.apply(m2)));
+        };
+    }
+
     public static final ItemMatcher SIMILAR = ItemStack::isSimilar;
     public static final ItemMatcher MATERIAL = (s1, s2) -> s1.getType() == s2.getType();
-    public static final ItemMatcher NAME = (s1, s2) -> {
-        ItemMeta m1 = s1.getItemMeta(), m2 = s2.getItemMeta();
-        return m1.hasDisplayName() == m2.hasDisplayName() && (!m1.hasDisplayName() || Objects.equals(m1.getDisplayName(), m2.getDisplayName()));
-    };
-    public static final ItemMatcher LORE = (s1, s2) -> {
-        ItemMeta m1 = s1.getItemMeta(), m2 = s2.getItemMeta();
-        return m1.hasLore() == m2.hasLore() && (!m1.hasLore() || Objects.equals(m1.getLore(), m2.getLore()));
-    };
-    public static final ItemMatcher ENCHANTS = (s1, s2) -> s1.getItemMeta().getEnchants().equals(s2.getItemMeta().getEnchants());
-    public static final ItemMatcher PLUGIN_DATA = (s1, s2) -> s1.getItemMeta().getPersistentDataContainer().equals(s2.getItemMeta().getPersistentDataContainer());
+    public static final ItemMatcher DAMAGE = compareProperty(Damageable.class::isInstance, meta->((Damageable) meta).getDamage());
+    public static final ItemMatcher NAME = compareProperty(ItemMeta::hasDisplayName, ItemMeta::getDisplayName);
+    public static final ItemMatcher LORE = compareProperty(ItemMeta::hasLore, ItemMeta::getLore);
+    public static final ItemMatcher ENCHANTS = compareProperty(ItemMeta::getEnchants);
+    public static final ItemMatcher PLUGIN_DATA = compareProperty(ItemMeta::getPersistentDataContainer);
 
     public static final HashMap<String, ItemMatcher> ITEM_MATCHERS;
 
@@ -201,6 +216,7 @@ public class ShopWantsItem extends ShopWants implements IFlexibleShopWants {
         ITEM_MATCHERS = Maps.newHashMap();
         ITEM_MATCHERS.put("similar", SIMILAR);
         ITEM_MATCHERS.put("material", MATERIAL);
+        ITEM_MATCHERS.put("damage", DAMAGE);
         ITEM_MATCHERS.put("name", NAME);
         ITEM_MATCHERS.put("lore", LORE);
         ITEM_MATCHERS.put("enchants", ENCHANTS);

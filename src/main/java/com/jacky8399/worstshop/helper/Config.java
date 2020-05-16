@@ -37,6 +37,7 @@ public final class Config {
                 return (T) new Config((Map<String, Object>) obj);
             }
         }
+        // cannot throw an exception
         return null;
     }
 
@@ -85,14 +86,16 @@ public final class Config {
         return find(key, classes).orElseThrow(throwFor(key, stringifyAcceptedTypes(classes)));
     }
 
-    @SuppressWarnings("unchecked")
     public <T> Optional<List<T>> findList(String key, Class<T> listType) {
-        return find(key, List.class)
-                .map(list -> (List<T>) list.stream()
-                            .map(child -> handleObj(child, listType))
-                            .filter(Objects::nonNull)
-                            .collect(Collectors.toList())
-                );
+        return find(key, List.class).map(list -> ((List<?>) list).stream()
+                .map(child -> {
+                    T newChild = handleObj(child, listType);
+                    if (newChild != null)
+                        return newChild;
+                    throw new IllegalArgumentException("Expected list of " + listType.getSimpleName() + " at " + key + ", found list of " + child.getClass().getSimpleName());
+                })
+                .collect(Collectors.toList())
+        );
     }
 
     public <T> List<T> getList(String key, Class<T> listType) {
