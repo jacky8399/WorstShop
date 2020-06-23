@@ -3,9 +3,10 @@ package com.jacky8399.worstshop.shops.elements;
 import com.jacky8399.worstshop.helper.ItemBuilder;
 import com.jacky8399.worstshop.shops.ParseContext;
 import com.jacky8399.worstshop.shops.Shop;
-import com.jacky8399.worstshop.shops.ShopCondition;
 import com.jacky8399.worstshop.shops.actions.Action;
 import com.jacky8399.worstshop.shops.actions.IParentElementReader;
+import com.jacky8399.worstshop.shops.conditions.Condition;
+import com.jacky8399.worstshop.shops.conditions.ConditionAnd;
 import com.jacky8399.worstshop.shops.conditions.ConditionPermission;
 import com.jacky8399.worstshop.shops.elements.dynamic.AnimationShopElement;
 import org.bukkit.ChatColor;
@@ -21,7 +22,7 @@ import java.util.stream.Collectors;
 
 public class DynamicShopElement extends ShopElement {
     public List<Action> actions;
-    public ShopCondition condition;
+    public Condition condition;
     public static DynamicShopElement fromYaml(Map<String, Object> yaml) {
         DynamicShopElement inst;
         String preset = (String) yaml.get("preset");
@@ -37,14 +38,15 @@ public class DynamicShopElement extends ShopElement {
         ParseContext.pushContext(inst);
 
         // Permissions
-        inst.condition = new ShopCondition();
+        ConditionAnd instCondition = new ConditionAnd();
         if (yaml.containsKey("view-perm")) {
-            inst.condition.add(ConditionPermission.fromPermString((String) yaml.get("view-perm")));
+            instCondition.addCondition(ConditionPermission.fromPermString((String) yaml.get("view-perm")));
         }
 
         if (yaml.containsKey("condition")) {
-            inst.condition.add(ShopCondition.parseFromYaml((Map<String, Object>) yaml.get("condition")));
+            instCondition.addCondition(Condition.fromMap((Map<String, Object>) yaml.get("condition")));
         }
+        inst.condition = instCondition;
 
         // Action parsing
         inst.actions = ((List<?>) yaml.getOrDefault("actions", Collections.emptyList())).stream()

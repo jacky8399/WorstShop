@@ -1,6 +1,7 @@
 package com.jacky8399.worstshop.shops.wants;
 
 import com.google.common.collect.Lists;
+import com.jacky8399.worstshop.helper.Config;
 import com.jacky8399.worstshop.shops.elements.ShopElement;
 import com.jacky8399.worstshop.shops.elements.StaticShopElement;
 import fr.minuskube.inv.content.SlotPos;
@@ -40,8 +41,8 @@ public class ShopWants implements Predicate<Player> {
         // read type
         if (yaml instanceof String) { // one string
             // TODO parse simple string
-        } else if (yaml instanceof Map<?, ?>) { // section
-            return fromMap((Map<String, Object>) yaml);
+        } else if (yaml instanceof Config) { // section
+            return fromMap(((Config) yaml).getPrimitiveMap());
         } else if (yaml instanceof List<?>) {
             List<ShopWants> wants = Lists.newArrayList();
             for (Map<String, Object> want : (List<Map<String, Object>>)yaml) {

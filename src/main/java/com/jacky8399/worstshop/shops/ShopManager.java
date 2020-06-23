@@ -93,7 +93,7 @@ public class ShopManager {
         File shops = new File(plugin.getDataFolder(), "shops");
         String shopsFolderPath = shops.getAbsolutePath();
         if (shops.exists() && shops.isDirectory()) {
-            // iterate thru shops
+            // iterate through shops
             int count = 0;
             for (File shop : listFilesRecursively(shops, Lists.newArrayList())) {
                 String shopPath = shop.getAbsolutePath();

@@ -64,20 +64,21 @@ public final class WorstShop extends JavaPlugin {
             try {
                 permissions = LuckPermsProvider.get();
             } catch (NoClassDefFoundError ex) {
-                logger.severe("LuckPermsProvider cannot be found. Are you using LuckPerms 5.0?");
+                logger.severe("LuckPermsProvider not found. Are you using LuckPerms 5.0?");
                 logger.severe(ex.toString());
                 permissions = null;
             }
         }
 
         // setup playerpoints dependency
-        if (getServer().getPluginManager().isPluginEnabled("PlayerPoints"))
+        if (getServer().getPluginManager().isPluginEnabled("PlayerPoints")) {
             playerPoints = (PlayerPoints) getServer().getPluginManager().getPlugin("PlayerPoints");
+        }
 
         // setup placeholderapi dependency
         if (getServer().getPluginManager().isPluginEnabled("PlaceholderAPI")) {
             placeholderAPI = true;
-            logger.info("Enabling PlaceholderAPI support");
+            logger.info("Enabled PlaceholderAPI support");
         }
 
         // load config
@@ -87,7 +88,6 @@ public final class WorstShop extends JavaPlugin {
         inventories = new InventoryManager(this);
         inventories.init();
         // patch middle click behaviour
-        //InventoryClickEvent.getHandlerList().unregister(this);
         Bukkit.getPluginManager().registerEvents(new InvListenerPatch(), this);
 
         // init commands
@@ -118,8 +118,7 @@ public final class WorstShop extends JavaPlugin {
         return plugin;
     }
 
-    public class InvListenerPatch implements Listener {
-
+    public static class InvListenerPatch implements Listener {
         public InvListenerPatch() {
             try {
                 ACTION_FIELD = InventoryClickEvent.class.getDeclaredField("action");
@@ -145,7 +144,7 @@ public final class WorstShop extends JavaPlugin {
                         try {
                             ACTION_FIELD.set(e, InventoryAction.CLONE_STACK);
                         } catch (IllegalAccessException ex) {
-                            throw new RuntimeException(ex);
+                            throw new Error(ex);
                         }
                     }
                 }

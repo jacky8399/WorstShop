@@ -2,6 +2,8 @@ package com.jacky8399.worstshop.shops;
 
 import com.google.common.collect.Lists;
 import com.jacky8399.worstshop.WorstShop;
+import com.jacky8399.worstshop.shops.conditions.Condition;
+import com.jacky8399.worstshop.shops.conditions.ConditionConstant;
 import com.jacky8399.worstshop.shops.elements.DynamicShopElement;
 import com.jacky8399.worstshop.shops.elements.ShopElement;
 import fr.minuskube.inv.ClickableItem;
@@ -41,7 +43,7 @@ public class Shop implements InventoryProvider, ParseContext.NamedContext {
     public String title;
     public int updateInterval;
 
-    public ShopCondition condition = new ShopCondition();
+    public Condition condition = ConditionConstant.TRUE;
 
     // parents
     public String parentShop = null;
@@ -117,7 +119,7 @@ public class Shop implements InventoryProvider, ParseContext.NamedContext {
             if (yaml.isSet("condition")) {
                 Object obj = yaml.get("condition");
                 if (obj instanceof Map<?, ?>) {
-                    inst.condition.add(ShopCondition.parseFromYaml((Map<String, Object>) obj));
+                    inst.condition = Condition.fromMap((Map<String, Object>) obj);
                 }
             }
 

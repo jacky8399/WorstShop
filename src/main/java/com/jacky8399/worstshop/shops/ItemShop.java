@@ -1,6 +1,8 @@
 package com.jacky8399.worstshop.shops;
 
 import com.jacky8399.worstshop.shops.actions.ActionItemShop;
+import com.jacky8399.worstshop.shops.conditions.Condition;
+import com.jacky8399.worstshop.shops.conditions.ConditionConstant;
 import com.jacky8399.worstshop.shops.wants.ShopWants;
 import com.jacky8399.worstshop.shops.wants.ShopWantsItem;
 import org.bukkit.entity.Player;
@@ -10,10 +12,10 @@ import org.bukkit.inventory.ItemStack;
 public class ItemShop {
     String owningShop;
     ActionItemShop shop;
-    ShopCondition condition;
-    public ItemShop(ActionItemShop orig, ShopCondition condition) {
+    Condition condition;
+    public ItemShop(ActionItemShop orig, Condition condition) {
         this.shop = orig;
-        this.condition = condition != null ? condition : new ShopCondition();
+        this.condition = condition != null ? condition : ConditionConstant.TRUE;
         this.owningShop = ShopManager.currentShopId;
     }
 

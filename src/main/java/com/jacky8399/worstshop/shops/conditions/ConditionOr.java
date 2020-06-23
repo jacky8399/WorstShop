@@ -19,6 +19,10 @@ public class ConditionOr extends Condition {
         this.conditions.addAll(conditions);
     }
 
+    public void addCondition(@NotNull Condition condition) {
+        this.conditions.add(condition);
+    }
+
     @NotNull
     @Override
     public ConditionOr or(@NotNull Condition other) {

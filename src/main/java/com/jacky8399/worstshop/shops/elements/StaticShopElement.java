@@ -9,9 +9,10 @@ import com.jacky8399.worstshop.helper.ItemUtils;
 import com.jacky8399.worstshop.helper.PaperHelper;
 import com.jacky8399.worstshop.shops.ParseContext;
 import com.jacky8399.worstshop.shops.Shop;
-import com.jacky8399.worstshop.shops.ShopCondition;
 import com.jacky8399.worstshop.shops.actions.Action;
 import com.jacky8399.worstshop.shops.actions.IParentElementReader;
+import com.jacky8399.worstshop.shops.conditions.Condition;
+import com.jacky8399.worstshop.shops.conditions.ConditionAnd;
 import com.jacky8399.worstshop.shops.conditions.ConditionPermission;
 import me.clip.placeholderapi.PlaceholderAPI;
 import org.bukkit.Material;
@@ -36,7 +37,7 @@ import java.util.stream.Collectors;
 public class StaticShopElement extends ShopElement {
 
     public ItemStack rawStack;
-    public ShopCondition condition = new ShopCondition();
+    public Condition condition;
     public List<Action> actions;
 
     // for faster client load times
@@ -89,13 +90,15 @@ public class StaticShopElement extends ShopElement {
         }
 
         ParseContext.pushContext(inst);
+
+        ConditionAnd instCondition = new ConditionAnd();
         // Permissions
         if (yaml.containsKey("view-perm")) {
-            inst.condition.add(ConditionPermission.fromPermString((String) yaml.get("view-perm")));
+            instCondition.addCondition(ConditionPermission.fromPermString((String) yaml.get("view-perm")));
         }
 
         if (yaml.containsKey("condition")) {
-            inst.condition.add(ShopCondition.parseFromYaml((Map<String, Object>) yaml.get("condition")));
+            instCondition.addCondition(Condition.fromMap((Map<String, Object>) yaml.get("condition")));
         }
 
         // Action parsing
@@ -262,12 +265,10 @@ public class StaticShopElement extends ShopElement {
 
         if (readonlyStack == null)
             return null;
-
         final ItemStack actualStack = readonlyStack.clone();
 
         // let actions influence item
         actions.forEach(action -> action.influenceItem(player, readonlyStack.clone(), actualStack));
-
 
         return actualStack;
     }

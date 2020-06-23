@@ -19,6 +19,14 @@ public class ConditionAnd extends Condition {
         this.conditions.addAll(conditions);
     }
 
+    public void addCondition(@NotNull Condition condition) {
+        this.conditions.add(condition);
+    }
+
+    public boolean removeCondition(@NotNull Condition condition) {
+        return this.conditions.remove(condition);
+    }
+
     @NotNull
     @Override
     public Condition and(@NotNull Condition condition) {

@@ -1,8 +1,12 @@
 package com.jacky8399.worstshop.helper;
 
+import com.jacky8399.worstshop.WorstShop;
+import com.jacky8399.worstshop.shops.ParseContext;
 import net.md_5.bungee.api.chat.*;
+import net.md_5.bungee.chat.ComponentSerializer;
 import org.bukkit.ChatColor;
 
+import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -20,13 +24,23 @@ public class ConfigHelper {
     // don't split on escaped semicolons
     private static final Pattern EVENT_SPLITTER = Pattern.compile("(?<!\\\\);");
 
+    public static BaseComponent[] parseComponentString(String input) {
+        if (SPECIAL.matcher(input).matches()) {
+            Logger logger = WorstShop.get().logger;
+            logger.warning("Custom syntax for chat components is deprecated. Please use proper JSON.");
+            logger.warning("Offending string: " + ParseContext.getHierarchy());
+        }
+        return ComponentSerializer.parse(input);
+    }
+
     /**
      * Parse strings with Markdown-like link specifiers into {@link BaseComponent}s <br>
      * e.g. {@code Click (here)[hover=Click me!]}
      * @param input input string
      * @return resultant {@link BaseComponent}s
      */
-    public static BaseComponent[] parseComponentString(String input) {
+    @Deprecated
+    public static BaseComponent[] parseComponentStringOld(String input) {
         int index = 0;
         Matcher matcher = SPECIAL.matcher(input);
         ComponentBuilder builder = new ComponentBuilder();

@@ -169,8 +169,8 @@ public class PaperHelper {
 
         @Override
         public void setSkin(String base64) {
-                PropertyMap propertyMap = obj.getProperties();
-                propertyMap.put("skin", new Property("skin", base64, null));
+            PropertyMap propertyMap = obj.getProperties();
+            propertyMap.put("skin", new Property("skin", base64, null));
         }
 
         @Override
@@ -190,7 +190,6 @@ public class PaperHelper {
 
         private PaperGameProfile(Object impl) {
             if (PaperHelper.isPaper) {
-                // assume Paper impl
                 obj = (PlayerProfile) impl;
             }
         }
