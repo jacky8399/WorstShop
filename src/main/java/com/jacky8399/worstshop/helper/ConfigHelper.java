@@ -4,7 +4,7 @@ import com.jacky8399.worstshop.WorstShop;
 import com.jacky8399.worstshop.shops.ParseContext;
 import net.md_5.bungee.api.chat.*;
 import net.md_5.bungee.chat.ComponentSerializer;
-import org.bukkit.ChatColor;
+import net.md_5.bungee.api.ChatColor;
 
 import java.util.logging.Logger;
 import java.util.regex.Matcher;

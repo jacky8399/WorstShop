@@ -4,7 +4,7 @@ import co.aikar.commands.BukkitLocales;
 import co.aikar.commands.PaperCommandManager;
 import co.aikar.commands.annotation.Dependency;
 import com.jacky8399.worstshop.WorstShop;
-import org.bukkit.ChatColor;
+import net.md_5.bungee.api.ChatColor;
 
 public class BaseCommand extends co.aikar.commands.BaseCommand {
     public BaseCommand(WorstShop plugin, PaperCommandManager manager) {

@@ -23,7 +23,7 @@ import com.jacky8399.worstshop.shops.elements.StaticShopElement;
 import net.md_5.bungee.api.chat.*;
 import org.apache.commons.lang.StringUtils;
 import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
+import net.md_5.bungee.api.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -127,18 +127,18 @@ public class CommandShop extends BaseCommand {
 
         private BaseComponent[] stringifyDiscount(ShopDiscount.Entry discount, boolean putDetailsInHover) {
             boolean expires = discount.expiry != null;
-            ComponentBuilder detailBuilder = new ComponentBuilder("Discount ID: ").color(net.md_5.bungee.api.ChatColor.GREEN)
-                    .append(discount.name).color(net.md_5.bungee.api.ChatColor.YELLOW)
-                    .append("\nExpiry: ").color(net.md_5.bungee.api.ChatColor.GREEN)
+            ComponentBuilder detailBuilder = new ComponentBuilder("Discount ID: ").color(ChatColor.GREEN)
+                    .append(discount.name).color(ChatColor.YELLOW)
+                    .append("\nExpiry: ").color(ChatColor.GREEN)
                     .append(!expires ? "never" :
                             discount.expiry.atOffset(OffsetDateTime.now().getOffset())
                                     .format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))
-                    ).color(expires ? net.md_5.bungee.api.ChatColor.YELLOW : net.md_5.bungee.api.ChatColor.BLUE);
+                    ).color(expires ? ChatColor.YELLOW : ChatColor.BLUE);
             if (expires)
-                detailBuilder.append(" (expires in ").color(net.md_5.bungee.api.ChatColor.GOLD)
-                        .append(DateTimeUtils.formatTime(Duration.between(LocalDateTime.now(), discount.expiry))).color(net.md_5.bungee.api.ChatColor.GOLD)
-                        .append(")").color(net.md_5.bungee.api.ChatColor.GOLD);
-            detailBuilder.append("\nApplicable to:").color(net.md_5.bungee.api.ChatColor.GREEN);
+                detailBuilder.append(" (expires in ").color(ChatColor.GOLD)
+                        .append(DateTimeUtils.formatTime(Duration.between(LocalDateTime.now(), discount.expiry))).color(ChatColor.GOLD)
+                        .append(")").color(ChatColor.GOLD);
+            detailBuilder.append("\nApplicable to:").color(ChatColor.GREEN);
             boolean hasCriteria = false;
             if (discount.shop != null) {
                 detailBuilder.append("\nShop: ").append(discount.shop);
@@ -159,8 +159,8 @@ public class CommandShop extends BaseCommand {
             if (!hasCriteria) {
                 detailBuilder.append("\nEveryone");
             }
-            ComponentBuilder actualComponent = new ComponentBuilder((1 - discount.percentage) * 100 + "% discount ").color(net.md_5.bungee.api.ChatColor.YELLOW)
-                    .append("(" + discount.name + ")").color(net.md_5.bungee.api.ChatColor.AQUA);
+            ComponentBuilder actualComponent = new ComponentBuilder((1 - discount.percentage) * 100 + "% discount ").color(ChatColor.YELLOW)
+                    .append("(" + discount.name + ")").color(ChatColor.AQUA);
             if (putDetailsInHover)
                 actualComponent.event(new HoverEvent(HoverEvent.Action.SHOW_TEXT, detailBuilder.create()));
             else
@@ -210,7 +210,7 @@ public class CommandShop extends BaseCommand {
             }
             ShopDiscount.addDiscountEntry(entry);
             sender.spigot().sendMessage(
-                    new ComponentBuilder("Added new ").color(net.md_5.bungee.api.ChatColor.GREEN)
+                    new ComponentBuilder("Added new ").color(ChatColor.GREEN)
                             .append(stringifyDiscount(entry, sender instanceof Player)).create()
             );
         }
@@ -223,10 +223,10 @@ public class CommandShop extends BaseCommand {
             ShopDiscount.ALL_DISCOUNTS.values().stream().filter(entry -> !entry.hasExpired())
                     .map(entry -> {
                         BaseComponent[] components = stringifyDiscount(entry, shouldPutDetailsInHover);
-                        return new ComponentBuilder("A ").color(net.md_5.bungee.api.ChatColor.YELLOW)
+                        return new ComponentBuilder("A ").color(ChatColor.YELLOW)
                                 .append(components)
                                 .append(" ")
-                                .append("[Delete]").color(net.md_5.bungee.api.ChatColor.RED).bold(true)
+                                .append("[Delete]").color(ChatColor.RED).bold(true)
                                 .event(new HoverEvent(HoverEvent.Action.SHOW_TEXT, TextComponent.fromLegacyText(ChatColor.YELLOW + "Click here to delete the discount")))
                                 .event(new ClickEvent(ClickEvent.Action.SUGGEST_COMMAND, "/worstshop discount delete " + entry.name))
                                 .create();
@@ -241,7 +241,7 @@ public class CommandShop extends BaseCommand {
             if (realEntry != null) {
                 ShopDiscount.removeDiscountEntry(realEntry);
                 sender.spigot().sendMessage(
-                        new ComponentBuilder("Successfully removed ").color(net.md_5.bungee.api.ChatColor.GREEN)
+                        new ComponentBuilder("Successfully removed ").color(ChatColor.GREEN)
                         .append(stringifyDiscount(realEntry, sender instanceof Player)).create()
                 );
             }
@@ -273,7 +273,7 @@ public class CommandShop extends BaseCommand {
                     sender.sendMessage(ChatColor.GREEN + player.getName() + " has purchase record(s) in the following categories:");
                     for (String key : keys) {
                         BaseComponent[] components = new ComponentBuilder()
-                                .append(key).color(net.md_5.bungee.api.ChatColor.YELLOW)
+                                .append(key).color(ChatColor.YELLOW)
                                 .event(new ClickEvent(ClickEvent.Action.SUGGEST_COMMAND, "/worstshop purchases show " + player.getName() + " " + key))
                                 .create();
                         sender.spigot().sendMessage(components);
@@ -347,19 +347,19 @@ public class CommandShop extends BaseCommand {
         }
         //</editor-fold>
 
-        HoverEvent hoverEvent = new HoverEvent(HoverEvent.Action.SHOW_TEXT, TextComponent.fromLegacyText("Click to copy line", net.md_5.bungee.api.ChatColor.WHITE));
-        player.spigot().sendMessage(new ComponentBuilder("Item: ").color(net.md_5.bungee.api.ChatColor.YELLOW)
-                .append("[Copy all]").color(net.md_5.bungee.api.ChatColor.GREEN)
+        HoverEvent hoverEvent = new HoverEvent(HoverEvent.Action.SHOW_TEXT, TextComponent.fromLegacyText("Click to copy line", ChatColor.WHITE));
+        player.spigot().sendMessage(new ComponentBuilder("Item: ").color(ChatColor.YELLOW)
+                .append("[Copy all]").color(ChatColor.GREEN)
                 .event(hoverEvent).event(new ClickEvent(ClickEvent.Action.COPY_TO_CLIPBOARD, String.join("\n", serialized)))
                 .create());
         for (String line : serialized) {
-            player.spigot().sendMessage(new ComponentBuilder(line).color(net.md_5.bungee.api.ChatColor.WHITE)
+            player.spigot().sendMessage(new ComponentBuilder(line).color(ChatColor.WHITE)
                     .event(hoverEvent).event(new ClickEvent(ClickEvent.Action.COPY_TO_CLIPBOARD, line))
                     .create());
         }
         player.sendMessage(ChatColor.YELLOW + "For more complex items (e.g. plugin items), use the following:");
         String metaStr = "item-meta: " + StaticShopElement.serializeBase64ItemMeta(meta);
-        player.spigot().sendMessage(new ComponentBuilder(StringUtils.abbreviate(metaStr, 25)).color(net.md_5.bungee.api.ChatColor.WHITE)
+        player.spigot().sendMessage(new ComponentBuilder(StringUtils.abbreviate(metaStr, 25)).color(ChatColor.WHITE)
                 .event(hoverEvent).event(new ClickEvent(ClickEvent.Action.COPY_TO_CLIPBOARD, metaStr))
                 .create()
         );

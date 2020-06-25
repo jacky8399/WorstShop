@@ -3,7 +3,7 @@ package com.jacky8399.worstshop.shops.wants;
 import com.jacky8399.worstshop.WorstShop;
 import net.milkbowl.vault.economy.Economy;
 import net.milkbowl.vault.economy.EconomyResponse;
-import org.bukkit.ChatColor;
+import net.md_5.bungee.api.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
