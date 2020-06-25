@@ -4,6 +4,7 @@ import co.aikar.commands.CommandHelp;
 import co.aikar.commands.CommandIssuer;
 import co.aikar.commands.InvalidCommandArgument;
 import co.aikar.commands.PaperCommandManager;
+import co.aikar.commands.annotation.Optional;
 import co.aikar.commands.annotation.*;
 import co.aikar.commands.bukkit.contexts.OnlinePlayer;
 import com.google.common.collect.Lists;
@@ -12,6 +13,7 @@ import com.jacky8399.worstshop.WorstShop;
 import com.jacky8399.worstshop.helper.DateTimeUtils;
 import com.jacky8399.worstshop.helper.ItemUtils;
 import com.jacky8399.worstshop.helper.PaperHelper;
+import com.jacky8399.worstshop.helper.PurchaseRecords;
 import com.jacky8399.worstshop.shops.Shop;
 import com.jacky8399.worstshop.shops.ShopDiscount;
 import com.jacky8399.worstshop.shops.ShopManager;
@@ -35,9 +37,7 @@ import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @CommandAlias("worstshop|shop")
@@ -246,7 +246,53 @@ public class CommandShop extends BaseCommand {
                 );
             }
         }
+    }
 
+    @Subcommand("purchases")
+    @CommandPermission("worstshop.inspectpurchases")
+    public class InspectPurchases extends co.aikar.commands.BaseCommand {
+        public InspectPurchases() {
+            manager.getCommandCompletions().registerCompletion("@purchase_record_ids", ctx -> {
+               OnlinePlayer player = ctx.getContextValue(OnlinePlayer.class);
+               PurchaseRecords record = PurchaseRecords.getCopy(player.player);
+               return record.getKeys();
+            });
+        }
+
+        @Subcommand("show")
+        @CommandCompletion("* @purchase_record_ids")
+        public void showPlayerPurchaseRecords(CommandSender sender, OnlinePlayer onlinePlayer, @Optional String recordId) {
+            Player player = onlinePlayer.player;
+            PurchaseRecords record = PurchaseRecords.getCopy(player);
+            if (recordId == null) {
+                record.purgeOldRecords();
+                Set<String> keys = record.getKeys();
+                if (keys.size() == 0) {
+                    sender.sendMessage(ChatColor.RED + player.getName() + " doesn't have any purchase records.");
+                } else {
+                    sender.sendMessage(ChatColor.GREEN + player.getName() + " has purchase record(s) in the following categories:");
+                    for (String key : keys) {
+                        BaseComponent[] components = new ComponentBuilder()
+                                .append(key).color(net.md_5.bungee.api.ChatColor.YELLOW)
+                                .event(new ClickEvent(ClickEvent.Action.SUGGEST_COMMAND, "/worstshop purchases show " + player.getName() + " " + key))
+                                .create();
+                        sender.spigot().sendMessage(components);
+                    }
+                }
+            } else {
+                PurchaseRecords.RecordStorage purchases = record.get(recordId);
+                if (purchases == null) {
+                    throw new InvalidCommandArgument(recordId + " is not a valid record ID!");
+                }
+                purchases.purgeOldRecords();
+                List<Map.Entry<LocalDateTime, Integer>> entries = purchases.getEntries();
+                sender.sendMessage(ChatColor.GREEN + player.getName() + " has " + entries.size() + " purchase record(s) in " + ChatColor.YELLOW + recordId);
+                LocalDateTime now = LocalDateTime.now();
+                for (Map.Entry<LocalDateTime, Integer> entry : entries) {
+                    sender.sendMessage(ChatColor.YELLOW + "x" + entry.getValue() + "  " + ChatColor.GREEN + DateTimeUtils.formatTime(Duration.between(entry.getKey(), now)) + " ago");
+                }
+            }
+        }
     }
 
     private static String replaceColor(String str) {

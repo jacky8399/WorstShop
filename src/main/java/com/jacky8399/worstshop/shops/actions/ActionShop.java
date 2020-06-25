@@ -76,7 +76,7 @@ public class ActionShop extends Action implements IParentElementReader {
             }
             // record the sale
             if (purchaseLimitTemplate != null) {
-                PurchaseRecords records = PurchaseRecords.get(player);
+                PurchaseRecords records = PurchaseRecords.getCopy(player);
                 records.applyTemplate(purchaseLimitTemplate).addRecord(LocalDateTime.now(), (int) (count - refund));
                 records.updateFor(player);
             }
@@ -105,7 +105,7 @@ public class ActionShop extends Action implements IParentElementReader {
         if (purchaseLimitTemplate == null) {
             return Integer.MAX_VALUE;
         }
-        PurchaseRecords records = PurchaseRecords.get(player);
+        PurchaseRecords records = PurchaseRecords.getCopy(player);
         PurchaseRecords.RecordStorage storage = records.applyTemplate(purchaseLimitTemplate);
         int totalPurchases = storage.getTotalPurchases();
         return purchaseLimit - totalPurchases;
@@ -151,7 +151,7 @@ public class ActionShop extends Action implements IParentElementReader {
     }
 
     public String formatPurchaseLimitMessage(Player player) {
-        PurchaseRecords records = PurchaseRecords.get(player);
+        PurchaseRecords records = PurchaseRecords.getCopy(player);
         PurchaseRecords.RecordStorage storage = records.applyTemplate(purchaseLimitTemplate);
         List<Map.Entry<LocalDateTime, Integer>> entries = storage.getEntries();
         Duration wait;
@@ -273,7 +273,7 @@ public class ActionShop extends Action implements IParentElementReader {
                         I18n.Keys.MESSAGES_KEY + "shops.buttons.purchase-limit.limit",
                         shop.purchaseLimit, DateTimeUtils.formatTime(shop.purchaseLimitTemplate.retentionTime)
                 ), I18n.translate(I18n.Keys.MESSAGES_KEY + "shops.buttons.purchase-limit.previous-purchases"));
-                PurchaseRecords.RecordStorage records = PurchaseRecords.get(player).applyTemplate(shop.purchaseLimitTemplate);
+                PurchaseRecords.RecordStorage records = PurchaseRecords.getCopy(player).applyTemplate(shop.purchaseLimitTemplate);
 
                 LocalDateTime now = LocalDateTime.now();
                 records.getEntries().stream().map(entry ->

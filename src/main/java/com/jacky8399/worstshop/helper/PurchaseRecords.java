@@ -18,7 +18,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 public class PurchaseRecords {
-    public static PurchaseRecords get(Player player) {
+    public static PurchaseRecords getCopy(Player player) {
         PersistentDataContainer container = player.getPersistentDataContainer();
         if (!container.has(PURCHASE_RECORD_KEY, PURCHASE_RECORD_STORAGE)) {
             return new PurchaseRecords();
@@ -27,11 +27,16 @@ public class PurchaseRecords {
     }
 
     public void updateFor(Player player) {
+        purgeOldRecords();
         player.getPersistentDataContainer().set(PURCHASE_RECORD_KEY, PURCHASE_RECORD_STORAGE, this);
     }
 
     public RecordStorage get(String id) {
         return records.get(id);
+    }
+
+    public Set<String> getKeys() {
+        return records.keySet();
     }
 
     public RecordStorage applyTemplate(@NotNull RecordTemplate template) {
@@ -42,6 +47,13 @@ public class PurchaseRecords {
         RecordStorage recordStorage = new RecordStorage(retentionTime, maxRecords);
         records.put(id, recordStorage);
         return recordStorage;
+    }
+
+    public void purgeOldRecords() {
+        records.values().removeIf(recordStorage -> {
+            recordStorage.purgeOldRecords();
+            return recordStorage.records.size() == 0;
+        });
     }
 
     public static class RecordTemplate {
