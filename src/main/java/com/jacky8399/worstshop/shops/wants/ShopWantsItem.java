@@ -71,13 +71,13 @@ public class ShopWantsItem extends ShopWants implements IFlexibleShopWants {
     @Override
     public ShopWants adjustForPlayer(Player player) {
         // parse placeholders
-        return new ShopWantsItem(StaticShopElement.replacePlaceholders(player, stack))
+        return new ShopWantsItem(StaticShopElement.replacePlaceholders(player, stack), multiplier)
                 .setItemMatchers(itemMatchers);
     }
 
     @Override
     public ShopWants multiply(double multiplier) {
-        return new ShopWantsItem(this, multiplier);
+        return new ShopWantsItem(this, this.multiplier * multiplier);
     }
 
     @Override

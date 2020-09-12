@@ -25,12 +25,18 @@ public class ConfigHelper {
     private static final Pattern EVENT_SPLITTER = Pattern.compile("(?<!\\\\);");
 
     public static BaseComponent[] parseComponentString(String input) {
-        if (SPECIAL.matcher(input).matches()) {
+        try {
+            return ComponentSerializer.parse(input);
+        } catch (com.google.gson.JsonSyntaxException ex) {
             Logger logger = WorstShop.get().logger;
             logger.warning("Custom syntax for chat components is deprecated. Please use proper JSON.");
-            logger.warning("Offending string: " + ParseContext.getHierarchy());
+            logger.warning("Parse context: " + ParseContext.getHierarchy());
+            BaseComponent[] components = parseComponentStringOld(input);
+            // convert to proper JSON
+            logger.warning("The equivalent JSON string:");
+            logger.warning(ComponentSerializer.toString(components));
+            return components;
         }
-        return ComponentSerializer.parse(input);
     }
 
     /**

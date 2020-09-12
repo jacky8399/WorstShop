@@ -73,6 +73,9 @@ public class StaticShopElement extends ShopElement {
 
         inst.owner = ParseContext.findLatest(Shop.class);
 
+        // push context earlier for error-handling
+        ParseContext.pushContext(inst);
+
         inst.rawStack = parseItemStack(yaml);
 
         // die if null
@@ -88,8 +91,6 @@ public class StaticShopElement extends ShopElement {
                 profile.completeProfile().thenAccept(ignored -> inst.skullCache = profile);
             }
         }
-
-        ParseContext.pushContext(inst);
 
         ConditionAnd instCondition = new ConditionAnd();
         // Permissions
@@ -189,10 +190,16 @@ public class StaticShopElement extends ShopElement {
                 is.meta(meta -> meta.setLocalizedName(locName));
             }
             if (yaml.containsKey("lore")) {
-                List<String> lore = ((List<String>) yaml.get("lore")).stream()
-                        .map(ConfigHelper::translateString)
-                        .collect(Collectors.toList());
-                is.lore(lore);
+                Object loreObj = yaml.get("lore");
+                if (loreObj instanceof List<?>) {
+                    List<String> lore = ((List<String>) loreObj).stream()
+                            .map(ConfigHelper::translateString)
+                            .collect(Collectors.toList());
+                    is.lore(lore);
+                } else {
+                    // probably a string
+                    is.lores(ConfigHelper.translateString(loreObj.toString()));
+                }
             }
             if (yaml.containsKey("hide-flags")) {
                 ItemFlag[] flags = ((List<String>) yaml.get("hide-flags")).stream()
@@ -243,7 +250,7 @@ public class StaticShopElement extends ShopElement {
     }
 
     public ItemStack createPlaceholderStack(Player player) {
-        if (!condition.test(player)) {
+        if (condition != null && !condition.test(player)) {
             return null;
         }
 
