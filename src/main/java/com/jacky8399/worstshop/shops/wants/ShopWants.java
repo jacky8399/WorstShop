@@ -7,6 +7,7 @@ import com.jacky8399.worstshop.shops.elements.StaticShopElement;
 import fr.minuskube.inv.content.SlotPos;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.Collections;
 import java.util.List;
@@ -40,7 +41,7 @@ public class ShopWants implements Predicate<Player> {
     public static ShopWants fromYamlNode(Object yaml) {
         // read type
         if (yaml instanceof String) { // one string
-            // TODO parse simple string
+            return fromString((String) yaml);
         } else if (yaml instanceof Config) { // section
             return fromMap(((Config) yaml).getPrimitiveMap());
         } else if (yaml instanceof List<?>) {
@@ -51,6 +52,19 @@ public class ShopWants implements Predicate<Player> {
             return new ShopWantsMultiple(wants);
         }
         return new ShopWantsFree();
+    }
+
+    public static ShopWants fromString(@NotNull String str) {
+        if (str.startsWith("$")) {
+            // money
+            String number = str.substring(1);
+            try {
+                return new ShopWantsMoney(Double.parseDouble(number));
+            } catch (NumberFormatException ex) {
+                throw new IllegalArgumentException("Invalid commodity shorthand value: " + number + " is not a valid number");
+            }
+        }
+        throw new IllegalArgumentException("Invalid commodity shorthand '" + str + "'");
     }
 
     public ShopWants() {
