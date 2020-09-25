@@ -15,6 +15,7 @@ import com.jacky8399.worstshop.shops.conditions.Condition;
 import com.jacky8399.worstshop.shops.conditions.ConditionAnd;
 import com.jacky8399.worstshop.shops.conditions.ConditionPermission;
 import me.clip.placeholderapi.PlaceholderAPI;
+import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.configuration.file.YamlConfiguration;
@@ -306,8 +307,14 @@ public class StaticShopElement extends ShopElement {
                 } else if (profile.getName() != null && profile.getName().contains("%") && WorstShop.get().placeholderAPI) {
                     // replace placeholders too
                     String newName = PlaceholderAPI.setPlaceholders(player, profile.getName());
-                    PaperHelper.GameProfile newProfile = PaperHelper.createProfile(null, newName);
-                    PaperHelper.setSkullMetaProfile(skullMeta, newProfile);
+                    // check if the name is that of a online player
+                    Player newPlayer = Bukkit.getPlayer(newName);
+                    if (newPlayer != null && newPlayer.isOnline()) {
+                        skullMeta.setOwningPlayer(newPlayer);
+                    } else if (newName.length() != 0) {
+                        PaperHelper.GameProfile newProfile = PaperHelper.createProfile(null, newName);
+                        PaperHelper.setSkullMetaProfile(skullMeta, newProfile);
+                    }
                 }
             }
         }
