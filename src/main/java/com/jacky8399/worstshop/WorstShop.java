@@ -2,9 +2,11 @@ package com.jacky8399.worstshop;
 
 import co.aikar.commands.PaperCommandManager;
 import com.jacky8399.worstshop.commands.Commands;
+import com.jacky8399.worstshop.helper.InventoryCloseListener;
 import com.jacky8399.worstshop.helper.PaperHelper;
 import com.jacky8399.worstshop.shops.ShopManager;
 import fr.minuskube.inv.InventoryManager;
+import fr.minuskube.inv.SmartInventory;
 import net.luckperms.api.LuckPerms;
 import net.luckperms.api.LuckPermsProvider;
 import net.milkbowl.vault.economy.Economy;
@@ -38,6 +40,10 @@ public final class WorstShop extends JavaPlugin {
     public LuckPerms permissions;
 
     public FileConfiguration config;
+
+    public static SmartInventory.Builder buildGui(String id) {
+        return SmartInventory.builder().manager(plugin.inventories).id(id).listener(new InventoryCloseListener());
+    }
 
     @Override
     public void onEnable() {

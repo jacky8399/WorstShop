@@ -3,6 +3,12 @@ worstshop:
     invalid-shop: 'Invalid shop {0}!'
 
   messages:
+    editor:
+      main:
+        title: '&eShop editor'
+        create: '&cCreate a new shop'
+        modify: '&aModify an existing shop'
+
     shops:
       wants:
         levels: '{0} levels'

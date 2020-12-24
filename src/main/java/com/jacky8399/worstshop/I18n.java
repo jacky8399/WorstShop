@@ -110,12 +110,13 @@ public class I18n {
 
     public static String translate(String path, Object... args) {
         path = path.toLowerCase();
-        if (lang.isString(path))
+        if (lang.isString(path)) {
             try {
                 return ConfigHelper.translateString(MessageFormat.format(lang.getString(path), args));
             } catch (Exception ex) {
                 return ChatColor.RED + "" + path + ": " + ex.toString();
             }
+        }
         return path;
     }
 

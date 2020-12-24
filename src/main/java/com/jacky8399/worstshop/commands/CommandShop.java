@@ -10,6 +10,7 @@ import co.aikar.commands.bukkit.contexts.OnlinePlayer;
 import com.google.common.collect.Lists;
 import com.jacky8399.worstshop.I18n;
 import com.jacky8399.worstshop.WorstShop;
+import com.jacky8399.worstshop.editor.EditorMainMenu;
 import com.jacky8399.worstshop.helper.DateTimeUtils;
 import com.jacky8399.worstshop.helper.ItemUtils;
 import com.jacky8399.worstshop.helper.PaperHelper;
@@ -385,6 +386,15 @@ public class CommandShop extends BaseCommand {
         } catch (IllegalArgumentException ex) {
             throw new InvalidCommandArgument(ex.getMessage());
         }
+    }
+
+    @Subcommand("editor")
+    @CommandCompletion("*")
+    @CommandPermission("worstshop.editor")
+    public void openEditor(Player player, @Optional Shop shop) {
+        if (shop == null)
+            EditorMainMenu.getInventory().open(player);
+        //TODO open specific shop editor
     }
 
     @HelpCommand
