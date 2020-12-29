@@ -9,6 +9,23 @@ worstshop:
         create: '&cCreate a new shop'
         modify: '&aModify an existing shop'
 
+      property:
+        gui:
+          title: '&eEditing property {0}'
+          current: '&aCurrent value!'
+          set: '&6Click to set!'
+        name-format: '&e{0}'
+        value-format: '&bCurrent value: {0}'
+        boolean:
+          'true': '&atrue'
+          'false': '&cfalse'
+          toggle: '&6Click to toggle!'
+        text:
+          editing: '&eCurrently editing {0} (type: {1})'
+          current: '&aCurrent value: {0} &c(enter this value to quit editing)'
+          invalid: '&4The input you provided was invalid!'
+
+
     shops:
       wants:
         levels: '{0} levels'

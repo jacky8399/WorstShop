@@ -2,6 +2,7 @@ package com.jacky8399.worstshop.shops;
 
 import com.google.common.collect.Lists;
 import com.jacky8399.worstshop.WorstShop;
+import com.jacky8399.worstshop.editor.Editable;
 import com.jacky8399.worstshop.shops.conditions.Condition;
 import com.jacky8399.worstshop.shops.conditions.ConditionConstant;
 import com.jacky8399.worstshop.shops.elements.DynamicShopElement;
@@ -13,9 +14,9 @@ import fr.minuskube.inv.content.InventoryContents;
 import fr.minuskube.inv.content.InventoryProvider;
 import fr.minuskube.inv.content.Pagination;
 import fr.minuskube.inv.content.SlotIterator;
+import net.md_5.bungee.api.ChatColor;
 import org.apache.logging.log4j.util.Strings;
 import org.bukkit.Bukkit;
-import net.md_5.bungee.api.ChatColor;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.InventoryCloseEvent;
@@ -27,6 +28,7 @@ import java.util.function.BiFunction;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
+@Editable("shop")
 public class Shop implements InventoryProvider, ParseContext.NamedContext {
 
     public static String SHOP_ID_PREFIX = "worstshop:shop/";

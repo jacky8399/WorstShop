@@ -111,8 +111,16 @@ public class I18n {
     public static String translate(String path, Object... args) {
         path = path.toLowerCase();
         if (lang.isString(path)) {
+            String unformatted = lang.getString(path);
             try {
-                return ConfigHelper.translateString(MessageFormat.format(lang.getString(path), args));
+                String formatted;
+                if (args.length == 0) // shortcut
+                    formatted = unformatted;
+                else if (args.length == 1)
+                    formatted = unformatted.replace("{0}", String.valueOf(args[0]));
+                else
+                    formatted = MessageFormat.format(unformatted, args);
+                return ConfigHelper.translateString(formatted);
             } catch (Exception ex) {
                 return ChatColor.RED + "" + path + ": " + ex.toString();
             }
