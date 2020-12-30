@@ -5,7 +5,6 @@ import co.aikar.commands.CommandIssuer;
 import co.aikar.commands.Locales;
 import co.aikar.locales.LanguageTable;
 import co.aikar.locales.LocaleManager;
-import com.google.common.collect.Maps;
 import com.jacky8399.worstshop.helper.ConfigHelper;
 import com.jacky8399.worstshop.helper.PaperHelper;
 import me.clip.placeholderapi.PlaceholderAPI;
@@ -26,27 +25,63 @@ import java.text.MessageFormat;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
+import java.util.function.Function;
 
 public class I18n {
-
     public static class Keys {
         public static final String MESSAGES_KEY = "worstshop.messages.";
         public static final String ITEM_KEY = MESSAGES_KEY + "shops.wants.items";
     }
 
+    public static class Translatable implements Function<String[], String> {
+        Translatable(String path) {
+            this.path = path.toLowerCase(Locale.ROOT);
+            update();
+        }
+        public final String path;
+
+        @Override
+        public String apply(String... strings) {
+            return format.format(strings);
+        }
+
+        public String apply(Player player, String... strings) {
+            return doPlaceholders(player, format.format(strings));
+        }
+
+        @Override
+        public String toString() {
+            return pattern;
+        }
+
+        private MessageFormat format;
+        private String pattern;
+        public void update() {
+            pattern = lang.getString(path, path);
+            // noinspection ConstantConditions
+            format = new MessageFormat(pattern);
+        }
+    }
+
     public static YamlConfiguration lang;
-    public static HashMap<String, YamlConfiguration> langs = Maps.newHashMap();
+    public static HashMap<String, YamlConfiguration> langs = new HashMap<>();
 
     private static String currentLang = "en";
 
+    private static HashMap<String, Translatable> translatables = new HashMap<>();
+
     public static void changeLang(String lang) {
-        if (langs.containsKey(lang)) {
-            I18n.lang = langs.get(lang);
-        } else
+        if (!langs.containsKey(lang)) {
             throw new IllegalArgumentException(lang);
+        }
+        I18n.lang = langs.get(lang);
+        currentLang = lang;
+        // refresh translatables
+        translatables.values().forEach(Translatable::update);
     }
 
     static WorstShop plugin = WorstShop.get();
+    @SuppressWarnings({"ConstantConditions", "ResultOfMethodCallIgnored"})
     public static void loadLang() {
         BukkitLocales locales = plugin.commands.getLocales();
 
@@ -62,7 +97,7 @@ public class I18n {
             // copy files
             try {
                 FileUtils.copyInputStreamToFile(plugin.getResource("en.yml"), new File(langFolder, "en.yml"));
-            } catch (IOException e) { }
+            } catch (IOException ignored) { }
         }
         for (File langFile : langFolder.listFiles()) {
             String localeName = FilenameUtils.getBaseName(langFile.getPath());
@@ -75,7 +110,7 @@ public class I18n {
                 // if english save defaults
                 if (localeName.equals("en")) {
                     YamlConfiguration yamlEnglish = YamlConfiguration.loadConfiguration(
-                            new InputStreamReader(WorstShop.get().getResource("en.yml"))
+                            new InputStreamReader(plugin.getResource("en.yml"))
                     );
                     yaml.options().copyDefaults(true);
                     yaml.setDefaults(yamlEnglish);
@@ -108,8 +143,9 @@ public class I18n {
                 stack.getItemMeta().hasDisplayName() ? stack.getItemMeta().getDisplayName() : PaperHelper.getItemName(stack));
     }
 
+    @SuppressWarnings("ConstantConditions")
     public static String translate(String path, Object... args) {
-        path = path.toLowerCase();
+        path = path.toLowerCase(Locale.ROOT);
         if (lang.isString(path)) {
             String unformatted = lang.getString(path);
             try {
@@ -122,7 +158,7 @@ public class I18n {
                     formatted = MessageFormat.format(unformatted, args);
                 return ConfigHelper.translateString(formatted);
             } catch (Exception ex) {
-                return ChatColor.RED + "" + path + ": " + ex.toString();
+                return ChatColor.RED + "" + path + " ( @ " + currentLang + ".yml): " + ex.toString();
             }
         }
         return path;
@@ -130,6 +166,10 @@ public class I18n {
 
     public static String translate(String path, Player player, Object... args) {
         return doPlaceholders(player, translate(path, args));
+    }
+
+    public static Translatable createTranslatable(String path) {
+        return translatables.computeIfAbsent(path, Translatable::new);
     }
 
     public static String doPlaceholders(@NotNull Player player, String input) {
@@ -152,6 +192,7 @@ public class I18n {
         }
     }
 
+    @SuppressWarnings("unchecked")
     public static void shutdown() {
         try {
             // Clear I18n language table

@@ -31,6 +31,9 @@ public class DefaultAdaptors {
 
     private static final String I18N_KEY = I18n.Keys.MESSAGES_KEY + "editor.property.";
 
+    private static final I18n.Translatable NAME_FORMAT = I18n.createTranslatable(I18N_KEY + "name-format");
+    private static final I18n.Translatable VALUE_FORMAT = I18n.createTranslatable(I18N_KEY + "value-format");
+
     /**
      * Opens a interactive GUI allowing users to pick from a list of values when clicked.
      * @param <T> the adaptor type
@@ -102,11 +105,11 @@ public class DefaultAdaptors {
         public ItemStack getRepresentation(Boolean val, @Nullable String fieldName) {
             ItemBuilder builder = val ?
                     ItemBuilder.of(Material.GREEN_CONCRETE)
-                            .lores(I18n.translate(I18N_KEY + "value-format", I18n.translate(I18N_KEY + "boolean.true"))) :
+                            .lores(VALUE_FORMAT.apply(I18n.translate(I18N_KEY + "boolean.true"))) :
                     ItemBuilder.of(Material.RED_CONCRETE)
-                            .lores(I18n.translate(I18N_KEY + "value-format", I18n.translate(I18N_KEY + "boolean.false")));
+                            .lores(VALUE_FORMAT.apply(I18n.translate(I18N_KEY + "boolean.false")));
             return builder
-                    .name(I18n.translate(I18N_KEY + "name-format", fieldName))
+                    .name(NAME_FORMAT.apply(fieldName))
                     .addLores(I18n.translate(I18N_KEY + "boolean.toggle"))
                     .build();
         }
@@ -187,8 +190,8 @@ public class DefaultAdaptors {
 
         @Override
         public ItemStack getRepresentation(String val, @Nullable String fieldName) {
-            return ItemBuilder.of(Material.NAME_TAG).name(I18n.translate(I18N_KEY + "name-format", fieldName))
-                    .lores(I18N_KEY + "value-format", val).build();
+            return ItemBuilder.of(Material.NAME_TAG).name(NAME_FORMAT.apply(fieldName))
+                    .lores(VALUE_FORMAT.apply(val)).build();
         }
     }
 
@@ -206,6 +209,7 @@ public class DefaultAdaptors {
         @Override
         public boolean validateInput(String input) {
             try {
+                //noinspection ResultOfMethodCallIgnored
                 Integer.parseInt(input);
                 return super.validateInput(input);
             } catch (IllegalFormatException e) {
@@ -220,8 +224,8 @@ public class DefaultAdaptors {
 
         @Override
         public ItemStack getRepresentation(Integer val, @Nullable String fieldName) {
-            return ItemBuilder.of(Material.PAPER).name(I18n.translate(I18N_KEY + "name-format", fieldName))
-                    .lores(I18n.translate(I18N_KEY + "value-format", val)).build();
+            return ItemBuilder.of(Material.PAPER).name(NAME_FORMAT.apply(fieldName))
+                    .lores(VALUE_FORMAT.apply(Integer.toString(val))).build();
         }
     }
 }
