@@ -29,6 +29,9 @@ worstshop:
           current: '&aCurrent value: {0} &c(enter this value to quit editing)'
           invalid: '&4The input you provided was invalid!'
 
+      shop:
+
+
 
     shops:
       wants:

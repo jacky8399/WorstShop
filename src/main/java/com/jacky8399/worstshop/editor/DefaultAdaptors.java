@@ -98,6 +98,27 @@ public class DefaultAdaptors {
         public abstract Collection<? extends T> getValues();
     }
 
+    public static class EnumAdaptor<T extends Enum<T>> extends GUIAdaptor<T> {
+        private Class<T> clazz;
+        public EnumAdaptor(Class<T> clazz) {
+            values = EnumSet.allOf(clazz);
+        }
+
+        private final EnumSet<T> values;
+        @Override
+        public Collection<? extends T> getValues() {
+            return values;
+        }
+
+        @Override
+        public ItemStack getRepresentation(T val, @Nullable String fieldName) {
+            return ItemBuilder.of(Material.EMERALD_BLOCK)
+                    .name(NAME_FORMAT.apply(fieldName))
+                    .lores(VALUE_FORMAT.apply(val.name()))
+                    .build();
+        }
+    }
+
     public static class BooleanAdaptor implements EditableAdaptor<Boolean> {
         @Override
         public CompletableFuture<Boolean> onInteract(Player player, Boolean val, @Nullable String fieldName) {
@@ -271,11 +292,10 @@ public class DefaultAdaptors {
                 }
 
                 public void refresh(InventoryContents contents) {
-                    contents.newIterator(SlotIterator.Type.HORIZONTAL, 1, 0).allowOverride(true);
                     ClickableItem[] items = properties.stream()
                             .map(this::createItemForField)
                             .toArray(ClickableItem[]::new);
-                    contents.pagination().setItems(items).setItemsPerPage(45).addToIterator(contents.newIterator(SlotIterator.Type.HORIZONTAL, 1, 0));
+                    contents.pagination().setItems(items).setItemsPerPage(45).addToIterator(contents.newIterator(SlotIterator.Type.HORIZONTAL, 1, 0).allowOverride(true));
                 }
                 @Override
                 public void init(Player player, InventoryContents contents) {

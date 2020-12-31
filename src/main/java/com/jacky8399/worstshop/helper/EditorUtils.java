@@ -4,6 +4,7 @@ import com.jacky8399.worstshop.WorstShop;
 import com.jacky8399.worstshop.editor.*;
 import com.jacky8399.worstshop.editor.DefaultAdaptors.*;
 import org.bukkit.craftbukkit.libs.org.apache.commons.lang3.ClassUtils;
+import org.jetbrains.annotations.Nullable;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
@@ -11,21 +12,21 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Modifier;
 
 public class EditorUtils {
-    @SuppressWarnings("unchecked")
+    @SuppressWarnings({"unchecked", "rawtypes"})
     public static <T> EditableAdaptor<T> findAdaptorForField(Object parent, Field field) {
         EditableAdaptor<?> adaptor = null;
         if (field.isAnnotationPresent(Adaptor.class)) {
             Adaptor annotation = field.getAnnotation(Adaptor.class);
             Class<? extends EditableAdaptor<?>> adaptorClazz = annotation.value();
             try {
-                adaptor = createAdaptor(adaptorClazz, field.get(parent));
+                adaptor = createAdaptor((Class) adaptorClazz, field.get(parent));
             } catch (IllegalAccessException e) {
                 throw new Error(e);
             }
         } else {
             Class<?> clazz = field.getType();
             try {
-                adaptor = findAdaptorForClass(clazz, field.get(parent));
+                adaptor = findAdaptorForClass((Class) clazz, field.get(parent));
             } catch (IllegalAccessException e) {
                 throw new Error(e);
             }
@@ -48,27 +49,33 @@ public class EditorUtils {
         return (EditableAdaptor<T>) adaptor;
     }
 
-    @SuppressWarnings("unchecked")
-    public static <T> EditableAdaptor<T> findAdaptorForClass(Class<? extends T> clazz, T instance) {
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    @Nullable
+    public static <T> EditableAdaptor<T> findAdaptorForClass(Class<T> clazz, T instance) {
         EditableAdaptor<T> adaptor = null;
         if (clazz.isAnnotationPresent(Editable.class)) {
             // class is editable
             if (clazz.isAnnotationPresent(Adaptor.class)) {
                 Adaptor annotation = clazz.getAnnotation(Adaptor.class);
-                Class<? extends EditableAdaptor<?>> adaptorClazz = annotation.value();
-                return (EditableAdaptor<T>) createAdaptor(adaptorClazz, instance);
+                Class<? extends EditableAdaptor<T>> adaptorClazz = (Class<? extends EditableAdaptor<T>>) annotation.value();
+                return createAdaptor(adaptorClazz, instance);
             } else {
                 // embed
+                adaptor = new EditableObjectAdaptor<>(clazz);
             }
-        } else if (ClassUtils.isPrimitiveOrWrapper(clazz) || clazz == String.class) {
-            // primitive adaptors
+        } else if (ClassUtils.isPrimitiveOrWrapper(clazz) || clazz == String.class ||
+                clazz.isAnnotationPresent(Editable.class) || clazz.isEnum()) {
+            // default adaptors
             if (clazz == Boolean.class || clazz == boolean.class) {
                 adaptor = (EditableAdaptor<T>) new BooleanAdaptor();
             } else if (clazz == Integer.class || clazz == int.class) {
                 adaptor = (EditableAdaptor<T>) new IntegerAdaptor();
             } else if (clazz == String.class) {
                 adaptor = (EditableAdaptor<T>) new StringAdaptor();
-            } // TODO finish all primitives
+            } else if (clazz.isEnum()) {
+                adaptor = (EditableAdaptor<T>) new EnumAdaptor<>((Class)clazz);
+            }
+            // TODO finish all primitives
         }
         // check for annotations
         if (adaptor instanceof TextAdaptor<?> && clazz.isAnnotationPresent(Format.class)) {
@@ -82,7 +89,7 @@ public class EditorUtils {
         return adaptor;
     }
 
-    public static <T extends EditableAdaptor<?>> T createAdaptor(Class<T> clazz, Object editable) {
+    public static <V, T extends EditableAdaptor<V>> T createAdaptor(Class<T> clazz, V editable) {
         if (clazz.isMemberClass() && !Modifier.isStatic(clazz.getModifiers())) {
             // instantiate inner class
             try {

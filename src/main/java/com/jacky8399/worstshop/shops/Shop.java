@@ -3,6 +3,7 @@ package com.jacky8399.worstshop.shops;
 import com.google.common.collect.Lists;
 import com.jacky8399.worstshop.WorstShop;
 import com.jacky8399.worstshop.editor.Editable;
+import com.jacky8399.worstshop.editor.Property;
 import com.jacky8399.worstshop.shops.conditions.Condition;
 import com.jacky8399.worstshop.shops.conditions.ConditionConstant;
 import com.jacky8399.worstshop.shops.elements.DynamicShopElement;
@@ -39,20 +40,28 @@ public class Shop implements InventoryProvider, ParseContext.NamedContext {
     public Shop() { }
 
     // basic properties
+    @Property
     public int rows;
+    @Property
     public InventoryType type;
+    @Property
     public String id;
+    @Property
     public String title;
+    @Property
     public int updateInterval;
 
     public Condition condition = ConditionConstant.TRUE;
 
     // parents
+    @Property
     public String parentShop = null;
+    @Property
     public boolean autoSetParentShop = false;
 
     // aliases
     public List<String> aliases;
+    @Property
     public boolean aliasesIgnorePermission;
 
     @Override
