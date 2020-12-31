@@ -2,8 +2,10 @@ package com.jacky8399.worstshop.editor;
 
 import com.jacky8399.worstshop.I18n;
 import com.jacky8399.worstshop.WorstShop;
+import com.jacky8399.worstshop.helper.EditorUtils;
 import com.jacky8399.worstshop.helper.InventoryCloseListener;
 import com.jacky8399.worstshop.helper.ItemBuilder;
+import com.jacky8399.worstshop.helper.ItemUtils;
 import fr.minuskube.inv.ClickableItem;
 import fr.minuskube.inv.SmartInventory;
 import fr.minuskube.inv.content.InventoryContents;
@@ -22,9 +24,10 @@ import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.Collection;
-import java.util.IllegalFormatException;
+import java.lang.reflect.Field;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
+import java.util.stream.Collectors;
 
 public class DefaultAdaptors {
     private DefaultAdaptors() {}
@@ -226,6 +229,111 @@ public class DefaultAdaptors {
         public ItemStack getRepresentation(Integer val, @Nullable String fieldName) {
             return ItemBuilder.of(Material.PAPER).name(NAME_FORMAT.apply(fieldName))
                     .lores(VALUE_FORMAT.apply(Integer.toString(val))).build();
+        }
+    }
+
+    public static class EditableObjectAdaptor<T> implements EditableAdaptor<T> {
+        private Class<T> clazz;
+        private List<Field> properties;
+        public EditableObjectAdaptor(Class<T> clazz) {
+            this.clazz = clazz;
+            properties = Arrays.stream(clazz.getFields())
+                    .filter(field -> field.isAnnotationPresent(Property.class))
+                    .sorted(Comparator.comparing(Field::getName))
+                    .collect(Collectors.toList());
+        }
+
+        @Override
+        public CompletableFuture<T> onInteract(Player player, T val, @Nullable String fieldName) {
+            int rows = Math.min(6, (int) Math.ceil(properties.size() / 9f));
+
+            SmartInventory parent = WorstShop.get().inventories.getInventory(player).orElse(null);
+            class Inventory implements InventoryProvider {
+                boolean shouldRefresh = false;
+                // helper
+                @SuppressWarnings("unchecked")
+                private <TValue> ClickableItem createItemForField(Field field) {
+                    EditableAdaptor<TValue> adaptor = EditorUtils.findAdaptorForField(val, field);
+                    TValue value;
+                    String fieldName = field.getName();
+                    try {
+                        value = (TValue) field.get(val);
+                    } catch (IllegalAccessException e) {
+                        e.printStackTrace();
+                        // error item
+                        return ClickableItem.empty(ItemUtils.getErrorItem());
+                    }
+                    return ClickableItem.of(
+                            adaptor.getRepresentation(value, fieldName),
+                            e -> adaptor.onInteract(player, value, fieldName)
+                                    .thenRun(() -> shouldRefresh = true)
+                    );
+                }
+
+                public void refresh(InventoryContents contents) {
+                    contents.newIterator(SlotIterator.Type.HORIZONTAL, 1, 0).allowOverride(true);
+                    ClickableItem[] items = properties.stream()
+                            .map(this::createItemForField)
+                            .toArray(ClickableItem[]::new);
+                    contents.pagination().setItems(items).setItemsPerPage(45).addToIterator(contents.newIterator(SlotIterator.Type.HORIZONTAL, 1, 0));
+                }
+                @Override
+                public void init(Player player, InventoryContents contents) {
+                    // header
+                    contents.fillRow(0, ClickableItem.empty(ItemBuilder.of(Material.BLACK_STAINED_GLASS_PANE).name(ChatColor.BLACK.toString()).build()));
+                    // properties
+                    refresh(contents);
+                }
+
+                @Override
+                public void update(Player player, InventoryContents contents) {
+                    if (shouldRefresh) {
+                        refresh(contents);
+                        shouldRefresh = false;
+                    }
+                }
+            }
+
+            SmartInventory toOpen = WorstShop.buildGui("worstshop:editor_editable_adaptor")
+                    .provider(new Inventory()).size(rows, 9)
+                    .parent(parent).title(getTitle()).build();
+            InventoryCloseListener.openSafely(player, toOpen);
+            // editing an editable does not mutate its value
+            // therefore returning a completed future is ok
+            return CompletableFuture.completedFuture(val);
+        }
+
+        @Override
+        public ItemStack getRepresentation(T val, @Nullable String fieldName) {
+            return ItemBuilder.of(Material.WRITABLE_BOOK).name(NAME_FORMAT.apply(fieldName))
+                    .lores(I18n.translate(I18N_KEY + "gui.edit")).build();
+        }
+
+        private String getTitle() {
+            return NAME_FORMAT.apply(clazz.getSimpleName());
+        }
+    }
+
+    public static class CustomRepresentationAdaptor<T> implements EditableAdaptor<T> {
+        public final EditableAdaptor<T> internal;
+        public final Material material;
+        public CustomRepresentationAdaptor(EditableAdaptor<T> original, Representation repr) {
+            internal = original;
+            material = repr.value();
+        }
+
+        @Override
+        public CompletableFuture<T> onInteract(Player player, T val, @Nullable String fieldName) {
+            return internal.onInteract(player, val, fieldName);
+        }
+
+        @Override
+        public ItemStack getRepresentation(T val, @Nullable String fieldName) {
+            ItemStack stack = internal.getRepresentation(val, fieldName);
+            ItemStack ret = new ItemStack(material);
+            ret.setAmount(stack.getAmount());
+            ret.setItemMeta(Bukkit.getItemFactory().asMetaFor(stack.getItemMeta(), material));
+            return ret;
         }
     }
 }

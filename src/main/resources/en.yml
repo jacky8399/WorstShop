@@ -1,6 +1,9 @@
 worstshop:
   errors:
     invalid-shop: 'Invalid shop {0}!'
+    error-element:
+      name: '&4&lERROR!'
+      lore: '&cPlease report this to an admin.'
 
   messages:
     editor:
@@ -14,6 +17,7 @@ worstshop:
           title: '&eEditing property {0}'
           current: '&aCurrent value!'
           set: '&6Click to set!'
+          edit: '&6Click to edit!'
         name-format: '&e{0}'
         value-format: '&bCurrent value: {0}'
         boolean:

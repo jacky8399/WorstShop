@@ -4,6 +4,7 @@ import java.lang.annotation.*;
 
 /**
  * Denotes an editable class with a default {@link EditableAdaptor}
+ * @see Adaptor
  */
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.TYPE)
@@ -13,5 +14,5 @@ public @interface Editable {
      * The prefix "worstshop.editor.items." will be automatically attached.
      * @return the translation key of this item
      */
-    String value();
+    String value() default "";
 }

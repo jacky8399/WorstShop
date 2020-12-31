@@ -11,10 +11,7 @@ import com.google.common.collect.Lists;
 import com.jacky8399.worstshop.I18n;
 import com.jacky8399.worstshop.WorstShop;
 import com.jacky8399.worstshop.editor.EditorMainMenu;
-import com.jacky8399.worstshop.helper.DateTimeUtils;
-import com.jacky8399.worstshop.helper.ItemUtils;
-import com.jacky8399.worstshop.helper.PaperHelper;
-import com.jacky8399.worstshop.helper.PurchaseRecords;
+import com.jacky8399.worstshop.helper.*;
 import com.jacky8399.worstshop.shops.Shop;
 import com.jacky8399.worstshop.shops.ShopDiscount;
 import com.jacky8399.worstshop.shops.ShopManager;
@@ -394,7 +391,8 @@ public class CommandShop extends BaseCommand {
     public void openEditor(Player player, @Optional Shop shop) {
         if (shop == null)
             EditorMainMenu.getInventory().open(player);
-        //TODO open specific shop editor
+        else
+            EditorUtils.findAdaptorForClass(Shop.class, shop).onInteract(player, shop, null);
     }
 
     @HelpCommand
