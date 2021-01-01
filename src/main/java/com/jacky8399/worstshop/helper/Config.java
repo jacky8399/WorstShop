@@ -11,12 +11,18 @@ import java.util.stream.Collectors;
  */
 public final class Config {
     private Map<String, Object> backingMap;
+    public final Config parent;
     public Config(MemorySection section) {
-        backingMap = section.getValues(false);
+        this(section.getValues(false), null);
+    }
+
+    public Config(Map<String, Object> map, Config parent) {
+        backingMap = new LinkedHashMap<>(map);
+        this.parent = parent;
     }
 
     public Config(Map<String, Object> map) {
-        backingMap = new LinkedHashMap<>(map);
+        this(map, null);
     }
 
     public Map<String, Object> getPrimitiveMap() {
@@ -34,8 +40,23 @@ public final class Config {
             return enumObj;
         } else if (Config.class == clazz) {
             if (obj instanceof Map<?, ?>) {
-                return (T) new Config((Map<String, Object>) obj);
+                return (T) new Config((Map<String, Object>) obj, this);
             }
+        } else if (Number.class.isAssignableFrom(clazz) && obj instanceof Number) {
+            // numbers huh
+            Number num = (Number) obj;
+            if (clazz == Integer.class)
+                return (T) Integer.valueOf(num.intValue());
+            else if (clazz == Double.class)
+                return (T) Double.valueOf(num.doubleValue());
+            else if (clazz == Long.class)
+                return (T) Long.valueOf(num.longValue());
+            else if (clazz == Float.class)
+                return (T) Float.valueOf(num.floatValue());
+            else if (clazz == Byte.class)
+                return (T) Byte.valueOf(num.byteValue());
+            else if (clazz == Short.class)
+                return (T) Short.valueOf(num.shortValue());
         }
         // cannot throw an exception
         return null;
@@ -101,7 +122,6 @@ public final class Config {
     public <T> List<T> getList(String key, Class<T> listType) {
         return findList(key, listType).orElseThrow(throwFor(key, "list of " + listType.getSimpleName()));
     }
-
 
     private static Supplier<? extends IllegalArgumentException> throwFor(String key, String type) {
         return ()->new IllegalArgumentException("Expected " + type + " at " + key + ", found nothing");

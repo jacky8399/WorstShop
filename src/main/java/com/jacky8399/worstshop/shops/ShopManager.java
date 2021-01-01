@@ -39,6 +39,19 @@ public class ShopManager {
         Bukkit.getOnlinePlayers().forEach(p -> manager.getInventory(p).ifPresent(inv -> inv.close(p)));
     }
 
+    public static void renameShop(Shop shop, String newId) {
+        String oldId = shop.id;
+        File shops = new File(WorstShop.get().getDataFolder(), "shops");
+        File oldFile = new File(shops, oldId);
+        File newFile = new File(shops, newId);
+        newFile.mkdirs();
+        try {
+            Files.copy(oldFile, newFile);
+            oldFile.delete();
+            shop.id = newId;
+        } catch (IOException ignored) {}
+    }
+
     public static void saveDiscounts() {
         List<Map<String, Object>> discounts = Lists.newArrayList();
         ShopDiscount.ALL_DISCOUNTS.values().stream().filter(entry -> !entry.hasExpired())

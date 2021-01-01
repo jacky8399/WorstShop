@@ -10,13 +10,13 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 
 public class ItemShop {
-    String owningShop;
+    Shop owningShop;
     ActionItemShop shop;
     Condition condition;
     public ItemShop(ActionItemShop orig, Condition condition) {
         this.shop = orig;
         this.condition = condition != null ? condition : ConditionConstant.TRUE;
-        this.owningShop = ShopManager.currentShopId;
+        this.owningShop = ParseContext.findLatest(Shop.class);
     }
 
     private ShopWantsItem getSellCost(Player player) {
@@ -43,8 +43,7 @@ public class ItemShop {
     }
 
     public boolean isAvailableTo(Player player) {
-        return ShopManager.getShop(owningShop).map(owner -> owner.canPlayerView(player)).orElse(false) &&
-                (condition == null || condition.test(player));
+        return owningShop.canPlayerView(player) && (condition == null || condition.test(player));
     }
 
     public boolean isSellable(ItemStack stack, Player player) {
