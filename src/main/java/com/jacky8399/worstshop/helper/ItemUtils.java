@@ -3,6 +3,7 @@ package com.jacky8399.worstshop.helper;
 import com.jacky8399.worstshop.I18n;
 import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.EnumSet;
 
@@ -16,10 +17,11 @@ public class ItemUtils {
         return AIR.contains(material);
     }
 
-    public static ItemStack getErrorItem() {
+    public static ItemStack getErrorItem(@Nullable Exception ex) {
+        String hash = ex != null ? "error #" + Exceptions.logException(ex) : "unknown error";
         return ItemBuilder.of(Material.BEDROCK)
                 .name(I18n.translate("worstshop.errors.error-element.name"))
-                .lores(I18n.translate("worstshop.errors.error-element.lore"))
+                .lores(I18n.translate("worstshop.errors.error-element.lore", hash))
                 .build();
     }
 }

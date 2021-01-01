@@ -39,9 +39,11 @@ compileJava {
 }
 
 dependencies {
+    // BungeeCord Chat
+    compileOnly 'net.md-5:bungeecord-chat:1.16-R0.4'
     // Paper API
-    compileOnly 'com.destroystokyo.paper:paper:1.16.4-R0.1-SNAPSHOT'
-    compileOnly 'net.md-5:bungeecord-chat:1.16-R0.1'
+    compileOnly 'com.destroystokyo.paper:paper-api:1.16.4-R0.1-SNAPSHOT'
+    // compileOnly 'com.destroystokyo.paper:paper:1.16.4-R0.1-SNAPSHOT'
     // LuckPerms
     compileOnly 'net.luckperms:api:5.0'
     // SmartInventory API

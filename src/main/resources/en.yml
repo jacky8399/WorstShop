@@ -3,7 +3,7 @@ worstshop:
     invalid-shop: 'Invalid shop {0}!'
     error-element:
       name: '&4&lERROR!'
-      lore: '&cPlease report this to an admin.'
+      lore: '&cPlease report this to an admin: {0}'
 
   messages:
     editor:
@@ -28,10 +28,6 @@ worstshop:
           editing: '&eCurrently editing {0} (type: {1})'
           current: '&aCurrent value: {0} &c(enter this value to quit editing)'
           invalid: '&4The input you provided was invalid!'
-
-      shop:
-
-
 
     shops:
       wants:

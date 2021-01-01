@@ -1,7 +1,6 @@
 package com.jacky8399.worstshop.shops.elements;
 
 import com.google.common.collect.Lists;
-import com.jacky8399.worstshop.WorstShop;
 import com.jacky8399.worstshop.helper.ConfigHelper;
 import com.jacky8399.worstshop.helper.ItemUtils;
 import com.jacky8399.worstshop.shops.ParseContext;
@@ -9,7 +8,6 @@ import com.jacky8399.worstshop.shops.Shop;
 import fr.minuskube.inv.ClickableItem;
 import fr.minuskube.inv.content.InventoryContents;
 import fr.minuskube.inv.content.SlotPos;
-import net.md_5.bungee.api.ChatColor;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.ItemStack;
@@ -89,13 +87,14 @@ public abstract class ShopElement implements Cloneable, ParseContext.NamedContex
         ItemStack stack = createStack(player);
         if (ItemUtils.isEmpty(stack))
             return;
-        ClickableItem item = ClickableItem.of(stack, e->{
+        ClickableItem item = ClickableItem.of(stack, e -> {
             try {
                 onClick(e);
             } catch (Exception ex) {
-                player.sendMessage(ChatColor.RED + "Error while processing item click: " + ex.toString());
-                WorstShop.get().logger.warning("Error while processing item click in shop " + ((Shop) contents.inventory().getProvider()).id);
-                ex.printStackTrace();
+                Shop owningShop = (Shop) contents.inventory().getProvider();
+                RuntimeException wrapped = new RuntimeException("An error occurred while processing item click for " + e.getWhoClicked().getName() + " (" + id + "@" + owningShop.id + ")", ex);
+                ItemStack err = ItemUtils.getErrorItem(wrapped);
+                e.setCurrentItem(err);
             }
         });
         switch (fill) {

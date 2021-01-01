@@ -3,7 +3,6 @@ package com.jacky8399.worstshop.helper;
 import com.jacky8399.worstshop.WorstShop;
 import com.jacky8399.worstshop.editor.*;
 import com.jacky8399.worstshop.editor.DefaultAdaptors.*;
-import org.bukkit.craftbukkit.libs.org.apache.commons.lang3.ClassUtils;
 import org.jetbrains.annotations.Nullable;
 
 import java.lang.reflect.Constructor;
@@ -63,8 +62,7 @@ public class EditorUtils {
                 // embed
                 adaptor = new EditableObjectAdaptor<>(clazz);
             }
-        } else if (ClassUtils.isPrimitiveOrWrapper(clazz) || clazz == String.class ||
-                clazz.isAnnotationPresent(Editable.class) || clazz.isEnum()) {
+        } else {
             // default adaptors
             if (clazz == Boolean.class || clazz == boolean.class) {
                 adaptor = (EditableAdaptor<T>) new BooleanAdaptor();
@@ -82,7 +80,7 @@ public class EditorUtils {
             Format format = clazz.getAnnotation(Format.class);
             ((TextAdaptor<?>) adaptor).setFormat(format.value());
         }
-        if (clazz.isAnnotationPresent(Representation.class)) {
+        if (adaptor != null && clazz.isAnnotationPresent(Representation.class)) {
             Representation repr = clazz.getAnnotation(Representation.class);
             adaptor = new CustomRepresentationAdaptor<>(adaptor, repr);
         }

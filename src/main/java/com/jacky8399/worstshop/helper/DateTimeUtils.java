@@ -1,6 +1,9 @@
 package com.jacky8399.worstshop.helper;
 
 import java.time.Duration;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.time.format.FormatStyle;
 import java.time.temporal.ChronoUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -45,5 +48,9 @@ public class DateTimeUtils {
         if (remainingSeconds != 0)
             sb.append(remainingSeconds).append("s");
         return sb.length() == 0 ? "0s" : sb.toString();
+    }
+
+    public static String formatTime(LocalDateTime time) {
+        return time.format(DateTimeFormatter.ofLocalizedDateTime(FormatStyle.LONG));
     }
 }

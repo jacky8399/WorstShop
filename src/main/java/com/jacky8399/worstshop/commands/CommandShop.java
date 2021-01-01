@@ -18,10 +18,12 @@ import com.jacky8399.worstshop.shops.ShopManager;
 import com.jacky8399.worstshop.shops.conditions.Condition;
 import com.jacky8399.worstshop.shops.conditions.ConditionPermission;
 import com.jacky8399.worstshop.shops.elements.StaticShopElement;
-import net.md_5.bungee.api.chat.*;
-import org.apache.commons.lang.StringUtils;
-import org.bukkit.Bukkit;
 import net.md_5.bungee.api.ChatColor;
+import net.md_5.bungee.api.chat.*;
+import net.md_5.bungee.api.chat.hover.content.Text;
+import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang.exception.ExceptionUtils;
+import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -38,6 +40,9 @@ import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import static com.jacky8399.worstshop.I18n.translate;
+
+@SuppressWarnings("unused")
 @CommandAlias("worstshop|shop")
 @CommandPermission("worstshop.shop")
 public class CommandShop extends BaseCommand {
@@ -50,7 +55,7 @@ public class CommandShop extends BaseCommand {
             if (shop != null && shop.checkPlayerPerms(ctx.getIssuer().getIssuer())) {
                 return shop;
             }
-            throw new InvalidCommandArgument(I18n.translate("worstshop.errors.invalid-shop", arg));
+            throw new InvalidCommandArgument(translate("worstshop.errors.invalid-shop", arg));
         });
 
         manager.getCommandCompletions().registerCompletion("shops", ctx-> ShopManager.SHOPS.keySet().stream()
@@ -74,7 +79,7 @@ public class CommandShop extends BaseCommand {
         I18n.loadLang();
 
 
-        issuer.sendMessage(I18n.translate("worstshop.messages.config-reloaded"));
+        issuer.sendMessage(translate("worstshop.messages.config-reloaded"));
     }
 
     @Subcommand("version|ver|info")
@@ -246,6 +251,65 @@ public class CommandShop extends BaseCommand {
         }
     }
 
+    @Subcommand("log")
+    @CommandPermission("worstshop.log")
+    public class Logs extends co.aikar.commands.BaseCommand {
+        @Subcommand("error")
+        @CommandPermission("worstshop.log.error")
+        public class Error extends co.aikar.commands.BaseCommand {
+            @Subcommand("list")
+            public void listErrors(CommandSender sender, @Optional Integer page) {
+                if (page == null) page = 0;
+                LocalDateTime now = LocalDateTime.now();
+                Exceptions.exceptions.entrySet().stream()
+                        .sorted(Map.Entry.comparingByKey())
+                        .skip(page * 10)
+                        .limit(10)
+                        .forEach(entry -> {
+                            Duration timeElapsed = Duration.between(entry.getValue().date, now);
+                            sender.spigot().sendMessage(new ComponentBuilder("")
+                                    .append(DateTimeUtils.formatTime(timeElapsed) + " ago")
+                                    .color(ChatColor.YELLOW)
+                                    .event(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new Text(DateTimeUtils.formatTime(entry.getValue().date))))
+                                    .append(" - " + entry.getKey())
+                                    .event(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new Text(new ComponentBuilder("Click to inspect!").color(ChatColor.GREEN).create())))
+                                    .event(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/worstshop log error show " + entry.getKey()))
+                                    .create()
+                            );
+                        });
+            }
+
+            @Subcommand("show")
+            public void showError(CommandSender sender, @Single String hash) {
+                Exceptions.ExceptionLog log = Exceptions.exceptions.get(hash);
+                if (log == null) {
+                    throw new InvalidCommandArgument(translate("worstshop.errors.commands.no-error-log", hash), false);
+                }
+                LocalDateTime now = LocalDateTime.now();
+                Duration timeElapsed = Duration.between(log.date, now);
+                String stackTrace = ExceptionUtils.getStackTrace(log.exception);
+                // make fancy hover component if invoked by player
+                BaseComponent[] stackTraceComponent = sender instanceof Player ?
+                        new ComponentBuilder("  [Hover to see stack trace]")
+                                .color(ChatColor.GREEN)
+                                .event(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new Text(stackTrace))).create() :
+                        new ComponentBuilder("  Stack trace:\n").color(ChatColor.GREEN)
+                                .append(stackTrace).color(ChatColor.DARK_RED).create();
+                BaseComponent[] components = new ComponentBuilder("")
+                        .append("Error " + log.exception.getClass().getSimpleName()).color(ChatColor.RED).append("\n")
+                        .append("  Message: ").color(ChatColor.YELLOW)
+                        .append(log.exception.getMessage()).color(ChatColor.GREEN).append("\n")
+                        .append("  At: ").color(ChatColor.YELLOW)
+                        .append(DateTimeUtils.formatTime(timeElapsed) + " ago")
+                        .color(ChatColor.GREEN)
+                        .event(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new Text(DateTimeUtils.formatTime(log.date)))).append("\n")
+                        .append(stackTraceComponent)
+                        .create();
+                sender.spigot().sendMessage(components);
+            }
+        }
+    }
+
     @Subcommand("purchases")
     @CommandPermission("worstshop.inspectpurchases")
     public class InspectPurchases extends co.aikar.commands.BaseCommand {
@@ -280,14 +344,20 @@ public class CommandShop extends BaseCommand {
             } else {
                 PurchaseRecords.RecordStorage purchases = record.get(recordId);
                 if (purchases == null) {
-                    throw new InvalidCommandArgument(recordId + " is not a valid record ID!");
+                    throw new InvalidCommandArgument(recordId + " is not a valid record ID!", false);
                 }
                 purchases.purgeOldRecords();
                 List<Map.Entry<LocalDateTime, Integer>> entries = purchases.getEntries();
                 sender.sendMessage(ChatColor.GREEN + player.getName() + " has " + entries.size() + " purchase record(s) in " + ChatColor.YELLOW + recordId);
                 LocalDateTime now = LocalDateTime.now();
                 for (Map.Entry<LocalDateTime, Integer> entry : entries) {
-                    sender.sendMessage(ChatColor.YELLOW + "x" + entry.getValue() + "  " + ChatColor.GREEN + DateTimeUtils.formatTime(Duration.between(entry.getKey(), now)) + " ago");
+                    BaseComponent[] components = new ComponentBuilder("")
+                            .append("x" + entry.getValue()).color(ChatColor.YELLOW)
+                            .append(" - ").color(ChatColor.YELLOW)
+                            .append(DateTimeUtils.formatTime(Duration.between(entry.getKey(), now)) + " ago").color(ChatColor.GREEN)
+                            .event(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new Text(DateTimeUtils.formatTime(entry.getKey()))))
+                            .create();
+                    sender.spigot().sendMessage(components);
                 }
             }
         }
