@@ -42,7 +42,7 @@ public class ActionShop extends Action implements IParentElementReader {
 
         yaml.find("purchase-limit", Config.class).ifPresent(purchaseLimitYaml -> {
             purchaseLimitTemplate = PurchaseRecords.RecordTemplate.fromConfig(purchaseLimitYaml);
-            purchaseLimit = ((Number) purchaseLimitYaml.get("limit")).intValue();
+            purchaseLimit = purchaseLimitYaml.get("limit", Integer.class);
         });
     }
 

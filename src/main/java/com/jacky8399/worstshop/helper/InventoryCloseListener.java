@@ -78,9 +78,7 @@ public class InventoryCloseListener extends InventoryListener<InventoryCloseEven
     }
 
     public static void openSafely(Player player, SmartInventory toOpen, int page) {
-        inv.getContents(player).ifPresent(contents -> {
-            contents.setProperty(PROPERTY_SKIP_ONCE, true);
-            toOpen.open(player, page);
-        });
+        inv.getContents(player).ifPresent(contents -> contents.setProperty(PROPERTY_SKIP_ONCE, true));
+        toOpen.open(player, page);
     }
 }

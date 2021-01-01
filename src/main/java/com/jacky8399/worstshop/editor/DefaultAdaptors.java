@@ -266,7 +266,7 @@ public class DefaultAdaptors {
 
         @Override
         public CompletableFuture<T> onInteract(Player player, T val, @Nullable String fieldName) {
-            int rows = Math.min(6, (int) Math.ceil(properties.size() / 9f));
+            int rows = Math.min(6, properties.size() / 9 + 2);
 
             SmartInventory parent = WorstShop.get().inventories.getInventory(player).orElse(null);
             class Inventory implements InventoryProvider {
@@ -280,14 +280,22 @@ public class DefaultAdaptors {
                     try {
                         value = (TValue) field.get(val);
                     } catch (IllegalAccessException e) {
-                        e.printStackTrace();
+                        RuntimeException wrapped = new RuntimeException("An error occurred while obtaining value for field " + fieldName, e);
                         // error item
-                        return ClickableItem.empty(ItemUtils.getErrorItem());
+                        return ClickableItem.empty(ItemUtils.getErrorItem(wrapped));
                     }
                     return ClickableItem.of(
                             adaptor.getRepresentation(value, fieldName),
                             e -> adaptor.onInteract(player, value, fieldName)
-                                    .thenRun(() -> shouldRefresh = true)
+                                    .thenAccept(newValue -> {
+                                        try {
+                                            field.set(val, newValue);
+                                        } catch (IllegalAccessException ex) {
+                                            RuntimeException wrapped = new RuntimeException("An error occurred while updating value for field " + fieldName, ex);
+                                            e.setCurrentItem(ItemUtils.getErrorItem(wrapped));
+                                        }
+                                        shouldRefresh = true;
+                                    })
                     );
                 }
 

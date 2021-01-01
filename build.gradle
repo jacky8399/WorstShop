@@ -23,6 +23,10 @@ repositories {
     maven { url = 'https://jitpack.io' }
     maven { url = "https://repo.aikar.co/content/groups/aikar/" }
     maven { url = 'http://repo.extendedclip.com/content/repositories/placeholderapi/' }
+    maven {
+        name = 'minecraft-repo'
+        url = 'https://libraries.minecraft.net/'
+    }
 
     mavenLocal()
 }
@@ -44,6 +48,8 @@ dependencies {
     // Paper API
     compileOnly 'com.destroystokyo.paper:paper-api:1.16.4-R0.1-SNAPSHOT'
     // compileOnly 'com.destroystokyo.paper:paper:1.16.4-R0.1-SNAPSHOT'
+    // Mojang AuthLib
+    compileOnly 'com.mojang:authlib:1.5.21'
     // LuckPerms
     compileOnly 'net.luckperms:api:5.0'
     // SmartInventory API

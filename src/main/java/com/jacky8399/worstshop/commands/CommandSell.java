@@ -7,7 +7,6 @@ import co.aikar.commands.annotation.CommandPermission;
 import co.aikar.commands.annotation.Subcommand;
 import com.jacky8399.worstshop.WorstShop;
 import com.jacky8399.worstshop.helper.ItemUtils;
-import com.jacky8399.worstshop.helper.ReflectionUtils;
 import com.jacky8399.worstshop.shops.ItemShop;
 import com.jacky8399.worstshop.shops.ShopManager;
 import com.jacky8399.worstshop.shops.actions.ActionShop;
@@ -15,6 +14,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.block.Container;
+import org.bukkit.entity.HumanEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Event;
 import org.bukkit.event.block.Action;
@@ -25,6 +25,7 @@ import org.bukkit.inventory.InventoryView;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
 import org.bukkit.util.RayTraceResult;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.ListIterator;
 
@@ -60,7 +61,32 @@ public class CommandSell extends BaseCommand {
     public static boolean sellInventory(Player player, Inventory inventory) {
         boolean everSucceeded = false;
         boolean skipEventCalls = inventory instanceof PlayerInventory; // skip events call if player is selling their inv
-        InventoryView inventoryView = ReflectionUtils.createViewFor(inventory, player);
+        InventoryView inventoryView = new InventoryView() {
+            @Override
+            public @NotNull Inventory getTopInventory() {
+                return inventory;
+            }
+
+            @Override
+            public @NotNull Inventory getBottomInventory() {
+                return player.getInventory();
+            }
+
+            @Override
+            public @NotNull HumanEntity getPlayer() {
+                return player;
+            }
+
+            @Override
+            public @NotNull InventoryType getType() {
+                return inventory.getType();
+            }
+
+            @Override
+            public @NotNull String getTitle() {
+                return "";
+            }
+        };
         if (!skipEventCalls) { // more events
             InventoryOpenEvent e = new InventoryOpenEvent(inventoryView);
             Bukkit.getPluginManager().callEvent(e);

@@ -7,7 +7,6 @@ import com.jacky8399.worstshop.shops.elements.ShopElement;
 import com.jacky8399.worstshop.shops.elements.StaticShopElement;
 import fr.minuskube.inv.content.InventoryContents;
 import fr.minuskube.inv.content.SlotPos;
-import joptsimple.internal.Strings;
 import org.bukkit.entity.Player;
 
 import java.util.Collections;
@@ -99,14 +98,12 @@ public class ShopWantsMultiple extends ShopWants implements IParentElementReader
 
     @Override
     public String getPlayerTrait(Player player) {
-        return Strings.join(
-                wants.stream().map(want->want.getPlayerTrait(player)).collect(Collectors.toList()), "\n");
+        return wants.stream().map(want->want.getPlayerTrait(player)).collect(Collectors.joining("\n"));
     }
 
     @Override
     public String getPlayerResult(Player player, ElementPosition position) {
-        return Strings.join(
-                wants.stream().map(want->want.getPlayerResult(player, position)).collect(Collectors.toList()), "\n");
+        return wants.stream().map(want->want.getPlayerResult(player, position)).collect(Collectors.joining("\n"));
     }
 
     @Override

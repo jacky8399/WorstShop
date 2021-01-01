@@ -194,7 +194,7 @@ public class PurchaseRecords {
         public PurchaseRecords fromPrimitive(@NotNull PersistentDataContainer primitive, @NotNull PersistentDataAdapterContext context) {
             // get keys
             PurchaseRecords records = new PurchaseRecords();
-            Set<NamespacedKey> keys = ReflectionUtils.getPersistentDataContainerKeys(primitive);
+            Set<NamespacedKey> keys = primitive.getKeys();
             keys.forEach(key -> {
                 try {
                     PersistentDataContainer nested = primitive.get(key, PersistentDataType.TAG_CONTAINER);

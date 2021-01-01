@@ -11,8 +11,6 @@ import me.clip.placeholderapi.PlaceholderAPI;
 import net.md_5.bungee.api.ChatColor;
 import org.bukkit.configuration.InvalidConfigurationException;
 import org.bukkit.configuration.file.YamlConfiguration;
-import org.bukkit.craftbukkit.libs.org.apache.commons.io.FileUtils;
-import org.bukkit.craftbukkit.libs.org.apache.commons.io.FilenameUtils;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
@@ -21,6 +19,8 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.lang.reflect.Field;
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
 import java.text.MessageFormat;
 import java.util.HashMap;
 import java.util.Locale;
@@ -57,7 +57,7 @@ public class I18n {
         private MessageFormat format;
         private String pattern;
         public void update() {
-            pattern = lang.getString(path, path);
+            pattern = ConfigHelper.translateString(lang.getString(path, path));
             // noinspection ConstantConditions
             format = new MessageFormat(pattern);
         }
@@ -95,12 +95,17 @@ public class I18n {
             // create folder
             langFolder.mkdirs();
             // copy files
+            File defaultEnglishFile = new File(langFolder, "en.yml");
             try {
-                FileUtils.copyInputStreamToFile(plugin.getResource("en.yml"), new File(langFolder, "en.yml"));
-            } catch (IOException ignored) { }
+                Files.copy(plugin.getResource("en.yml"), defaultEnglishFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
+            } catch (IOException e) {
+                plugin.logger.severe("Failed to copy default en.yml");
+                e.printStackTrace();
+            }
         }
         for (File langFile : langFolder.listFiles()) {
-            String localeName = FilenameUtils.getBaseName(langFile.getPath());
+            String fileName = langFile.getName();
+            String localeName = fileName.substring(0, fileName.lastIndexOf('.'));
             try {
                 Locale locale = new Locale(localeName);
                 plugin.commands.addSupportedLanguage(locale);
