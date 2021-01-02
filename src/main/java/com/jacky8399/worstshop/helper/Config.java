@@ -79,7 +79,14 @@ public final class Config {
 //    }
 
     private static String stringifyAcceptedTypes(Class<?>[] classes) {
-        return classes.length == 1 ? classes[0].getSimpleName() : Arrays.stream(classes).map(Class::getSimpleName).collect(Collectors.joining("/"));
+        return classes.length == 1 ?
+                classes[0].getSimpleName() :
+                Arrays.stream(classes).map(Class::getSimpleName).collect(Collectors.joining("/"));
+    }
+    private static String stringifyAcceptedListTypes(Class<?>[] classes) {
+        return classes.length == 1 ?
+                "list of " + classes[0].getSimpleName() :
+                Arrays.stream(classes).map(clazz -> "list of " + clazz.getSimpleName()).collect(Collectors.joining("/"));
     }
 
     @SafeVarargs
@@ -111,19 +118,44 @@ public final class Config {
     }
 
     public <T> Optional<List<T>> findList(String key, Class<T> listType) throws ConfigException, IllegalArgumentException {
-        return find(key, List.class).map(list -> ((List<?>) list).stream()
-                .map(child -> {
-                    T newChild = handleObj(child, listType);
-                    if (newChild != null)
-                        return newChild;
-                    throw new ConfigException("Expected list of " + listType.getSimpleName() + " at " + key + ", found list of " + child.getClass().getSimpleName());
-                })
-                .collect(Collectors.toList())
-        );
+        return find(key, List.class)
+                .map(list -> ((List<?>) list)
+                        .stream()
+                        .map(child -> {
+                            T newChild = handleObj(child, listType);
+                            if (newChild != null)
+                                return newChild;
+                            throw new ConfigException("Expected list of " + listType.getSimpleName() + " at " + key + ", found at least one conflicting element of " + child.getClass().getSimpleName());
+                        })
+                        .collect(Collectors.toList())
+                );
+    }
+
+    public <T> Optional<List<? extends T>> findList(String key, Class<? extends T>... listTypes) throws ConfigException, IllegalArgumentException {
+        if (listTypes.length == 0)
+            throw new IllegalArgumentException("listTypes cannot be empty");
+        return find(key, List.class)
+                .map(list -> ((List<?>) list)
+                        .stream()
+                        .map(child -> {
+                            for (Class<? extends T> clazz : listTypes) {
+                                T newChild = handleObj(child, clazz);
+                                if (newChild != null)
+                                    return newChild;
+                            }
+                            throw new ConfigException("Expected " + stringifyAcceptedListTypes(listTypes) + " at " + key + ", found at least one conflicting element of " + child.getClass().getSimpleName());
+                        })
+                        .collect(Collectors.toList())
+                );
     }
 
     public <T> List<T> getList(String key, Class<T> listType) throws ConfigException, IllegalArgumentException {
         return findList(key, listType).orElseThrow(throwFor(key, "list of " + listType.getSimpleName()));
+    }
+
+    @SafeVarargs
+    public final <T> List<? extends T> getList(String key, Class<? extends T>... listTypes) throws ConfigException, IllegalArgumentException {
+        return findList(key, listTypes).orElseThrow(throwFor(key, stringifyAcceptedListTypes(listTypes)));
     }
 
     private static Supplier<? extends ConfigException> throwFor(String key, String type) {

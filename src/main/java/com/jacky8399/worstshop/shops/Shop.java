@@ -3,10 +3,7 @@ package com.jacky8399.worstshop.shops;
 import com.google.common.collect.Lists;
 import com.jacky8399.worstshop.WorstShop;
 import com.jacky8399.worstshop.editor.*;
-import com.jacky8399.worstshop.helper.Config;
-import com.jacky8399.worstshop.helper.InventoryCloseListener;
-import com.jacky8399.worstshop.helper.ItemBuilder;
-import com.jacky8399.worstshop.helper.ItemUtils;
+import com.jacky8399.worstshop.helper.*;
 import com.jacky8399.worstshop.shops.conditions.Condition;
 import com.jacky8399.worstshop.shops.conditions.ConditionConstant;
 import com.jacky8399.worstshop.shops.elements.DynamicShopElement;
@@ -135,26 +132,22 @@ public class Shop implements InventoryProvider, ParseContext.NamedContext {
             inst.rows = config.find("rows", Integer.class).orElse(6);
             inst.type = config.find("type", InventoryType.class).orElse(InventoryType.CHEST);
 
-            inst.title = ChatColor.translateAlternateColorCodes('&', config.get("title", String.class));
+            inst.title = ConfigHelper.translateString(config.get("title", String.class));
             inst.updateInterval = config.find("update-interval", Integer.class).orElse(0);
 
             inst.condition = config.find("condition", Config.class).map(Condition::fromMap).orElse(null);
 
-            inst.parentShop = yaml.getString("parent");
+            inst.parentShop = config.find("parent", String.class).orElse(null);
             if ("auto".equals(inst.parentShop)) {
                 inst.autoSetParentShop = true;
             }
 
-            List<Map<String, Object>> items = (List<Map<String, Object>>) yaml.getList("items", Collections.emptyList());
-            for (Map<String, Object> itemSection : items) {
-                ShopElement elem = ShopElement.fromYaml(itemSection);
-                if (elem != null) {
-                    if (elem instanceof DynamicShopElement)
-                        inst.dynamicElements.add(elem);
-                    else
-                        inst.staticElements.add(elem);
-                }
-            }
+            config.getList("items", Config.class).forEach(itemConfig -> {
+                ShopElement element = ShopElement.fromConfig(itemConfig);
+                if (element != null)
+                    (element instanceof DynamicShopElement ? inst.dynamicElements : inst.staticElements).add(element);
+            });
+
             // commands
             if (yaml.isString("alias")) {
                 String aliasString = yaml.getString("alias");

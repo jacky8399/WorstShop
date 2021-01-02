@@ -1,10 +1,16 @@
 package com.jacky8399.worstshop.shops.elements;
 
 import com.google.common.collect.Lists;
-import com.jacky8399.worstshop.helper.ConfigHelper;
+import com.jacky8399.worstshop.WorstShop;
+import com.jacky8399.worstshop.helper.Config;
 import com.jacky8399.worstshop.helper.ItemUtils;
 import com.jacky8399.worstshop.shops.ParseContext;
 import com.jacky8399.worstshop.shops.Shop;
+import com.jacky8399.worstshop.shops.actions.Action;
+import com.jacky8399.worstshop.shops.actions.IParentElementReader;
+import com.jacky8399.worstshop.shops.conditions.Condition;
+import com.jacky8399.worstshop.shops.conditions.ConditionAnd;
+import com.jacky8399.worstshop.shops.conditions.ConditionPermission;
 import fr.minuskube.inv.ClickableItem;
 import fr.minuskube.inv.content.InventoryContents;
 import fr.minuskube.inv.content.SlotPos;
@@ -12,8 +18,8 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.ItemStack;
 
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.stream.Collectors;
 
 public abstract class ShopElement implements Cloneable, ParseContext.NamedContext {
     public interface SlotFiller {
@@ -34,26 +40,56 @@ public abstract class ShopElement implements Cloneable, ParseContext.NamedContex
     // populateItems properties
     public List<SlotPos> itemPositions = null;
     public FillType fill = FillType.NONE;
-    public Shop owner = null;
 
-    public static ShopElement fromYaml(Map<String, Object> yaml) {
-        boolean dynamic = (boolean) yaml.getOrDefault("dynamic", false);
+    // common properties
+    public transient Shop owner = null;
+    public Condition condition;
+    public List<Action> actions;
 
-        ShopElement element = dynamic ? DynamicShopElement.fromYaml(yaml) : StaticShopElement.fromYaml(yaml);
+    public static ShopElement fromConfig(Config config) {
+        boolean dynamic = config.find("dynamic", Boolean.class).orElse(false);
+
+        ShopElement element = dynamic ? DynamicShopElement.fromYaml(config) : StaticShopElement.fromYaml(config);
 
         if (element == null) {
             return null;
         }
 
-        if (yaml.containsKey("fill") && yaml.get("fill") instanceof Boolean) {
-            element.fill = (boolean)yaml.get("fill") ? FillType.ALL : FillType.NONE;
-        } else if (yaml.containsKey("fill") && yaml.get("fill") instanceof String) {
-            element.fill = ConfigHelper.parseEnum((String)yaml.get("fill"), FillType.class);
-        }
-        if (element.fill == FillType.NONE && yaml.containsKey("pos")) { // parse only if not fill
-            element.itemPositions = parsePos((String) yaml.get("pos"));
+        Optional<Object> fillOptional = config.find("fill", Boolean.class, FillType.class);
+        if (fillOptional.isPresent()) {
+            Object fill = fillOptional.get();
+            if (fill instanceof Boolean) {
+                element.fill = (Boolean) fill ? FillType.ALL : FillType.NONE;
+            } else {
+                element.fill = (FillType) fill;
+            }
+        } else {
+            Optional<String> posOptional = config.find("pos", String.class);
+            if (posOptional.isPresent()) {
+                element.itemPositions = parsePos(posOptional.get());
+            } else {
+                WorstShop.get().logger.warning("Invisible shop element detected! Please specify fill/pos of the element!");
+                WorstShop.get().logger.warning("Offending element: " + ParseContext.getHierarchy());
+            }
         }
 
+        ConditionAnd instCondition = new ConditionAnd();
+        config.find("view-perm", String.class).map(ConditionPermission::fromPermString).ifPresent(instCondition::addCondition);
+        config.find("condition", Config.class).map(Condition::fromMap).ifPresent(instCondition::addCondition);
+        element.condition = instCondition;
+
+        // Action parsing
+        element.actions = config.findList("actions", Config.class, String.class).orElseGet(ArrayList::new).stream()
+                .map(obj -> obj instanceof Config ?
+                        Action.fromYaml(((Config) obj).getPrimitiveMap()) :
+                        Action.fromCommand(obj.toString()))
+                .filter(Objects::nonNull).collect(Collectors.toList());
+
+        element.actions.stream().filter(action -> action instanceof IParentElementReader)
+                .forEach(action -> ((IParentElementReader) action).readElement(element));
+
+        // pop context here
+        ParseContext.popContext();
         return element;
     }
 

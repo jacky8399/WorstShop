@@ -1,6 +1,7 @@
 package com.jacky8399.worstshop.shops.elements.dynamic;
 
 import com.google.common.collect.Lists;
+import com.jacky8399.worstshop.helper.Config;
 import com.jacky8399.worstshop.shops.ParseContext;
 import com.jacky8399.worstshop.shops.Shop;
 import com.jacky8399.worstshop.shops.actions.Action;
@@ -13,7 +14,6 @@ import org.bukkit.entity.Player;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 
 public class AnimationShopElement extends DynamicShopElement {
@@ -21,13 +21,11 @@ public class AnimationShopElement extends DynamicShopElement {
     // to prevent overlapping with other AnimationShopElements
     private String self = UUID.randomUUID().toString();
     ArrayList<ShopElement> elements;
-    public AnimationShopElement(Map<String, Object> yaml) {
-        intervalInTicks = ((Number) yaml.getOrDefault("interval", 1)).intValue();
+    public AnimationShopElement(Config config) {
+        intervalInTicks = config.find("interval", Integer.class).orElse(1);
         elements = Lists.newArrayList();
         ParseContext.pushContext(this);
-        for (Map<String, Object> childYaml : ((List<Map<String, Object>>) yaml.get("elements"))) {
-            elements.add(ShopElement.fromYaml(childYaml));
-        }
+        config.getList("elements", Config.class).stream().map(ShopElement::fromConfig).forEach(elements::add);
         ParseContext.popContext();
         Validate.notEmpty(elements, "Elements cannot be empty!");
     }

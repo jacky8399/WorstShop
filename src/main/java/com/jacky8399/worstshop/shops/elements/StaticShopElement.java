@@ -7,10 +7,6 @@ import com.jacky8399.worstshop.helper.*;
 import com.jacky8399.worstshop.shops.ParseContext;
 import com.jacky8399.worstshop.shops.Shop;
 import com.jacky8399.worstshop.shops.actions.Action;
-import com.jacky8399.worstshop.shops.actions.IParentElementReader;
-import com.jacky8399.worstshop.shops.conditions.Condition;
-import com.jacky8399.worstshop.shops.conditions.ConditionAnd;
-import com.jacky8399.worstshop.shops.conditions.ConditionPermission;
 import me.clip.placeholderapi.PlaceholderAPI;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
@@ -35,8 +31,6 @@ import java.util.stream.Collectors;
 public class StaticShopElement extends ShopElement {
 
     public ItemStack rawStack;
-    public Condition condition;
-    public List<Action> actions;
 
     // for faster client load times
     private PaperHelper.GameProfile skullCache;
@@ -54,9 +48,8 @@ public class StaticShopElement extends ShopElement {
     }
 
     private static final Pattern VALID_MC_NAME = Pattern.compile("[A-Za-z0-9_]{1,16}");
-    @SuppressWarnings("unchecked")
-    public static ShopElement fromYaml(Map<String, Object> yaml) {
-        Config config = new Config(yaml);
+    public static ShopElement fromYaml(Config config) {
+        Map<String, Object> yaml = config.getPrimitiveMap();
         // static parsing
         StaticShopElement inst = new StaticShopElement();
 
@@ -91,22 +84,7 @@ public class StaticShopElement extends ShopElement {
             }
         }
 
-        // Conditions
-        ConditionAnd instCondition = new ConditionAnd();
-        config.find("view-perm", String.class).map(ConditionPermission::fromPermString).ifPresent(instCondition::addCondition);
-        config.find("condition", Config.class).map(Condition::fromMap).ifPresent(instCondition::addCondition);
-        inst.condition = instCondition;
-
-        // Action parsing
-        inst.actions = ((List<?>) yaml.getOrDefault("actions", Collections.emptyList())).stream()
-                .map(obj -> obj instanceof Map ?
-                        Action.fromYaml((Map<String, Object>) obj) :
-                        Action.fromCommand(obj.toString())).filter(Objects::nonNull).collect(Collectors.toList());
-
-        inst.actions.stream().filter(action -> action instanceof IParentElementReader)
-                .forEach(action -> ((IParentElementReader) action).readElement(inst));
-
-        ParseContext.popContext();
+        // don't pop context just yet
         return inst;
     }
 
@@ -245,7 +223,7 @@ public class StaticShopElement extends ShopElement {
     }
 
     public ItemStack createPlaceholderStack(Player player) {
-        if (condition != null && !condition.test(player)) {
+        if (!condition.test(player)) {
             return null;
         }
 
