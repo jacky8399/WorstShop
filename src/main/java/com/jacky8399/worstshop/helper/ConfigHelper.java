@@ -2,9 +2,9 @@ package com.jacky8399.worstshop.helper;
 
 import com.jacky8399.worstshop.WorstShop;
 import com.jacky8399.worstshop.shops.ParseContext;
+import net.md_5.bungee.api.ChatColor;
 import net.md_5.bungee.api.chat.*;
 import net.md_5.bungee.chat.ComponentSerializer;
-import net.md_5.bungee.api.ChatColor;
 
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
@@ -17,6 +17,10 @@ public class ConfigHelper {
 
     public static String translateString(String input) {
         return input != null ? ChatColor.translateAlternateColorCodes('&', input) : null;
+    }
+
+    public static String untranslateString(String input) {
+        return input != null ? input.replace(ChatColor.COLOR_CHAR, '&') : null;
     }
 
     // haha regex magic

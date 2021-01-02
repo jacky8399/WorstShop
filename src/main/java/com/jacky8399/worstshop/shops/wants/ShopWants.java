@@ -8,14 +8,16 @@ import fr.minuskube.inv.content.SlotPos;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 public class ShopWants implements Predicate<Player> {
-
     public static ShopWants fromMap(Map<String, Object> map) {
         String type = (String) map.getOrDefault("type", "free");
         switch (type) {
@@ -59,7 +61,7 @@ public class ShopWants implements Predicate<Player> {
             // money
             String number = str.substring(1);
             try {
-                return new ShopWantsMoney(Double.parseDouble(number));
+                return new ShopWantsMoney(Double.parseDouble(number), 1, true);
             } catch (NumberFormatException ex) {
                 throw new IllegalArgumentException("Invalid commodity shorthand value: " + number + " is not a valid number");
             }
@@ -67,9 +69,7 @@ public class ShopWants implements Predicate<Player> {
         throw new IllegalArgumentException("Invalid commodity shorthand '" + str + "'");
     }
 
-    public ShopWants() {
-
-    }
+    public ShopWants() {}
 
     /**
      * Denotes whether the commodity can be multiplied with {@link #multiply(double)}
@@ -110,7 +110,7 @@ public class ShopWants implements Predicate<Player> {
      * @param position the role of the commodity in the transaction
      * @return the result
      */
-    public String getPlayerResult(Player player, ElementPosition position) {
+    public String getPlayerResult(@Nullable Player player, TransactionType position) {
         return "";
     }
 
@@ -118,9 +118,7 @@ public class ShopWants implements Predicate<Player> {
      * Deduct the commodity from the player
      * @param player the player
      */
-    public void deduct(Player player) {
-
-    }
+    public void deduct(Player player) {}
 
     /**
      * Grant the commodity to the player, optionally refunding if the player cannot accept the commodity
@@ -170,32 +168,32 @@ public class ShopWants implements Predicate<Player> {
     }
 
     /**
-     * Denotes the position the ShopElement should be at
+     * Denotes the type of transaction
      */
-    public enum ElementPosition {
+    public enum TransactionType {
         /**
          * The ShopElement should in the COST slot (left hand side)
          */
-        COST(1,1),
+        COST(SlotPos.of(1,1)),
         /**
          * The ShopElement should be in the REWARD slot (right hand side)
          */
-        REWARD(1,7);
+        REWARD(SlotPos.of(1,7));
 
         public final SlotPos pos;
-        ElementPosition(int row, int column) {
-            pos = SlotPos.of(row, column);
+        TransactionType(SlotPos pos) {
+            this.pos = pos;
         }
     }
 
     /**
      * Create a ShopElement to be displayed in ActionShop GUIs. Only called once per ActionShop GUI.
-     *
+     * <p>
      * To have the element be updated every tick, override {@link #isElementDynamic()}
      * @param position position of the returned element
      * @return the ShopElement to be displayed
      */
-    public ShopElement createElement(ElementPosition position) {
+    public ShopElement createElement(TransactionType position) {
         StaticShopElement elem = StaticShopElement.fromStack(createStack());
         elem.fill = ShopElement.FillType.NONE;
         elem.itemPositions = Collections.singletonList(position.pos);
@@ -203,11 +201,29 @@ public class ShopWants implements Predicate<Player> {
     }
 
     /**
-     * Denotes whether the ShopElement created in {@link #createElement(ElementPosition)} is dynamic.
+     * Denotes whether the ShopElement created in {@link #createElement(TransactionType)} is dynamic. <br>
      * A dynamic element means that the ShopElement will repopulate its items every tick.
      * @return whether the ShopElement is dynamic
      */
     public boolean isElementDynamic() {
         return false;
+    }
+
+    /**
+     * Attempts to serialize the commodity.
+     */
+    public Map<String, Object> toMap(Map<String, Object> map) {
+        return map;
+    }
+
+    /**
+     * Attempts to serialize the commodity with respect to whether it was created via a shorthand.
+     */
+    public final Object toSerializable(Map<String, Object> map) {
+        if (this instanceof ShopWantsMoney && ((ShopWantsMoney) this).fromShorthand)
+            return "$" + ((ShopWantsMoney) this).money;
+        else if (this instanceof ShopWantsMultiple)
+            return ((ShopWantsMultiple) this).wants.stream().map(want -> want.toSerializable(new HashMap<>())).collect(Collectors.toList());
+        return toMap(map);
     }
 }

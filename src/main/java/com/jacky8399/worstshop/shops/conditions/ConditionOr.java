@@ -4,12 +4,11 @@ import com.google.common.collect.Lists;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
+import java.util.*;
+import java.util.stream.Collectors;
 
 public class ConditionOr extends Condition {
-    private ArrayList<Condition> conditions;
+    private final ArrayList<Condition> conditions;
     public ConditionOr(Condition... conditions) {
         this(Arrays.asList(conditions));
     }
@@ -38,7 +37,19 @@ public class ConditionOr extends Condition {
     }
 
     @Override
+    public String toString() {
+        return "(" + conditions.stream().map(Condition::toString).collect(Collectors.joining(" | ")) + ")";
+    }
+
+    @Override
     public boolean test(Player player) {
         return conditions.stream().anyMatch(c -> c.test(player));
+    }
+
+    @Override
+    public Map<String, Object> toMap(Map<String, Object> map) {
+        map.put("logic", "or");
+        map.put("conditions", conditions.stream().map(condition -> condition.toMap(new HashMap<>())).collect(Collectors.toList()));
+        return map;
     }
 }

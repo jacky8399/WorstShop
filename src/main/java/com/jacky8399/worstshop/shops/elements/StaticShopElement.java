@@ -3,10 +3,7 @@ package com.jacky8399.worstshop.shops.elements;
 import com.google.common.collect.Maps;
 import com.jacky8399.worstshop.I18n;
 import com.jacky8399.worstshop.WorstShop;
-import com.jacky8399.worstshop.helper.ConfigHelper;
-import com.jacky8399.worstshop.helper.ItemBuilder;
-import com.jacky8399.worstshop.helper.ItemUtils;
-import com.jacky8399.worstshop.helper.PaperHelper;
+import com.jacky8399.worstshop.helper.*;
 import com.jacky8399.worstshop.shops.ParseContext;
 import com.jacky8399.worstshop.shops.Shop;
 import com.jacky8399.worstshop.shops.actions.Action;
@@ -59,6 +56,7 @@ public class StaticShopElement extends ShopElement {
     private static final Pattern VALID_MC_NAME = Pattern.compile("[A-Za-z0-9_]{1,16}");
     @SuppressWarnings("unchecked")
     public static ShopElement fromYaml(Map<String, Object> yaml) {
+        Config config = new Config(yaml);
         // static parsing
         StaticShopElement inst = new StaticShopElement();
 
@@ -93,15 +91,11 @@ public class StaticShopElement extends ShopElement {
             }
         }
 
+        // Conditions
         ConditionAnd instCondition = new ConditionAnd();
-        // Permissions
-        if (yaml.containsKey("view-perm")) {
-            instCondition.addCondition(ConditionPermission.fromPermString((String) yaml.get("view-perm")));
-        }
-
-        if (yaml.containsKey("condition")) {
-            instCondition.addCondition(Condition.fromMap((Map<String, Object>) yaml.get("condition")));
-        }
+        config.find("view-perm", String.class).map(ConditionPermission::fromPermString).ifPresent(instCondition::addCondition);
+        config.find("condition", Config.class).map(Condition::fromMap).ifPresent(instCondition::addCondition);
+        inst.condition = instCondition;
 
         // Action parsing
         inst.actions = ((List<?>) yaml.getOrDefault("actions", Collections.emptyList())).stream()

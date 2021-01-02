@@ -1,5 +1,6 @@
 package com.jacky8399.worstshop.shops.elements;
 
+import com.jacky8399.worstshop.helper.Config;
 import com.jacky8399.worstshop.helper.ItemBuilder;
 import com.jacky8399.worstshop.shops.ParseContext;
 import com.jacky8399.worstshop.shops.Shop;
@@ -24,6 +25,7 @@ public class DynamicShopElement extends ShopElement {
     public List<Action> actions;
     public Condition condition;
     public static DynamicShopElement fromYaml(Map<String, Object> yaml) {
+        Config config = new Config(yaml);
         DynamicShopElement inst;
         String preset = (String) yaml.get("preset");
         switch (preset) {
@@ -39,13 +41,8 @@ public class DynamicShopElement extends ShopElement {
 
         // Permissions
         ConditionAnd instCondition = new ConditionAnd();
-        if (yaml.containsKey("view-perm")) {
-            instCondition.addCondition(ConditionPermission.fromPermString((String) yaml.get("view-perm")));
-        }
-
-        if (yaml.containsKey("condition")) {
-            instCondition.addCondition(Condition.fromMap((Map<String, Object>) yaml.get("condition")));
-        }
+        config.find("view-perm", String.class).map(ConditionPermission::fromPermString).ifPresent(instCondition::addCondition);
+        config.find("condition", Config.class).map(Condition::fromMap).ifPresent(instCondition::addCondition);
         inst.condition = instCondition;
 
         // Action parsing

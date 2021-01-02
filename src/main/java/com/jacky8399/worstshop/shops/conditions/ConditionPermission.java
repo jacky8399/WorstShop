@@ -2,11 +2,12 @@ package com.jacky8399.worstshop.shops.conditions;
 
 import org.bukkit.entity.Player;
 
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class ConditionPermission extends Condition {
-    private String perm;
+    public final String perm;
 
     public ConditionPermission(String permission) {
         this.perm = permission;
@@ -43,8 +44,20 @@ public class ConditionPermission extends Condition {
     }
 
     @Override
+    public String toString() {
+        return perm;
+    }
+
+    @Override
     public boolean test(Player player) {
         return player.hasPermission(perm);
+    }
+
+    @Override
+    public Map<String, Object> toMap(Map<String, Object> map) {
+        map.put("preset", "permission");
+        map.put("permission", perm);
+        return map;
     }
 
     private static final Pattern BRACKETS = Pattern.compile("^\\(\\s*(.+)\\s*\\)$");

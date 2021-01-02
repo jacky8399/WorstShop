@@ -8,6 +8,7 @@ import net.md_5.bungee.api.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.Map;
 
@@ -24,7 +25,7 @@ public class ShopWantsPlayerPoint extends ShopWants {
 
     int points;
     double multiplier;
-    int realPoints;
+    transient int realPoints;
 
     public ShopWantsPlayerPoint(Map<String, Object> yaml) {
         this(((Number)yaml.get("points")).intValue());
@@ -53,6 +54,18 @@ public class ShopWantsPlayerPoint extends ShopWants {
     @Override
     public String getPlayerTrait(Player player) {
         return formatPoints(POINTS.look(player.getUniqueId()));
+    }
+
+    @Override
+    public String getPlayerResult(@Nullable Player player, TransactionType position) {
+        return formatPoints(realPoints);
+    }
+
+    @Override
+    public Map<String, Object> toMap(Map<String, Object> map) {
+        map.put("preset", "points");
+        map.put("points", points);
+        return map;
     }
 
     @Override

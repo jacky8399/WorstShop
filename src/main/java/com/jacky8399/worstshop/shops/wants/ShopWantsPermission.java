@@ -11,10 +11,7 @@ import net.luckperms.api.model.data.TemporaryNodeMergeStrategy;
 import net.luckperms.api.model.user.User;
 import net.luckperms.api.node.Node;
 import net.luckperms.api.node.NodeBuilder;
-import net.luckperms.api.node.types.InheritanceNode;
-import net.luckperms.api.node.types.MetaNode;
-import net.luckperms.api.node.types.PrefixNode;
-import net.luckperms.api.node.types.SuffixNode;
+import net.luckperms.api.node.types.*;
 import net.luckperms.api.query.QueryOptions;
 import net.md_5.bungee.api.ChatColor;
 import org.bukkit.Material;
@@ -103,7 +100,8 @@ public class ShopWantsPermission extends ShopWantsCustomizable {
         }
 
         // toggle
-        builder.value((boolean) yaml.getOrDefault("value", true));
+        if (permType != PermissionType.META)
+            builder.value((boolean) yaml.getOrDefault("value", true));
         // expiry
         if (yaml.containsKey("duration")) {
             durationInSeconds = (int) yaml.get("duration");
@@ -149,12 +147,46 @@ public class ShopWantsPermission extends ShopWantsCustomizable {
     }
 
     @Override
-    public String getPlayerResult(Player player, ElementPosition position) {
+    public String getPlayerResult(Player player, TransactionType position) {
         return formatPermission() + ": " + permissionNode.getValue();
     }
 
+    @Override
+    public Map<String, Object> toMap(Map<String, Object> map) {
+        map.put("preset", "perm");
+        if (!permissionNode.getValue())
+            map.put("value", false);
+        if (revokePermission)
+            map.put("revoke", true);
+        switch (permType) {
+            case META: {
+                MetaNode node = (MetaNode) permissionNode;
+                map.put("key", node.getKey());
+                map.put("value", node.getMetaValue());
+                break;
+            }
+            case GROUP: {
+                InheritanceNode node = (InheritanceNode) permissionNode;
+                map.put("group", node.getGroupName());
+                break;
+            }
+            case PREFIX:
+            case SUFFIX: {
+                ChatMetaNode<?, ?> node = (ChatMetaNode<?, ?>) permissionNode;
+                map.put(permType == PermissionType.PREFIX ? "prefix" : "suffix", ConfigHelper.untranslateString(node.getMetaValue()));
+                break;
+            }
+            case PERMISSION: {
+                PermissionNode node = (PermissionNode) permissionNode;
+                map.put("permission", node.getPermission());
+                break;
+            }
+        }
+        return map;
+    }
+
     public Node createNodeWithDuration(Player player) {
-        NodeBuilder builder = permissionNode.toBuilder();
+        NodeBuilder<?,?> builder = permissionNode.toBuilder();
         if (durationInSeconds > 0)
                 builder.expiry((long) (durationInSeconds * multiplier), TimeUnit.SECONDS);
         return builder.build();

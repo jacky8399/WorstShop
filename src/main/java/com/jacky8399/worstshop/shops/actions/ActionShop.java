@@ -145,8 +145,8 @@ public class ActionShop extends Action implements IParentElementReader {
         ActionShop adjusted = adjustForPlayer(player);
         return I18n.translate("worstshop.messages.shops.transaction-message",
                 buyCount,
-                adjusted.cost.multiply(buyCount).getPlayerResult(player, ShopWants.ElementPosition.COST),
-                adjusted.reward.multiply(buyCount).getPlayerResult(player, ShopWants.ElementPosition.REWARD)
+                adjusted.cost.multiply(buyCount).getPlayerResult(player, ShopWants.TransactionType.COST),
+                adjusted.reward.multiply(buyCount).getPlayerResult(player, ShopWants.TransactionType.REWARD)
         );
     }
 
@@ -174,7 +174,7 @@ public class ActionShop extends Action implements IParentElementReader {
             ActionShop adjusted = adjustForPlayer(player);
             return I18n.translate("worstshop.messages.shops.transaction-refund",
                     refundAmount,
-                    adjusted.cost.multiply(refundAmount).getPlayerResult(player, ShopWants.ElementPosition.REWARD)
+                    adjusted.cost.multiply(refundAmount).getPlayerResult(player, ShopWants.TransactionType.REWARD)
             );
         }
         return "";
@@ -238,9 +238,9 @@ public class ActionShop extends Action implements IParentElementReader {
         public void init(Player player, InventoryContents contents) {
             contents.fill(FILLER);
 
-            costElem = cost.createElement(ShopWants.ElementPosition.COST);
+            costElem = cost.createElement(ShopWants.TransactionType.COST);
             costElem.populateItems(player, contents, null);
-            rewardElem = reward.createElement(ShopWants.ElementPosition.REWARD);
+            rewardElem = reward.createElement(ShopWants.TransactionType.REWARD);
             rewardElem.populateItems(player, contents, null);
 
             updateItemCount(player, contents);

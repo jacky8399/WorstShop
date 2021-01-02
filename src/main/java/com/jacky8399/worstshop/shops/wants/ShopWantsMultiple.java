@@ -49,7 +49,7 @@ public class ShopWantsMultiple extends ShopWants implements IParentElementReader
     }
 
     @Override
-    public ShopElement createElement(ElementPosition position) {
+    public ShopElement createElement(TransactionType position) {
         if (wants.size() == 1) {
             return wants.get(0).createElement(position);
         } else if (wants.size() == 2) {
@@ -102,7 +102,7 @@ public class ShopWantsMultiple extends ShopWants implements IParentElementReader
     }
 
     @Override
-    public String getPlayerResult(Player player, ElementPosition position) {
+    public String getPlayerResult(Player player, TransactionType position) {
         return wants.stream().map(want->want.getPlayerResult(player, position)).collect(Collectors.joining("\n"));
     }
 

@@ -1,17 +1,8 @@
 package com.jacky8399.worstshop.shops.conditions;
 
-import org.bukkit.entity.Player;
-
-import java.util.function.Predicate;
-
-public class ConditionPredicate extends Condition {
-    private Predicate<Player> predicate;
-    public ConditionPredicate(Predicate<Player> playerPredicate) {
-        predicate = playerPredicate;
-    }
-
+public abstract class ConditionPredicate extends Condition {
     @Override
-    public boolean test(Player player) {
-        return predicate.test(player);
+    public String toString() {
+        return "[custom predicate]";
     }
 }

@@ -2,6 +2,8 @@ package com.jacky8399.worstshop.helper;
 
 import org.bukkit.configuration.MemorySection;
 
+import javax.annotation.Nullable;
+import javax.annotation.ParametersAreNonnullByDefault;
 import java.util.*;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -9,6 +11,7 @@ import java.util.stream.Collectors;
 /**
  * Conceals ugly casts
  */
+@ParametersAreNonnullByDefault
 public final class Config {
     private Map<String, Object> backingMap;
     public final Config parent;
@@ -16,7 +19,7 @@ public final class Config {
         this(section.getValues(false), null);
     }
 
-    public Config(Map<String, Object> map, Config parent) {
+    public Config(Map<String, Object> map, @Nullable Config parent) {
         backingMap = new LinkedHashMap<>(map);
         this.parent = parent;
     }
@@ -80,7 +83,7 @@ public final class Config {
     }
 
     @SafeVarargs
-    public final <T> Optional<T> find(String key, Class<? extends T>... classes) {
+    public final <T> Optional<T> find(String key, Class<? extends T>... classes) throws ConfigException, IllegalArgumentException {
         if (classes.length == 0)
             throw new IllegalArgumentException("classes cannot be empty");
         Object obj = backingMap.get(key);
@@ -93,7 +96,7 @@ public final class Config {
             if (val != null)
                 return Optional.of(val);
         }
-        throw new IllegalArgumentException("Expected " + stringifyAcceptedTypes(classes) + " at " + key + ", found " + obj.getClass().getSimpleName());
+        throw new ConfigException("Expected " + stringifyAcceptedTypes(classes) + " at " + key + ", found " + obj.getClass().getSimpleName());
     }
 
 //    public <T> T get(String key, Class<? extends T> clazz) {
@@ -101,29 +104,29 @@ public final class Config {
 //    }
 
     @SafeVarargs
-    public final <T> T get(String key, Class<? extends T>... classes) {
+    public final <T> T get(String key, Class<? extends T>... classes) throws ConfigException, IllegalArgumentException {
         if (classes.length == 0)
             throw new IllegalArgumentException("classes cannot be empty");
         return find(key, classes).orElseThrow(throwFor(key, stringifyAcceptedTypes(classes)));
     }
 
-    public <T> Optional<List<T>> findList(String key, Class<T> listType) {
+    public <T> Optional<List<T>> findList(String key, Class<T> listType) throws ConfigException, IllegalArgumentException {
         return find(key, List.class).map(list -> ((List<?>) list).stream()
                 .map(child -> {
                     T newChild = handleObj(child, listType);
                     if (newChild != null)
                         return newChild;
-                    throw new IllegalArgumentException("Expected list of " + listType.getSimpleName() + " at " + key + ", found list of " + child.getClass().getSimpleName());
+                    throw new ConfigException("Expected list of " + listType.getSimpleName() + " at " + key + ", found list of " + child.getClass().getSimpleName());
                 })
                 .collect(Collectors.toList())
         );
     }
 
-    public <T> List<T> getList(String key, Class<T> listType) {
+    public <T> List<T> getList(String key, Class<T> listType) throws ConfigException, IllegalArgumentException {
         return findList(key, listType).orElseThrow(throwFor(key, "list of " + listType.getSimpleName()));
     }
 
-    private static Supplier<? extends IllegalArgumentException> throwFor(String key, String type) {
-        return ()->new IllegalArgumentException("Expected " + type + " at " + key + ", found nothing");
+    private static Supplier<? extends ConfigException> throwFor(String key, String type) {
+        return ()->new ConfigException("Expected " + type + " at " + key + ", found nothing");
     }
 }

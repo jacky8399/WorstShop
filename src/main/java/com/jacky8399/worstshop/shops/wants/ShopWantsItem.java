@@ -1,6 +1,7 @@
 package com.jacky8399.worstshop.shops.wants;
 
-import com.google.common.collect.Maps;
+import com.google.common.collect.BiMap;
+import com.google.common.collect.HashBiMap;
 import com.google.common.collect.Sets;
 import com.jacky8399.worstshop.I18n;
 import com.jacky8399.worstshop.shops.elements.StaticShopElement;
@@ -15,6 +16,7 @@ import java.util.*;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 public class ShopWantsItem extends ShopWants implements IFlexibleShopWants {
 
@@ -184,8 +186,16 @@ public class ShopWantsItem extends ShopWants implements IFlexibleShopWants {
     }
 
     @Override
-    public String getPlayerResult(Player player, ElementPosition position) {
+    public String getPlayerResult(Player player, TransactionType position) {
         return I18n.nameStack(stack, getAmount());
+    }
+
+    @Override
+    public Map<String, Object> toMap(Map<String, Object> map) {
+        map.put("preset", "item");
+        // TODO serialize ItemStack
+        map.put("matches", itemMatchers.stream().map(ITEM_MATCHERS.inverse()::get).collect(Collectors.toList()));
+        return map;
     }
 
     private static <T> ItemMatcher compareProperty(Function<ItemMeta, @Nullable T> mapper) {
@@ -210,10 +220,10 @@ public class ShopWantsItem extends ShopWants implements IFlexibleShopWants {
     public static final ItemMatcher ENCHANTS = compareProperty(ItemMeta::getEnchants);
     public static final ItemMatcher PLUGIN_DATA = compareProperty(ItemMeta::getPersistentDataContainer);
 
-    public static final HashMap<String, ItemMatcher> ITEM_MATCHERS;
+    public static final BiMap<String, ItemMatcher> ITEM_MATCHERS;
 
     static {
-        ITEM_MATCHERS = Maps.newHashMap();
+        ITEM_MATCHERS = HashBiMap.create(7);
         ITEM_MATCHERS.put("similar", SIMILAR);
         ITEM_MATCHERS.put("material", MATERIAL);
         ITEM_MATCHERS.put("damage", DAMAGE);

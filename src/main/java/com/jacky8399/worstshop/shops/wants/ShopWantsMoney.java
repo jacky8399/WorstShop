@@ -27,14 +27,21 @@ public class ShopWantsMoney extends ShopWants {
         this(((Number) yaml.getOrDefault("money", 0.0D)).doubleValue());
     }
 
+    // to maintain serialization accuracy
+    public final boolean fromShorthand;
     public ShopWantsMoney(double money) {
-        this(money, 1);
+        this(money, 1, false);
     }
 
     public ShopWantsMoney(double money, double multiplier) {
+        this(money, multiplier, false);
+    }
+
+    public ShopWantsMoney(double money, double multiplier, boolean shorthand) {
         this.multiplier = multiplier;
         this.money = Math.abs(money); // ensure not negative
         this.realMoney = money * multiplier;
+        this.fromShorthand = shorthand;
     }
 
     @Override
@@ -78,8 +85,15 @@ public class ShopWantsMoney extends ShopWants {
     }
 
     @Override
-    public String getPlayerResult(Player player, ElementPosition position) {
+    public String getPlayerResult(Player player, TransactionType position) {
         return formatMoney(realMoney);
+    }
+
+    @Override
+    public Map<String, Object> toMap(Map<String, Object> map) {
+        map.put("preset", "money");
+        map.put("money", money);
+        return map;
     }
 
     public static String formatMoney(double money) {

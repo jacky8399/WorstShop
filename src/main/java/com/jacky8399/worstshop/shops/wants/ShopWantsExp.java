@@ -6,11 +6,11 @@ import net.md_5.bungee.api.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.Map;
 
 public class ShopWantsExp extends ShopWants {
-
     public ShopWantsExp(Map<String, Object> map) {
         this(((Number) map.getOrDefault("levels", 0)).intValue(),
                 ((Number) map.getOrDefault("points", 0)).intValue());
@@ -34,6 +34,14 @@ public class ShopWantsExp extends ShopWants {
 
     @Override
     public String getPlayerTrait(Player player) {
+        float playerPoints = player.getExp() * player.getExpToLevel();
+        return ChatColor.BLUE +
+                (player.getLevel() != 0 ? I18n.translate("worstshop.messages.shops.wants.level", player.getLevel()) : "") + " " +
+                (playerPoints != 0 ? I18n.translate("worstshop.messages.shops.wants.points", playerPoints) : "");
+    }
+
+    @Override
+    public String getPlayerResult(@Nullable Player player, TransactionType position) {
         return ChatColor.BLUE +
                 (levels != 0 ? I18n.translate("worstshop.messages.shops.wants.level", levels) : "") + " " +
                 (points != 0 ? I18n.translate("worstshop.messages.shops.wants.points", points) : "");
@@ -60,5 +68,13 @@ public class ShopWantsExp extends ShopWants {
                         (levels != 0 ? I18n.translate("worstshop.messages.shops.wants.level", levels) : "") + " " +
                         (points != 0 ? I18n.translate("worstshop.messages.shops.wants.points", points) : ""))
                 .build();
+    }
+
+    @Override
+    public Map<String, Object> toMap(Map<String, Object> map) {
+        map.put("preset", "exp");
+        map.put("levels", levels);
+        map.put("points", points);
+        return map;
     }
 }

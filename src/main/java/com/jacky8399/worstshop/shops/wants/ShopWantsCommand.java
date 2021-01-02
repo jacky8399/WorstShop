@@ -2,16 +2,16 @@ package com.jacky8399.worstshop.shops.wants;
 
 import com.jacky8399.worstshop.helper.ConfigHelper;
 import com.jacky8399.worstshop.helper.ItemBuilder;
-import org.bukkit.Bukkit;
 import net.md_5.bungee.api.ChatColor;
+import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
+import org.jetbrains.annotations.Nullable;
 
-import javax.annotation.Nullable;
 import java.util.Map;
 
-public class ShopWantsCommand extends ShopWantsCustomizable {
+public class ShopWantsCommand extends ShopWantsCustomizable implements INeverAffordableShopWants {
 
     public enum CommandInvocationMethod {
         PLAYER, PLAYER_OP, CONSOLE
@@ -45,6 +45,11 @@ public class ShopWantsCommand extends ShopWantsCustomizable {
     }
 
     @Override
+    public String getPlayerResult(@Nullable Player player, TransactionType position) {
+        return "[command]";
+    }
+
+    @Override
     public double grantOrRefund(Player player) {
         String actualCommand = command.replace("{player}", player.getName());
         for (int i = 0; i < multiplier; i++) {
@@ -54,7 +59,6 @@ public class ShopWantsCommand extends ShopWantsCustomizable {
     }
 
     public void doCommandOnce(Player player, String command) {
-
         switch (method) {
             case CONSOLE:
                 if (command.startsWith("/"))
@@ -82,5 +86,14 @@ public class ShopWantsCommand extends ShopWantsCustomizable {
     @Override
     public ShopWants multiply(double multiplier) {
         return new ShopWantsCommand(this, command, method, (int) (this.multiplier * multiplier));
+    }
+
+    @Override
+    public Map<String, Object> toMap(Map<String, Object> map) {
+        super.toMap(map);
+        map.put("preset", "command");
+        map.put("command", command);
+        map.put("multiplier", multiplier);
+        return map;
     }
 }

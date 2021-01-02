@@ -6,8 +6,8 @@ import com.jacky8399.worstshop.shops.elements.DynamicShopElement;
 import com.jacky8399.worstshop.shops.elements.ShopElement;
 import com.jacky8399.worstshop.shops.elements.StaticShopElement;
 import org.bukkit.inventory.ItemStack;
+import org.jetbrains.annotations.Nullable;
 
-import javax.annotation.Nullable;
 import java.util.Collections;
 import java.util.Map;
 
@@ -35,7 +35,7 @@ public abstract class ShopWantsCustomizable extends ShopWants implements IParent
     }
 
     @Override
-    public ShopElement createElement(ElementPosition position) {
+    public ShopElement createElement(TransactionType position) {
         if (element != null) {
             // sanitize element
             element.fill = ShopElement.FillType.NONE;
@@ -54,7 +54,7 @@ public abstract class ShopWantsCustomizable extends ShopWants implements IParent
         return element instanceof DynamicShopElement;
     }
 
-    public ShopElement getDefaultElement(ElementPosition position) {
+    public ShopElement getDefaultElement(TransactionType position) {
         StaticShopElement elem = StaticShopElement.fromStack(getDefaultStack());
         elem.fill = ShopElement.FillType.NONE;
         elem.itemPositions = Collections.singletonList(position.pos);
@@ -70,5 +70,12 @@ public abstract class ShopWantsCustomizable extends ShopWants implements IParent
         if (copyFromParent) {
             this.element = element.clone();
         }
+    }
+
+    @Override
+    public Map<String, Object> toMap(Map<String, Object> map) {
+        // TODO serialize element
+        map.put("display", null);
+        return map;
     }
 }

@@ -138,12 +138,7 @@ public class Shop implements InventoryProvider, ParseContext.NamedContext {
             inst.title = ChatColor.translateAlternateColorCodes('&', config.get("title", String.class));
             inst.updateInterval = config.find("update-interval", Integer.class).orElse(0);
 
-            if (yaml.isSet("condition")) {
-                Object obj = yaml.get("condition");
-                if (obj instanceof Map<?, ?>) {
-                    inst.condition = Condition.fromMap((Map<String, Object>) obj);
-                }
-            }
+            inst.condition = config.find("condition", Config.class).map(Condition::fromMap).orElse(null);
 
             inst.parentShop = yaml.getString("parent");
             if ("auto".equals(inst.parentShop)) {
@@ -204,7 +199,8 @@ public class Shop implements InventoryProvider, ParseContext.NamedContext {
             yaml.set("parent", parentShop);
         if (aliases != null && aliases.size() != 0)
             yaml.set("alias", String.join(",", aliases));
-        // TODO write conditions
+        if (condition != null)
+            yaml.set("condition", condition.toMap(new HashMap<>()));
         // TODO write elements
     }
 
