@@ -1,6 +1,6 @@
 plugins {
     id 'com.github.johnrengelman.shadow' version '4.0.4'
-    id 'java'
+    id 'java-library'
     id 'idea'
 }
 
@@ -12,6 +12,7 @@ targetCompatibility = JavaVersion.VERSION_1_8
 
 repositories {
     mavenCentral()
+    jcenter()
     maven {
         name = 'papermc'
         url = 'https://papermc.io/repo/repository/maven-public/'
@@ -31,9 +32,13 @@ repositories {
     mavenLocal()
 }
 
-configurations.all {
-    // Can't find where the Bukkit API was from lol
-    exclude module: "bukkit"
+//configurations.all {
+//    // Can't find where the Bukkit API was from lol
+//    exclude module: "bukkit"
+//}
+configurations {
+    // wow! gradle magic!
+    testCompile.extendsFrom compileOnly
 }
 
 compileJava {
@@ -44,28 +49,35 @@ compileJava {
 
 dependencies {
     // BungeeCord Chat
-    compileOnly 'net.md-5:bungeecord-chat:1.16-R0.4'
+    compileOnly 'net.md-5:bungeecord-chat:1.16-R0.3'
     // Paper API
     compileOnly 'com.destroystokyo.paper:paper-api:1.16.4-R0.1-SNAPSHOT'
-    // compileOnly 'com.destroystokyo.paper:paper:1.16.4-R0.1-SNAPSHOT'
+    compileOnly 'com.destroystokyo.paper:paper:1.16.4-R0.1-SNAPSHOT'
     // Mojang AuthLib
     compileOnly 'com.mojang:authlib:1.5.21'
     // LuckPerms
     compileOnly 'net.luckperms:api:5.0'
     // SmartInventory API
-    compile(group: 'fr.minuskube.inv', name: 'smart-invs', version: '1.2.7') {
+    api(group: 'fr.minuskube.inv', name: 'smart-invs', version: '1.2.7') {
         transitive = false
     }
     // Economy
-    compileOnly "com.github.MilkBowl:VaultAPI:1.7"
+    compileOnly("com.github.MilkBowl:VaultAPI:1.7") {
+        transitive = false
+    }
     // Commands
-    compile 'co.aikar:acf-paper:0.5.0-SNAPSHOT'
+    api 'co.aikar:acf-paper:0.5.0-SNAPSHOT'
     // PlayerPoints
     compileOnly files("libs/PlayerPoints.jar")
     // Placeholders
     compileOnly 'me.clip:placeholderapi:2.10.3'
     // Annotations
-    compile 'org.jetbrains:annotations:16.0.2'
+    api 'org.jetbrains:annotations:16.0.2'
+
+    // Tests
+    testImplementation "org.mockito:mockito-core:3.6.0"
+    testImplementation "org.junit.jupiter:junit-jupiter-api:5.7.0"
+    testRuntimeOnly "org.junit.jupiter:junit-jupiter-engine:5.7.0"
 }
 
 import org.apache.tools.ant.filters.ReplaceTokens
@@ -83,6 +95,10 @@ shadowJar {
     //relocate 'co.aikar.minecraft-timings', 'com.jacky8399.worstshop.acf.minecraft-timings'
     relocate 'co.aikar.util', 'com.jacky8399.worstshop.acf.util'
     relocate 'net.jodah.expiringmap', 'com.jacky8399.worstshop.acf.expiringmap'
+}
+
+test {
+    useJUnitPlatform()
 }
 
 build.dependsOn shadowJar

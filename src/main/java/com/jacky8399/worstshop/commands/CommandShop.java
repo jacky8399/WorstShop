@@ -7,7 +7,6 @@ import co.aikar.commands.PaperCommandManager;
 import co.aikar.commands.annotation.Optional;
 import co.aikar.commands.annotation.*;
 import co.aikar.commands.bukkit.contexts.OnlinePlayer;
-import com.google.common.collect.Lists;
 import com.jacky8399.worstshop.I18n;
 import com.jacky8399.worstshop.WorstShop;
 import com.jacky8399.worstshop.editor.EditorMainMenu;
@@ -26,12 +25,9 @@ import org.apache.commons.lang.exception.ExceptionUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.command.CommandSender;
+import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
-import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.Damageable;
-import org.bukkit.inventory.meta.ItemMeta;
-import org.bukkit.inventory.meta.SkullMeta;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
@@ -371,66 +367,32 @@ public class CommandShop extends BaseCommand {
     @CommandPermission("worstshop.inspectitem")
     public void showItem(Player player) {
         ItemStack stack = player.getInventory().getItemInMainHand();
-        List<String> serialized = Lists.newArrayList();
-        serialized.add("item: " + stack.getType().name().toLowerCase().replace('_', ' '));
-        serialized.add("count: " + stack.getAmount());
-        ItemMeta meta = stack.getItemMeta();
 
-        //<editor-fold defaultstate="collapsed" desc="Item meta serialization">
-        if (meta instanceof Damageable) {
-            Damageable damageable = (Damageable) meta;
-            if (damageable.hasDamage()) {
-                serialized.add("damage: " + damageable.getDamage());
-            }
-        }
-        if (meta.hasCustomModelData()) {
-            serialized.add("custom-model-data: " + meta.getCustomModelData());
-        }
-        if (meta.hasEnchants()) {
-            serialized.add("enchants:");
-            meta.getEnchants().forEach((ench, level)->serialized.add("  " + ench.getKey().getKey() + ": " + level));
-        }
-        if (meta.hasDisplayName()) {
-            serialized.add("name: '" + replaceColor(meta.getDisplayName()) + "'");
-        }
-        if (meta.hasLocalizedName()) {
-            serialized.add("loc-name: '" + meta.getLocalizedName() + "'");
-        }
-        if (meta.hasLore()) {
-            serialized.add("lore:");
-            meta.getLore().forEach(lore -> serialized.add("- '" + replaceColor(lore) + "'"));
-        }
-        if (meta.getItemFlags().size() != 0) {
-            serialized.add("hide-flags:");
-            meta.getItemFlags().stream().map(ItemFlag::name)
-                    .map(str -> str.substring("HIDE_".length())) // strip hide
-                    .map(str -> str.toLowerCase().replace('_', ' ')) // to lowercase
-                    .map(str -> "- " + str)
-                    .forEach(serialized::add);
-        }
-        if (meta instanceof SkullMeta) {
-            SkullMeta skullMeta = (SkullMeta) meta;
-            PaperHelper.GameProfile profile = PaperHelper.getSkullMetaProfile(skullMeta);
-            serialized.add("skull: " + profile.getUUID());
-        }
-        //</editor-fold>
+        // save to temp yaml file
+        YamlConfiguration temp = new YamlConfiguration();
+        StaticShopElement.serializeItemStack(stack, new HashMap<>()).forEach(temp::set);
+        String yamlString = temp.saveToString();
 
-        HoverEvent hoverEvent = new HoverEvent(HoverEvent.Action.SHOW_TEXT, TextComponent.fromLegacyText("Click to copy line", ChatColor.WHITE));
+        HoverEvent hoverEvent = new HoverEvent(HoverEvent.Action.SHOW_TEXT, new Text(TextComponent.fromLegacyText("Click to copy line", ChatColor.WHITE)));
         player.spigot().sendMessage(new ComponentBuilder("Item: ").color(ChatColor.YELLOW)
                 .append("[Copy all]").color(ChatColor.GREEN)
-                .event(hoverEvent).event(new ClickEvent(ClickEvent.Action.COPY_TO_CLIPBOARD, String.join("\n", serialized)))
+                .event(new HoverEvent(HoverEvent.Action.SHOW_TEXT,
+                        new Text(TextComponent.fromLegacyText("Click to copy all lines")))).event(new ClickEvent(ClickEvent.Action.COPY_TO_CLIPBOARD, yamlString))
                 .create());
-        for (String line : serialized) {
-            player.spigot().sendMessage(new ComponentBuilder(line).color(ChatColor.WHITE)
-                    .event(hoverEvent).event(new ClickEvent(ClickEvent.Action.COPY_TO_CLIPBOARD, line))
-                    .create());
+        for (String line : yamlString.split("\n")) {
+            if (line.contains("item-meta")) {
+                player.spigot().sendMessage(new ComponentBuilder(StringUtils.abbreviate(line, 25)).color(ChatColor.WHITE)
+                        .event(new HoverEvent(HoverEvent.Action.SHOW_TEXT,
+                                new Text(TextComponent.fromLegacyText("This line is abbreviated!", ChatColor.YELLOW)),
+                                new Text(TextComponent.fromLegacyText("Click to copy line", ChatColor.WHITE))))
+                        .event(new ClickEvent(ClickEvent.Action.COPY_TO_CLIPBOARD, line))
+                        .create());
+            } else {
+                player.spigot().sendMessage(new ComponentBuilder(line).color(ChatColor.WHITE)
+                        .event(hoverEvent).event(new ClickEvent(ClickEvent.Action.COPY_TO_CLIPBOARD, line))
+                        .create());
+            }
         }
-        player.sendMessage(ChatColor.YELLOW + "For more complex items (e.g. plugin items), use the following:");
-        String metaStr = "item-meta: " + StaticShopElement.serializeBase64ItemMeta(meta);
-        player.spigot().sendMessage(new ComponentBuilder(StringUtils.abbreviate(metaStr, 25)).color(ChatColor.WHITE)
-                .event(hoverEvent).event(new ClickEvent(ClickEvent.Action.COPY_TO_CLIPBOARD, metaStr))
-                .create()
-        );
     }
 
     @Subcommand("open")

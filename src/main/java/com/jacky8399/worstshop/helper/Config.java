@@ -131,7 +131,8 @@ public final class Config {
                 );
     }
 
-    public <T> Optional<List<? extends T>> findList(String key, Class<? extends T>... listTypes) throws ConfigException, IllegalArgumentException {
+    @SafeVarargs
+    public final <T> Optional<List<? extends T>> findList(String key, Class<? extends T>... listTypes) throws ConfigException, IllegalArgumentException {
         if (listTypes.length == 0)
             throw new IllegalArgumentException("listTypes cannot be empty");
         return find(key, List.class)

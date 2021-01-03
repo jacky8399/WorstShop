@@ -74,8 +74,8 @@ public abstract class ShopElement implements Cloneable, ParseContext.NamedContex
         }
 
         ConditionAnd instCondition = new ConditionAnd();
-        config.find("view-perm", String.class).map(ConditionPermission::fromPermString).ifPresent(instCondition::addCondition);
-        config.find("condition", Config.class).map(Condition::fromMap).ifPresent(instCondition::addCondition);
+        config.find("view-perm", String.class).map(ConditionPermission::fromPermString).ifPresent(instCondition::mergeCondition);
+        config.find("condition", Config.class).map(Condition::fromMap).ifPresent(instCondition::mergeCondition);
         element.condition = instCondition;
 
         // Action parsing
@@ -94,11 +94,24 @@ public abstract class ShopElement implements Cloneable, ParseContext.NamedContex
     }
 
     public void onClick(InventoryClickEvent e) {
-
+        for (Action action : actions) {
+            if (action.shouldTrigger(e)) {
+                action.onClick(e);
+            }
+        }
     }
 
     public ItemStack createStack(Player player) {
         return null;
+    }
+
+    public Map<String, Object> toMap(Map<String, Object> map) {
+        if (this instanceof DynamicShopElement)
+            map.put("dynamic", true);
+        // TODO write actions
+        // map.put("actions", actions.stream().map(action -> action.toMap(new HashMap<>())).collect(Collectors.toList()));
+        map.put("condition", condition.toMap(new HashMap<>()));
+        return map;
     }
 
     protected static List<SlotPos> parsePos(String input) {

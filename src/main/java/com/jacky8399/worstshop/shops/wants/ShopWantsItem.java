@@ -193,8 +193,11 @@ public class ShopWantsItem extends ShopWants implements IFlexibleShopWants {
     @Override
     public Map<String, Object> toMap(Map<String, Object> map) {
         map.put("preset", "item");
-        // TODO serialize ItemStack
-        map.put("matches", itemMatchers.stream().map(ITEM_MATCHERS.inverse()::get).collect(Collectors.toList()));
+        map.put("matches", itemMatchers.stream()
+                .map(ITEM_MATCHERS.inverse()::get)
+                .map(name -> name.toLowerCase(Locale.ROOT).replace('_', ' '))
+                .collect(Collectors.toList()));
+        StaticShopElement.serializeItemStack(stack, map);
         return map;
     }
 

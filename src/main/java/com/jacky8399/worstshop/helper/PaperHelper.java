@@ -81,7 +81,10 @@ public class PaperHelper {
         @Nullable
         public abstract String getName();
         public abstract CompletableFuture<Void> completeProfile();
+        // for serialization purposes
+        public boolean skinNotLoaded = true;
         public abstract void setSkin(String base64);
+        public abstract String getSkin();
         public abstract boolean hasSkin();
         public boolean equals(Object other) {
             if (!(other instanceof GameProfile)) {
@@ -159,6 +162,7 @@ public class PaperHelper {
                         Object server = Bukkit.getServer().getClass().getMethod("getHandle").invoke(Bukkit.getServer());
                         MinecraftSessionService sessionService = (MinecraftSessionService) server.getClass().getDeclaredField("minecraftSessionService").get(server);
                         obj = sessionService.fillProfileProperties(obj, true);
+                        skinNotLoaded = false;
                     } catch (Exception e) {
                         throw new Error(e);
                     }
@@ -171,6 +175,15 @@ public class PaperHelper {
         public void setSkin(String base64) {
             PropertyMap propertyMap = obj.getProperties();
             propertyMap.put("skin", new Property("skin", base64, null));
+        }
+
+        @Override
+        public String getSkin() {
+            try {
+                return obj.getProperties().get("skin").iterator().next().getValue();
+            } catch (Exception e) {
+                return null;
+            }
         }
 
         @Override
@@ -206,12 +219,24 @@ public class PaperHelper {
 
         @Override
         public CompletableFuture<Void> completeProfile() {
-            return CompletableFuture.runAsync(()->obj.complete());
+            return CompletableFuture.runAsync(()->{
+                obj.complete();
+                skinNotLoaded = false;
+            });
         }
 
         @Override
         public void setSkin(String base64) {
             obj.setProperty(new ProfileProperty("skin", base64, null));
+        }
+
+        @Override
+        public String getSkin() {
+            return obj.getProperties().stream()
+                    .filter(property -> property.getName().equals("skin"))
+                    .findFirst()
+                    .map(ProfileProperty::getValue)
+                    .orElse(null);
         }
 
         @Override
@@ -230,7 +255,7 @@ public class PaperHelper {
         } else {
             try {
                 // set profile to GameProfile (NMS class) using reflection
-                Field profileField = SkullMeta.class.getDeclaredField("profile");
+                Field profileField = meta.getClass().getDeclaredField("profile");
                 profileField.setAccessible(true);
                 profileField.set(meta, ((NmsGameProfile) profile).obj);
             } catch (Exception e) {
@@ -249,7 +274,7 @@ public class PaperHelper {
         } else {
             try {
                 // get profile using reflection
-                Field profileField = SkullMeta.class.getDeclaredField("profile");
+                Field profileField = meta.getClass().getDeclaredField("profile");
                 profileField.setAccessible(true);
                 Object thing = profileField.get(meta);
                 if (thing != null)

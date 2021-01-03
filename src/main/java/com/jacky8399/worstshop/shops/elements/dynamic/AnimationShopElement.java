@@ -7,14 +7,12 @@ import com.jacky8399.worstshop.shops.Shop;
 import com.jacky8399.worstshop.shops.actions.Action;
 import com.jacky8399.worstshop.shops.elements.DynamicShopElement;
 import com.jacky8399.worstshop.shops.elements.ShopElement;
-import com.jacky8399.worstshop.shops.elements.StaticShopElement;
 import fr.minuskube.inv.content.InventoryContents;
 import org.apache.commons.lang.Validate;
 import org.bukkit.entity.Player;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
+import java.util.stream.Collectors;
 
 public class AnimationShopElement extends DynamicShopElement {
     int intervalInTicks;
@@ -30,8 +28,12 @@ public class AnimationShopElement extends DynamicShopElement {
         Validate.notEmpty(elements, "Elements cannot be empty!");
     }
 
-    private int wrapIndexOffset(int orig, int idx) {
-        return (elements.size() + orig + idx) % elements.size();
+    @Override
+    public Map<String, Object> toMap(Map<String, Object> map) {
+        super.toMap(map);
+        map.put("interval", intervalInTicks);
+        map.put("elements", elements.stream().map(element -> element.toMap(new HashMap<>())).collect(Collectors.toList()));
+        return map;
     }
 
     @Override
@@ -43,7 +45,7 @@ public class AnimationShopElement extends DynamicShopElement {
         int ticksPassed = contents.property(self + "_ticksPassed", 0);
         if (++ticksPassed >= intervalInTicks) {
             // next element
-            animationSequence = wrapIndexOffset(animationSequence, 1);
+            animationSequence = (elements.size() + animationSequence + 1) % elements.size();
             contents.setProperty(self + "_animationSequence", animationSequence);
             contents.setProperty(self + "_ticksPassed", 0);
         } else {
@@ -53,13 +55,8 @@ public class AnimationShopElement extends DynamicShopElement {
         ShopElement current = elements.get(animationSequence).clone();
         // override the list as the cloned element still has the same ref to list of action
         List<Action> newAction = Lists.newArrayList(actions);
-        if (current instanceof StaticShopElement) {
-            newAction.addAll(((StaticShopElement) current).actions);
-            ((StaticShopElement) current).actions = newAction;
-        } else {
-            newAction.addAll(((DynamicShopElement) current).actions);
-            ((DynamicShopElement) current).actions = newAction;
-        }
+        newAction.addAll(current.actions);
+        current.actions = newAction;
         current.populateItems(player, contents, pagination);
     }
 }

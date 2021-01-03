@@ -21,6 +21,14 @@ public class ConditionAnd extends Condition {
         this.conditions.add(condition);
     }
 
+    public void mergeCondition(@NotNull Condition condition) {
+        if (condition instanceof ConditionAnd) {
+            conditions.addAll(((ConditionAnd) condition).conditions);
+        } else {
+            conditions.add(condition);
+        }
+    }
+
     public boolean removeCondition(@NotNull Condition condition) {
         return this.conditions.remove(condition);
     }

@@ -1,12 +1,12 @@
 package com.jacky8399.worstshop.shops.elements;
 
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
 import com.jacky8399.worstshop.I18n;
 import com.jacky8399.worstshop.WorstShop;
 import com.jacky8399.worstshop.helper.*;
 import com.jacky8399.worstshop.shops.ParseContext;
 import com.jacky8399.worstshop.shops.Shop;
-import com.jacky8399.worstshop.shops.actions.Action;
 import me.clip.placeholderapi.PlaceholderAPI;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
@@ -15,7 +15,6 @@ import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.configuration.serialization.ConfigurationSerialization;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;
-import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.Damageable;
@@ -29,7 +28,6 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 public class StaticShopElement extends ShopElement {
-
     public ItemStack rawStack;
 
     // for faster client load times
@@ -39,11 +37,8 @@ public class StaticShopElement extends ShopElement {
 
     public static StaticShopElement fromStack(ItemStack stack) {
         StaticShopElement inst = new StaticShopElement();
-
         inst.rawStack = stack;
-
         inst.actions = Collections.emptyList();
-
         return inst;
     }
 
@@ -94,6 +89,7 @@ public class StaticShopElement extends ShopElement {
         // Do not use Bukkit YamlConfiguration as it converts embedded Maps into MemorySections,
         // which SerializableItemMeta (also from Bukkit API) does NOT like
         Map<String, Object> map = (new Yaml()).load(decoded);
+        //noinspection ConstantConditions
         return (ItemMeta) ConfigurationSerialization.deserializeObject(map, ConfigurationSerialization.getClassByAlias("ItemMeta"));
     }
 
@@ -103,6 +99,13 @@ public class StaticShopElement extends ShopElement {
         temp.addDefaults(map);
         temp.options().copyDefaults(true);
         return new String(Base64.getEncoder().encode(temp.saveToString().getBytes(StandardCharsets.UTF_8)), StandardCharsets.UTF_8);
+    }
+
+    // values are from CraftMetaItem.SerializableMeta.classMap
+    public static final Set<String> SUPPORTED_ITEM_META_TYPES = ImmutableSet.<String>builder().add("UNSPECIFIC", "SKULL").build();
+    public static boolean isItemMetaSupported(ItemMeta meta) {
+        //noinspection SuspiciousMethodCalls
+        return SUPPORTED_ITEM_META_TYPES.contains(meta.serialize().get("meta-type"));
     }
 
     @SuppressWarnings({"unchecked"})
@@ -125,7 +128,8 @@ public class StaticShopElement extends ShopElement {
                 ItemMeta decoded = deserializeBase64ItemMeta(itemMetaStr);
                 ItemStack stack = is.build();
                 stack.setItemMeta(decoded);
-                return stack;
+                // allow basic properties to further influence this ItemStack
+                is = ItemBuilder.from(stack);
             }
 
             int damage = (int) yaml.getOrDefault("damage", 0);
@@ -171,7 +175,7 @@ public class StaticShopElement extends ShopElement {
                     is.lore(lore);
                 } else {
                     // probably a string
-                    is.lores(ConfigHelper.translateString(loreObj.toString()));
+                    is.lores(ConfigHelper.translateString(loreObj.toString()).split("\n"));
                 }
             }
             if (yaml.containsKey("hide-flags")) {
@@ -222,6 +226,83 @@ public class StaticShopElement extends ShopElement {
         }
     }
 
+    /**
+     * Serializes an ItemStack.
+     * <p>
+     * This method always attempts to use the simplest representation.
+     * @param stack
+     * @param map
+     * @return
+     */
+    @SuppressWarnings("ConstantConditions")
+    public static Map<String, Object> serializeItemStack(ItemStack stack, Map<String, Object> map) {
+        map.put("item", stack.getType().name().toLowerCase(Locale.ROOT).replace('_', ' '));
+        if (stack.getAmount() != 1)
+            map.put("count", stack.getAmount());
+        ItemMeta meta = stack.getItemMeta();
+        if (meta instanceof Damageable) {
+            Damageable damageable = (Damageable) meta;
+            if (damageable.hasDamage()) {
+                map.put("damage", damageable.getDamage());
+            }
+        }
+        if (meta.hasCustomModelData()) {
+            map.put("custom-model-data", meta.getCustomModelData());
+        }
+        if (meta.hasEnchants()) {
+            HashMap<String, Object> enchants = new HashMap<>();
+            meta.getEnchants().forEach((ench, level)->{
+                // strip namespace if minecraft:
+                String key = ench.getKey().getNamespace().equals(NamespacedKey.MINECRAFT) ? ench.getKey().getKey() : ench.getKey().getNamespace();
+                enchants.put(key, level);
+            });
+            map.put("enchants", enchants);
+        }
+        if (meta.hasDisplayName()) {
+            map.put("name", ConfigHelper.untranslateString(meta.getDisplayName()));
+        }
+        if (meta.hasLocalizedName()) {
+            map.put("loc-name", meta.getLocalizedName());
+        }
+        if (meta.hasLore()) {
+            map.put("lore", meta.getLore().stream().map(ConfigHelper::untranslateString).collect(Collectors.toList()));
+        }
+        if (meta.getItemFlags().size() != 0) {
+            map.put("hide-flags", meta.getItemFlags().stream().map(ItemFlag::name)
+                            .map(str -> str.substring("HIDE_".length())) // strip hide
+                            .map(str -> str.toLowerCase().replace('_', ' ')) // to lowercase
+                            .collect(Collectors.toList()));
+        }
+        if (meta instanceof SkullMeta) {
+            SkullMeta skullMeta = (SkullMeta) meta;
+            PaperHelper.GameProfile profile = PaperHelper.getSkullMetaProfile(skullMeta);
+            if (profile != null) {
+                if (profile.skinNotLoaded) {
+                    map.put("skin", profile.getSkin());
+                } else {
+                    map.put("skull", profile.getName());
+                }
+            }
+        }
+
+        // magic string
+        // will be included when meta is complex
+        // (contains custom data / is of an unsupported ItemMeta class / has attribute modifiers (WIP))
+        if (!isItemMetaSupported(meta) || !meta.getPersistentDataContainer().isEmpty() || meta.getAttributeModifiers() != null)
+            map.put("item-meta", serializeBase64ItemMeta(meta));
+        return map;
+    }
+
+    @Override
+    public Map<String, Object> toMap(Map<String, Object> map) {
+        super.toMap(map);
+        if (ItemUtils.isEmpty(rawStack))
+            map.put("preserve-space", true);
+        else
+            serializeItemStack(rawStack, map);
+        return map;
+    }
+
     public ItemStack createPlaceholderStack(Player player) {
         if (!condition.test(player)) {
             return null;
@@ -260,6 +341,7 @@ public class StaticShopElement extends ShopElement {
         stack = stack.clone();
         ItemMeta meta = stack.getItemMeta();
         if (meta.hasLore()) {
+            // noinspection ConstantConditions
             meta.setLore(meta.getLore().stream()
                     .map(lore -> I18n.doPlaceholders(player, lore))
                     .collect(Collectors.toList())
@@ -292,14 +374,5 @@ public class StaticShopElement extends ShopElement {
         }
         stack.setItemMeta(meta);
         return stack;
-    }
-
-    @Override
-    public void onClick(InventoryClickEvent e) {
-        for (Action action : actions) {
-            if (action.shouldTrigger(e)) {
-                action.onClick(e);
-            }
-        }
     }
 }

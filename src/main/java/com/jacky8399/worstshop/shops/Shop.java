@@ -1,6 +1,7 @@
 package com.jacky8399.worstshop.shops;
 
 import com.google.common.collect.Lists;
+import com.google.common.collect.Streams;
 import com.jacky8399.worstshop.WorstShop;
 import com.jacky8399.worstshop.editor.*;
 import com.jacky8399.worstshop.helper.*;
@@ -194,7 +195,11 @@ public class Shop implements InventoryProvider, ParseContext.NamedContext {
             yaml.set("alias", String.join(",", aliases));
         if (condition != null)
             yaml.set("condition", condition.toMap(new HashMap<>()));
-        // TODO write elements
+        //noinspection UnstableApiUsage
+        yaml.set("items", Streams.concat(staticElements.stream(), dynamicElements.stream())
+                .map(element -> element.toMap(new HashMap<>()))
+                .collect(Collectors.toList())
+        );
     }
 
     public void populateElements(List<ShopElement> elementList,

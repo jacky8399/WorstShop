@@ -10,6 +10,7 @@ import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 
 public abstract class ShopWantsCustomizable extends ShopWants implements IParentElementReader {
@@ -75,8 +76,10 @@ public abstract class ShopWantsCustomizable extends ShopWants implements IParent
 
     @Override
     public Map<String, Object> toMap(Map<String, Object> map) {
-        // TODO serialize element
-        map.put("display", null);
+        if (copyFromParent)
+            map.put("display", Collections.singletonMap("from", "parent"));
+        else
+            map.put("display", element.toMap(new HashMap<>()));
         return map;
     }
 }
