@@ -28,7 +28,7 @@ public abstract class Condition implements Predicate<Player> {
             } else {
                 try {
                     BinaryOperator<Condition> accumulator = logic.equals("or") ? Condition::or : Condition::and;
-                    List<Config> children = yaml.getList("conditions", Config.class);
+                    List<? extends Config> children = yaml.getList("conditions", Config.class);
                     Optional<Condition> result = children.stream().map(Condition::fromMap).reduce(accumulator);
                     return result.orElse(ConditionConstant.TRUE); // always true if no elements
                 } catch (ConfigException ex) {
