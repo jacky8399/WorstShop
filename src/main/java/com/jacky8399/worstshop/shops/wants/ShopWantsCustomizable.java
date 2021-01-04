@@ -2,7 +2,7 @@ package com.jacky8399.worstshop.shops.wants;
 
 import com.google.common.collect.Lists;
 import com.jacky8399.worstshop.helper.Config;
-import com.jacky8399.worstshop.shops.actions.IParentElementReader;
+import com.jacky8399.worstshop.shops.ParseContext;
 import com.jacky8399.worstshop.shops.elements.DynamicShopElement;
 import com.jacky8399.worstshop.shops.elements.ShopElement;
 import com.jacky8399.worstshop.shops.elements.StaticShopElement;
@@ -13,7 +13,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
-public abstract class ShopWantsCustomizable extends ShopWants implements IParentElementReader {
+public abstract class ShopWantsCustomizable extends ShopWants {
     private ShopElement element;
     boolean copyFromParent;
     public ShopWantsCustomizable(@Nullable ShopWantsCustomizable carryOver) {
@@ -28,9 +28,8 @@ public abstract class ShopWantsCustomizable extends ShopWants implements IParent
     public ShopElement fromYaml(Map<String, Object> yaml) {
         if (yaml.containsKey("from") && ((String)yaml.get("from")).equalsIgnoreCase("parent")) {
             // copy from parent
-            copyFromParent = true;
-            // defer to later
-            return null;
+            copyFromParent = true; // for serialization
+            return ParseContext.findLatest(ShopElement.class);
         } else {
             return ShopElement.fromConfig(new Config(yaml));
         }
@@ -42,9 +41,7 @@ public abstract class ShopWantsCustomizable extends ShopWants implements IParent
             // sanitize element
             element.fill = ShopElement.FillType.NONE;
             element.itemPositions = Collections.singletonList(position.pos);
-            if (element instanceof StaticShopElement) {
-                ((StaticShopElement) element).actions = Lists.newArrayList();
-            }
+            element.actions = Lists.newArrayList();
             return element;
         } else {
             return getDefaultElement(position);
@@ -65,13 +62,6 @@ public abstract class ShopWantsCustomizable extends ShopWants implements IParent
 
     public ItemStack getDefaultStack() {
         return null;
-    }
-
-    @Override
-    public void readElement(ShopElement element) {
-        if (copyFromParent) {
-            this.element = element.clone();
-        }
     }
 
     @Override

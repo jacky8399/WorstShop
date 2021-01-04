@@ -1,10 +1,9 @@
 package com.jacky8399.worstshop.shops.actions;
 
-import com.jacky8399.worstshop.WorstShop;
 import com.jacky8399.worstshop.helper.Config;
+import com.jacky8399.worstshop.helper.InventoryCloseListener;
 import com.jacky8399.worstshop.shops.Shop;
 import com.jacky8399.worstshop.shops.ShopManager;
-import fr.minuskube.inv.content.InventoryContents;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.InventoryClickEvent;
 
@@ -27,13 +26,11 @@ public class ActionOpen extends Action {
     @Override
     public void onClick(InventoryClickEvent e) {
         Player player = (Player) e.getWhoClicked();
-        InventoryContents contents = WorstShop.get().inventories.getContents(player).orElseThrow(()->new IllegalStateException(player.getName() + " is not in shop inventory?"));
         Shop shop = ShopManager.SHOPS.get(this.shop);
         if (shop == null)
             throw new IllegalArgumentException(this.shop + " does not exist");
         if (skipPermission || shop.canPlayerView(player)) {
-            contents.setProperty("skipOnce", true);
-            shop.getInventory(player).open(player);
+            InventoryCloseListener.openSafely(player, shop.getInventory(player));
         }
     }
 }

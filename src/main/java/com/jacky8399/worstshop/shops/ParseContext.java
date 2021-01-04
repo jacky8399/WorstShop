@@ -1,6 +1,7 @@
 package com.jacky8399.worstshop.shops;
 
 import com.google.common.collect.Maps;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.HashMap;
 import java.util.OptionalInt;
@@ -29,6 +30,7 @@ public final class ParseContext {
         return (T) last;
     }
 
+    @Nullable
     public static <T> T findFirst(Class<? extends T> clazz) {
         // handle superclasses
         OptionalInt clazzLocation = CLAZZ_LOCATION.entrySet().stream()
@@ -43,6 +45,7 @@ public final class ParseContext {
         return null;
     }
 
+    @Nullable
     public static <T> T findLatest(Class<? extends T> clazz) {
         // handle superclasses
         OptionalInt clazzLocation = CLAZZ_LOCATION.entrySet().stream()

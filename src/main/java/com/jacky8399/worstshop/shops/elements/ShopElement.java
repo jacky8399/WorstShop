@@ -7,7 +7,6 @@ import com.jacky8399.worstshop.helper.ItemUtils;
 import com.jacky8399.worstshop.shops.ParseContext;
 import com.jacky8399.worstshop.shops.Shop;
 import com.jacky8399.worstshop.shops.actions.Action;
-import com.jacky8399.worstshop.shops.actions.IParentElementReader;
 import com.jacky8399.worstshop.shops.conditions.Condition;
 import com.jacky8399.worstshop.shops.conditions.ConditionAnd;
 import com.jacky8399.worstshop.shops.conditions.ConditionPermission;
@@ -81,12 +80,9 @@ public abstract class ShopElement implements Cloneable, ParseContext.NamedContex
         // Action parsing
         element.actions = config.findList("actions", Config.class, String.class).orElseGet(ArrayList::new).stream()
                 .map(obj -> obj instanceof Config ?
-                        Action.fromYaml(((Config) obj).getPrimitiveMap()) :
+                        Action.fromConfig((Config) obj) :
                         Action.fromCommand(obj.toString()))
                 .filter(Objects::nonNull).collect(Collectors.toList());
-
-        element.actions.stream().filter(action -> action instanceof IParentElementReader)
-                .forEach(action -> ((IParentElementReader) action).readElement(element));
 
         // pop context here
         ParseContext.popContext();

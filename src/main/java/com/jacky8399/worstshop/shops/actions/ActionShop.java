@@ -4,6 +4,7 @@ import com.google.common.collect.Lists;
 import com.jacky8399.worstshop.I18n;
 import com.jacky8399.worstshop.WorstShop;
 import com.jacky8399.worstshop.helper.*;
+import com.jacky8399.worstshop.shops.ParseContext;
 import com.jacky8399.worstshop.shops.elements.ShopElement;
 import com.jacky8399.worstshop.shops.elements.StaticShopElement;
 import com.jacky8399.worstshop.shops.wants.IFlexibleShopWants;
@@ -26,24 +27,29 @@ import java.time.LocalDateTime;
 import java.util.*;
 import java.util.function.Consumer;
 
-public class ActionShop extends Action implements IParentElementReader {
+public class ActionShop extends Action {
     public ShopWants cost, reward;
     public PurchaseRecords.RecordTemplate purchaseLimitTemplate;
     public int purchaseLimit;
     public ActionShop(Config yaml) {
         super(yaml);
-        yaml.find("cost", String.class, Config.class, List.class)
+        this.cost = yaml.find("cost", String.class, Config.class, List.class)
                 .map(ShopWants::fromYamlNode)
-                .ifPresent(cost -> this.cost = cost);
+                .orElseGet(ActionShop::findParent);
 
-        yaml.find("reward", String.class, Config.class, List.class)
+        this.reward = yaml.find("reward", String.class, Config.class, List.class)
                 .map(ShopWants::fromYamlNode)
-                .ifPresent(reward -> this.reward = reward);
+                .orElseGet(ActionShop::findParent);
 
         yaml.find("purchase-limit", Config.class).ifPresent(purchaseLimitYaml -> {
             purchaseLimitTemplate = PurchaseRecords.RecordTemplate.fromConfig(purchaseLimitYaml);
             purchaseLimit = purchaseLimitYaml.get("limit", Integer.class);
         });
+    }
+
+    private static ShopWants findParent() {
+        StaticShopElement element = ParseContext.findLatest(StaticShopElement.class);
+        return element != null ? new ShopWantsItem(element.rawStack) : null;
     }
 
     public ActionShop(ShopWants cost, ShopWants reward, PurchaseRecords.RecordTemplate purchaseLimitTemplate, int purchaseLimit) {
@@ -180,26 +186,6 @@ public class ActionShop extends Action implements IParentElementReader {
         return "";
     }
 
-    @Override
-    public void readElement(ShopElement element) {
-        boolean isStatic = element instanceof StaticShopElement;
-        if (isStatic) {
-            StaticShopElement e = (StaticShopElement) element;
-            if (cost == null) {
-                cost = new ShopWantsItem(e.rawStack); // copy from parent
-            }
-            if (reward == null) {
-                reward = new ShopWantsItem(e.rawStack); // copy from parent
-            }
-        }
-        if (cost != null && cost instanceof IParentElementReader) {
-            ((IParentElementReader) cost).readElement(element);
-        }
-        if (reward != null && reward instanceof IParentElementReader) {
-            ((IParentElementReader) reward).readElement(element);
-        }
-    }
-
     public static class ShopGui implements InventoryProvider {
         private boolean firstClick = true;
         private ActionShop shop;
@@ -221,16 +207,16 @@ public class ActionShop extends Action implements IParentElementReader {
                     .listener(new InventoryCloseListener()).build();
         }
 
-        private static ClickableItem FILLER = ClickableItem
+        private static final ClickableItem FILLER = ClickableItem
                 .empty(ItemBuilder.of(Material.BLACK_STAINED_GLASS_PANE)
                         .amount(1).name(ChatColor.BLACK.toString()).build());
-        private static ClickableItem ARROW = ClickableItem
+        private static final ClickableItem ARROW = ClickableItem
                 .empty(ItemBuilder.of(Material.YELLOW_STAINED_GLASS_PANE)
                         .amount(1).name(ChatColor.BLACK.toString()).build());
-        private static ClickableItem GREEN = ClickableItem
+        private static final ClickableItem GREEN = ClickableItem
                 .empty(ItemBuilder.of(Material.LIME_STAINED_GLASS_PANE)
                         .amount(1).name(ChatColor.BLACK.toString()).build());
-        private static ClickableItem RED = ClickableItem
+        private static final ClickableItem RED = ClickableItem
                 .empty(ItemBuilder.of(Material.RED_STAINED_GLASS_PANE)
                         .amount(1).name(ChatColor.BLACK.toString()).build());
 

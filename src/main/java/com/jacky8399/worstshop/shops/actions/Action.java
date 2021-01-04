@@ -6,14 +6,9 @@ import org.bukkit.event.inventory.ClickType;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.ItemStack;
 
-import java.util.Collections;
-import java.util.EnumSet;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public abstract class Action {
-
-    //List<InventoryAction> triggerOnAction;
     EnumSet<ClickType> triggerOnClick = EnumSet.allOf(ClickType.class);
     public Action(Config yaml) {
         if (yaml == null) {
@@ -42,24 +37,24 @@ public abstract class Action {
     public static Action fromShorthand(String input) {
         String classSpecifier = input.substring(0, input.indexOf("!"))
                 .replace(' ', '_').toLowerCase();
-        String classArgument = input.substring(input.indexOf("!") + 1);
+        String classArgument = input.substring(input.indexOf("!") + 1).trim();
         switch (classSpecifier) {
             case "item_shop":
-                return new ActionItemShop(classArgument.trim());
+                return new ActionItemShop(classArgument);
             case "open":
-                return new ActionOpen(classArgument.trim());
+                return new ActionOpen(classArgument);
+            default:
+                throw new IllegalArgumentException(classSpecifier + " is not a valid shorthand!");
         }
-        return null;
     }
 
     public static ActionCustom fromCommand(String command) {
         return new ActionCustom(Collections.singletonList(command));
     }
 
-    public static Action fromYaml(Map<String, Object> map) {
-        String preset = (String) map.get("preset");
-        Config yaml = new Config(map);
-        if (preset != null) {
+    public static Action fromConfig(Config yaml) {
+        Optional<String> presetOptional = yaml.find("preset", String.class);
+        return presetOptional.map(preset -> {
             // ULTIMATE SHORTCUT
             if (preset.contains("!")) {
                 return fromShorthand(preset);
@@ -90,9 +85,7 @@ public abstract class Action {
                 default:
                     throw new IllegalArgumentException(preset + " is not a valid preset!");
             }
-        } else {
-            return new ActionCustom(yaml);
-        }
+        }).orElseGet(() ->new ActionCustom(yaml));
     }
 
 

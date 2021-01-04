@@ -15,8 +15,8 @@ public class ActionDelay extends Action {
         super(yaml);
         delay = yaml.get("delay", Number.class).intValue();
         actions = yaml.getList("actions", Config.class).stream()
-                .map(Config::getPrimitiveMap)
-                .map(Action::fromYaml).collect(Collectors.toList());
+                .map(Action::fromConfig)
+                .collect(Collectors.toList());
     }
 
     @Override

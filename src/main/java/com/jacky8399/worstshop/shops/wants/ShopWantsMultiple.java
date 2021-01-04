@@ -2,7 +2,6 @@ package com.jacky8399.worstshop.shops.wants;
 
 import com.google.common.collect.Lists;
 import com.jacky8399.worstshop.shops.Shop;
-import com.jacky8399.worstshop.shops.actions.IParentElementReader;
 import com.jacky8399.worstshop.shops.elements.ShopElement;
 import com.jacky8399.worstshop.shops.elements.StaticShopElement;
 import fr.minuskube.inv.content.InventoryContents;
@@ -15,7 +14,7 @@ import java.util.OptionalDouble;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-public class ShopWantsMultiple extends ShopWants implements IParentElementReader {
+public class ShopWantsMultiple extends ShopWants {
     public List<ShopWants> wants;
 
     int wrapIndexOffset(int orig, int idx) {
@@ -109,15 +108,5 @@ public class ShopWantsMultiple extends ShopWants implements IParentElementReader
     @Override
     public boolean isElementDynamic() {
         return wants.size() > 3;
-    }
-
-
-    @Override
-    public void readElement(ShopElement element) {
-        wants.forEach(want -> {
-            if (want instanceof IParentElementReader) {
-                ((IParentElementReader) want).readElement(element);
-            }
-        });
     }
 }
