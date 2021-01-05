@@ -10,7 +10,9 @@ import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public class ConfigHelper {
+public final class ConfigHelper {
+    private ConfigHelper() {}
+
     public static <T extends Enum<T>> T parseEnum(String input, Class<T> clazz) {
         return Enum.valueOf(clazz, input.toUpperCase().replace(' ', '_'));
     }
@@ -32,6 +34,11 @@ public class ConfigHelper {
         try {
             return ComponentSerializer.parse(input);
         } catch (com.google.gson.JsonSyntaxException ex) {
+            // check if it looks like old components first
+            if (!SPECIAL.matcher(input).matches()) {
+                // probably just a plain string
+                return TextComponent.fromLegacyText(translateString(input));
+            }
             Logger logger = WorstShop.get().logger;
             logger.warning("Custom syntax for chat components is deprecated. Please use proper JSON.");
             logger.warning("Parse context: " + ParseContext.getHierarchy());

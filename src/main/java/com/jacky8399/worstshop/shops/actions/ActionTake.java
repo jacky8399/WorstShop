@@ -6,6 +6,7 @@ import org.bukkit.event.Event;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.ItemStack;
 
+import java.util.Map;
 import java.util.Optional;
 
 public class ActionTake extends Action {
@@ -13,6 +14,14 @@ public class ActionTake extends Action {
     public ActionTake(Config yaml) {
         super(yaml);
         unlimited = yaml.find("unlimited", Boolean.class).orElse(false);
+    }
+
+    @Override
+    public Map<String, Object> toMap(Map<String, Object> map) {
+        map.put("preset", "take");
+        if (unlimited)
+            map.put("unlimited", true);
+        return map;
     }
 
     @Override

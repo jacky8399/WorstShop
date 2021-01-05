@@ -65,8 +65,18 @@ public class PurchaseRecords {
 
         public static RecordTemplate fromConfig(Config map) {
             return new RecordTemplate(
-                    map.get("id", String.class), DateTimeUtils.parseTimeStr(map.get("every", String.class)), map.find("max-records", Number.class).orElse(128).intValue()
+                    map.get("id", String.class),
+                    DateTimeUtils.parseTimeStr(map.get("every", String.class)),
+                    map.find("max-records", Number.class).orElse(128).intValue()
             );
+        }
+
+        public Map<String, Object> toMap(Map<String, Object> map) {
+            map.put("id", id);
+            map.put("every", DateTimeUtils.formatTime(retentionTime));
+            if (maxRecords != 128)
+                map.put("max-records", maxRecords);
+            return map;
         }
 
         public final String id;

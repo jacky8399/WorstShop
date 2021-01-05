@@ -8,11 +8,14 @@ import com.mojang.authlib.ProfileLookupCallback;
 import com.mojang.authlib.minecraft.MinecraftSessionService;
 import com.mojang.authlib.properties.Property;
 import com.mojang.authlib.properties.PropertyMap;
+import net.md_5.bungee.api.chat.BaseComponent;
+import net.md_5.bungee.chat.ComponentSerializer;
 import org.apache.commons.lang.StringUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.Server;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandMap;
+import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.SkullMeta;
@@ -25,10 +28,20 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
 /**
- * Wrappers of various convenient methods of PaperSpigot to ensure compatibility on Spigot
+ * Wrappers of various convenient methods of Paper to ensure compatibility on Spigot
  */
 public class PaperHelper {
     public static boolean isPaper;
+
+    public static void sendActionBar(Player player, BaseComponent[] components) {
+        if (isPaper) {
+            player.sendActionBar(components);
+        } else {
+            // lol
+            Bukkit.dispatchCommand(Bukkit.getConsoleSender(),
+                    "title actionbar " + player.getName() + " " + ComponentSerializer.toString(components));
+        }
+    }
 
     public static String getItemName(ItemStack stack) {
         if (isPaper) {

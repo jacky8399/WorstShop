@@ -85,7 +85,7 @@ public abstract class Action {
                 default:
                     throw new IllegalArgumentException(preset + " is not a valid preset!");
             }
-        }).orElseGet(() ->new ActionCustom(yaml));
+        }).orElseGet(() -> new ActionCustom(yaml));
     }
 
 
@@ -98,4 +98,6 @@ public abstract class Action {
     }
 
     public abstract void onClick(InventoryClickEvent e);
+
+    public abstract Map<String, Object> toMap(Map<String, Object> map);
 }

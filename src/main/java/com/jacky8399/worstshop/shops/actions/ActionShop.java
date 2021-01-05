@@ -47,6 +47,21 @@ public class ActionShop extends Action {
         });
     }
 
+    @Override
+    public Map<String, Object> toMap(Map<String, Object> map) {
+        map.put("preset", "shop");
+        // might be a string/list, so use special method
+        map.put("cost", cost.toSerializable(new HashMap<>()));
+        map.put("reward", reward.toSerializable(new HashMap<>()));
+        if (purchaseLimitTemplate != null) {
+            HashMap<String, Object> limitMap = new HashMap<>();
+            limitMap.put("limit", purchaseLimit);
+            purchaseLimitTemplate.toMap(limitMap);
+            map.put("purchase-limit", limitMap);
+        }
+        return map;
+    }
+
     private static ShopWants findParent() {
         StaticShopElement element = ParseContext.findLatest(StaticShopElement.class);
         return element != null ? new ShopWantsItem(element.rawStack) : null;

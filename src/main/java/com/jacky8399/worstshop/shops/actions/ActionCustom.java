@@ -1,24 +1,27 @@
 package com.jacky8399.worstshop.shops.actions;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.jacky8399.worstshop.I18n;
 import com.jacky8399.worstshop.WorstShop;
 import com.jacky8399.worstshop.helper.Config;
 import com.jacky8399.worstshop.helper.ConfigHelper;
+import com.jacky8399.worstshop.helper.PaperHelper;
 import com.jacky8399.worstshop.shops.ParseContext;
-import net.md_5.bungee.api.ChatMessageType;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.InventoryClickEvent;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.function.BiConsumer;
-import java.util.stream.Collectors;
+import java.util.logging.Logger;
 
 public class ActionCustom extends Action {
-    List<String> commands;
-    int delayInTicks = 0;
+    public final List<String> commands;
+    public final int delayInTicks;
 
     public ActionCustom(Config yaml) {
         super(yaml);
@@ -26,23 +29,29 @@ public class ActionCustom extends Action {
         if (optional.isPresent()) {
             Object comms = optional.get();
             if (comms instanceof List) {
-                commands = ((List<Object>) comms).stream().map(Object::toString).collect(Collectors.toList());
-            } else if (comms instanceof String) {
-                commands = Collections.singletonList((String) comms);
+                commands = ((List<?>) comms).stream().map(Object::toString).collect(ImmutableList.toImmutableList());
+            } else {
+                commands = Collections.singletonList(comms.toString());
             }
         } else {
             commands = Collections.emptyList();
         }
-        yaml.find("delay", Number.class).ifPresent(num -> {
-            WorstShop.get().logger.warning("'delay' on commands is deprecated. Please use 'preset: delay' instead");
-            WorstShop.get().logger.warning("Parse context: " + ParseContext.getHierarchy());
-            delayInTicks = num.intValue();
-        });
+        delayInTicks = yaml.find("delay", Number.class).map(num -> {
+            Logger logger = WorstShop.get().logger;
+            logger.warning("'delay' on commands is deprecated. Please use 'preset: delay' instead");
+            logger.warning("Offending action: " + ParseContext.getHierarchy());
+            logger.warning("Equivalent code:\n" +
+                    "  preset: delay\n" +
+                    "  actions:\n" +
+                    "  - commands: ...");
+            return num.intValue();
+        }).orElse(0);
     }
 
     public ActionCustom(List<String> commands) {
         super(null);
         this.commands = commands;
+        this.delayInTicks = 0;
     }
 
     @Override
@@ -55,11 +64,11 @@ public class ActionCustom extends Action {
 
     public static void parseCommand(Player player, String in) {
         // do replacement first
-        in = in.replace("{player}", player.getName());
+        in = I18n.doPlaceholders(player, in);
         int idx;
         if ((idx = in.indexOf(':')) > -1) {
             String prefix = in.substring(0, idx + 1);
-            BiConsumer<Player, String> func = PREDIFINED_FUNCTIONS.get(prefix);
+            BiConsumer<Player, String> func = PREDEFINED_FUNCTIONS.get(prefix);
             if (func != null) {
                 String cmd = in.substring(idx + 1);
                 func.accept(player, cmd);
@@ -70,12 +79,23 @@ public class ActionCustom extends Action {
         player.chat("/" + in.trim());
     }
 
-    public static final ImmutableMap<String, BiConsumer<Player, String>> PREDIFINED_FUNCTIONS = ImmutableMap.<String, BiConsumer<Player, String>>builder()
+    @Override
+    public Map<String, Object> toMap(Map<String, Object> map) {
+        // fix delay for users
+        if (delayInTicks > 0) {
+            new ActionDelay(delayInTicks, Collections.singletonList(new ActionCustom(commands))).toMap(map);
+        } else {
+            map.put("commands", commands);
+        }
+        return map;
+    }
+
+    public static final ImmutableMap<String, BiConsumer<Player, String>> PREDEFINED_FUNCTIONS = ImmutableMap.<String, BiConsumer<Player, String>>builder()
             .put("chat:", (p, in)->
                     p.spigot().sendMessage(ConfigHelper.parseComponentString(in.trim()))
             )
             .put("actionbar:", (p, in)->
-                    p.spigot().sendMessage(ChatMessageType.ACTION_BAR, ConfigHelper.parseComponentString(in.trim()))
+                    PaperHelper.sendActionBar(p, ConfigHelper.parseComponentString(in.trim()))
             )
             .put("op:", (p, in)->{
                 boolean oldOp = p.isOp();

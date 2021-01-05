@@ -104,8 +104,7 @@ public abstract class ShopElement implements Cloneable, ParseContext.NamedContex
     public Map<String, Object> toMap(Map<String, Object> map) {
         if (this instanceof DynamicShopElement)
             map.put("dynamic", true);
-        // TODO write actions
-        // map.put("actions", actions.stream().map(action -> action.toMap(new HashMap<>())).collect(Collectors.toList()));
+        map.put("actions", actions.stream().map(action -> action.toMap(new HashMap<>())).collect(Collectors.toList()));
         map.put("condition", condition.toMap(new HashMap<>()));
         return map;
     }

@@ -7,6 +7,8 @@ import fr.minuskube.inv.SmartInventory;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.InventoryClickEvent;
 
+import java.util.Map;
+
 public class ActionRefresh extends Action {
     public ActionRefresh(Config yaml) {
         super(yaml);
@@ -21,5 +23,11 @@ public class ActionRefresh extends Action {
                 ((Shop) inv.getProvider()).refreshItems(player, contents, true);
             }
         });
+    }
+
+    @Override
+    public Map<String, Object> toMap(Map<String, Object> map) {
+        map.put("preset", "refresh");
+        return map;
     }
 }

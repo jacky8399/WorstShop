@@ -21,20 +21,32 @@ import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 
-import java.util.HashSet;
-import java.util.List;
-import java.util.Optional;
+import javax.annotation.Nullable;
+import java.util.*;
+import java.util.stream.Collectors;
 
 public class ActionItemShop extends Action {
-
     boolean isStackDynamic = false;
     ShopElement parentElement;
     Shop parentShop;
-    boolean sellAll;
+    boolean canSellAll;
     public double buyPrice = 0, sellPrice = 0;
+    @Nullable
     public PurchaseRecords.RecordTemplate buyLimitTemplate, sellLimitTemplate;
     public int buyLimit, sellLimit;
-    public HashSet<ShopWantsItem.ItemMatcher> itemMatchers = Sets.newHashSet(ShopWantsItem.SIMILAR);
+    public HashSet<ShopWantsItem.ItemMatcher> itemMatchers = Sets.newHashSet(ShopWantsItem.ItemMatcher.SIMILAR);
+
+    // for serialization purposes
+    public transient boolean usedStringShorthand = false, usedPriceShortcut = false, usedLimitShortcut = false;
+
+    public ActionItemShop(Shop parentShop, ShopElement parentElement, double buyPrice, double sellPrice) {
+        super(null);
+        this.parentShop = parentShop;
+        this.parentElement = parentElement;
+        this.buyPrice = buyPrice;
+        this.sellPrice = sellPrice;
+        canSellAll = sellPrice != 0;
+    }
 
     // shortcut
     public ActionItemShop(String input) {
@@ -42,10 +54,10 @@ public class ActionItemShop extends Action {
         String[] prices = input.split("\\s|,");
         buyPrice = Double.parseDouble(prices[0].trim());
         sellPrice = Double.parseDouble(prices[1].trim());
+        canSellAll = sellPrice != 0;
+        usedStringShorthand = true;
 
-        sellAll = sellPrice != 0;
-
-        getParent();
+        readParent();
     }
 
     public ActionItemShop(Config yaml) {
@@ -59,13 +71,14 @@ public class ActionItemShop extends Action {
             String[] prices = price.split("\\s|,");
             buyPrice = Double.parseDouble(prices[0].trim());
             sellPrice = Double.parseDouble(prices[1].trim());
+            usedPriceShortcut = true;
         });
 
         // item matchers
         yaml.findList("matches" /* not a typo */, String.class).ifPresent(list -> {
             itemMatchers.clear();
-            list.stream().map(s -> s.toLowerCase().replace(' ', '_'))
-                    .map(ShopWantsItem.ITEM_MATCHERS::get).forEach(itemMatchers::add);
+            list.stream().map(s -> s.toLowerCase(Locale.ROOT).replace(' ', '_'))
+                    .map(ShopWantsItem.ItemMatcher.ITEM_MATCHERS::get).forEach(itemMatchers::add);
         });
 
         // purchase limits
@@ -74,6 +87,7 @@ public class ActionItemShop extends Action {
             if (both.isPresent()) {
                 buyLimitTemplate = sellLimitTemplate = PurchaseRecords.RecordTemplate.fromConfig(both.get());
                 buyLimit = sellLimit = both.get().get("limit", Number.class).intValue();
+                usedLimitShortcut = true;
             } else {
                 purchaseLimitsYaml.find("buy", Config.class).ifPresent(purchaseLimitYaml -> {
                     buyLimitTemplate = PurchaseRecords.RecordTemplate.fromConfig(purchaseLimitYaml);
@@ -86,18 +100,66 @@ public class ActionItemShop extends Action {
             }
         });
 
-        sellAll = yaml.find("allow-sell-all", Boolean.class).orElse(true);
+        canSellAll = sellPrice != 0 && yaml.find("allow-sell-all", Boolean.class).orElse(true);
 
-        getParent();
+        readParent();
     }
 
-    private void getParent() {
+    @Override
+    public Map<String, Object> toMap(Map<String, Object> map) {
+        map.put("preset", "item shop");
+        if (usedPriceShortcut) {
+            map.put("prices", buyPrice + " " + sellPrice);
+        } else {
+            if (buyPrice > 0)
+                map.put("buy-price", buyPrice);
+            if (sellPrice > 0)
+                map.put("sell-price", sellPrice);
+        }
+        // item matcher isn't default
+        if (!(itemMatchers.size() == 1 && itemMatchers.contains(ShopWantsItem.ItemMatcher.SIMILAR)))
+            map.put("matches", itemMatchers.stream()
+                    .map(matcher -> matcher.name.toLowerCase(Locale.ROOT).replace('_', ' '))
+                    .collect(Collectors.toList()));
+        HashMap<String, Object> limitMap = new HashMap<>();
+        if (usedLimitShortcut) {
+            HashMap<String, Object> innerMap = new HashMap<>();
+            innerMap.put("limit", buyLimit);
+            buyLimitTemplate.toMap(innerMap);
+            limitMap.put("both", innerMap);
+        } else {
+            if (buyLimitTemplate != null) {
+                HashMap<String, Object> innerMap = new HashMap<>();
+                innerMap.put("limit", buyLimit);
+                buyLimitTemplate.toMap(innerMap);
+                limitMap.put("buy", innerMap);
+            }
+            if (sellLimitTemplate != null) {
+                HashMap<String, Object> innerMap = new HashMap<>();
+                innerMap.put("limit", sellLimit);
+                sellLimitTemplate.toMap(innerMap);
+                limitMap.put("sell", innerMap);
+            }
+        }
+        // write only if at least one is present
+        if (buyLimitTemplate != null || sellLimitTemplate != null)
+            map.put("purchase-limits", limitMap);
+
+        if (!canSellAll && sellPrice != 0)
+            map.put("allow-sell-all", false);
+        return map;
+    }
+
+    private void readParent() {
         parentShop = ParseContext.findLatest(Shop.class);
-        parentElement = ParseContext.findLatest(ShopElement.class).clone();
+        ShopElement element = ParseContext.findLatest(ShopElement.class);
+        if (parentShop == null || element == null)
+            throw new IllegalStateException("Couldn't find parent shop / element! Not in parse context?");
+        parentElement = element.clone();
         isStackDynamic = parentElement instanceof DynamicShopElement;
 
         if (parentElement instanceof StaticShopElement) {
-            getItemShops(((StaticShopElement) parentElement).rawStack.getType()).add(new ItemShop(this, ((StaticShopElement) parentElement).condition));
+            getItemShops(((StaticShopElement) parentElement).rawStack.getType()).add(new ItemShop(this, parentElement.condition));
         }
     }
 
@@ -213,6 +275,7 @@ public class ActionItemShop extends Action {
         shop.cost = rerouteWantToInventory((ShopWantsItem) shop.cost, inventory);
         shop.doTransaction(player, count);
     }
+
     public void doSellTransaction(Player player, ItemStack stack, double count) {
         if (count == 0) {
             player.sendMessage(ActionShop.formatNothingMessage());
@@ -240,31 +303,29 @@ public class ActionItemShop extends Action {
                     sell.onClick(e);
                 break;
             case MIDDLE:
-                if (sellAll && sell != null)
+                if (canSellAll && sell != null)
                     sell.sellAll(player);
                 break;
         }
     }
 
+    I18n.Translatable BUY_PRICE_MESSAGE = I18n.createTranslatable("worstshop.messages.shops.buy-for"),
+            SELL_PRICE_MESSAGE = I18n.createTranslatable("worstshop.messages.shops.sell-for"),
+            SELL_ALL_MESSAGE = I18n.createTranslatable("worstshop.messages.shops.sell-all");
     @Override
     public void influenceItem(Player player, ItemStack readonlyStack, ItemStack stack) {
         double discount = getDiscount(player);
         ItemBuilder modifier = ItemBuilder.from(stack);
         if (buyPrice > 0) {
-            modifier.addLores(
-                    I18n.translate("worstshop.messages.shops.buy-for", formatPriceDiscount(buyPrice, discount))
-            );
+            modifier.addLores(BUY_PRICE_MESSAGE.apply(formatPriceDiscount(buyPrice, discount)));
         }
         if (sellPrice > 0) {
-            modifier.addLores(
-                    I18n.translate("worstshop.messages.shops.sell-for", formatPriceDiscount(sellPrice, discount))
-            );
+            modifier.addLores(SELL_PRICE_MESSAGE.apply(formatPriceDiscount(sellPrice, discount)));
         }
-        if (sellAll && sellPrice > 0) {
-            modifier.addLores(
-                    I18n.translate("worstshop.messages.shops.sell-all", formatPriceDiscount(sellPrice, discount))
-            );
+        if (canSellAll && sellPrice > 0) {
+            modifier.addLores(SELL_ALL_MESSAGE.apply(formatPriceDiscount(sellPrice, discount)));
         }
+        modifier.build(); // future-proof
     }
 
     public String formatPriceDiscount(double price, double discount) {

@@ -7,13 +7,18 @@ import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.InventoryClickEvent;
 
+import java.util.Map;
+
 public class ActionClose extends Action {
-
-    boolean noParent;
-
+    public final boolean noParent;
     public ActionClose(Config yaml) {
         super(yaml);
         noParent = yaml.get("preset", String.class).equalsIgnoreCase("close");
+    }
+
+    public ActionClose(boolean noParent) {
+        super(null);
+        this.noParent = noParent;
     }
 
     private static final InventoryManager MANAGER = WorstShop.get().inventories;
@@ -27,5 +32,12 @@ public class ActionClose extends Action {
     @Override
     public void onClick(InventoryClickEvent e) {
         closeInv((Player) e.getWhoClicked(), noParent);
+    }
+
+
+    @Override
+    public Map<String, Object> toMap(Map<String, Object> map) {
+        map.put("preset", noParent ? "close" : "back");
+        return map;
     }
 }
