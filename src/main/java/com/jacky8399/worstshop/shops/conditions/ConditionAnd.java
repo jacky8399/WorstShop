@@ -33,6 +33,10 @@ public class ConditionAnd extends Condition {
         return this.conditions.remove(condition);
     }
 
+    public boolean isEmpty() {
+        return conditions.size() == 0;
+    }
+
     @NotNull
     @Override
     public Condition and(@NotNull Condition condition) {

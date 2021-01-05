@@ -1,7 +1,6 @@
 package com.jacky8399.worstshop.shops.elements;
 
 import com.google.common.collect.Lists;
-import com.jacky8399.worstshop.WorstShop;
 import com.jacky8399.worstshop.helper.Config;
 import com.jacky8399.worstshop.helper.ItemUtils;
 import com.jacky8399.worstshop.shops.ParseContext;
@@ -62,15 +61,10 @@ public abstract class ShopElement implements Cloneable, ParseContext.NamedContex
             } else {
                 element.fill = (FillType) fill;
             }
-        } else {
-            Optional<String> posOptional = config.find("pos", String.class);
-            if (posOptional.isPresent()) {
-                element.itemPositions = parsePos(posOptional.get());
-            } else {
-                WorstShop.get().logger.warning("Invisible shop element detected! Please specify fill/pos of the element!");
-                WorstShop.get().logger.warning("Offending element: " + ParseContext.getHierarchy());
-            }
         }
+
+        Optional<String> posOptional = config.find("pos", String.class);
+        posOptional.ifPresent(s -> element.itemPositions = parsePos(s));
 
         ConditionAnd instCondition = new ConditionAnd();
         config.find("view-perm", String.class).map(ConditionPermission::fromPermString).ifPresent(instCondition::mergeCondition);
@@ -104,8 +98,10 @@ public abstract class ShopElement implements Cloneable, ParseContext.NamedContex
     public Map<String, Object> toMap(Map<String, Object> map) {
         if (this instanceof DynamicShopElement)
             map.put("dynamic", true);
-        map.put("actions", actions.stream().map(action -> action.toMap(new HashMap<>())).collect(Collectors.toList()));
-        map.put("condition", condition.toMap(new HashMap<>()));
+        if (actions.size() != 0)
+            map.put("actions", actions.stream().map(action -> action.toMap(new HashMap<>())).collect(Collectors.toList()));
+        if (!(condition instanceof ConditionAnd && ((ConditionAnd) condition).isEmpty()))
+            map.put("condition", condition.toMap(new HashMap<>()));
         return map;
     }
 

@@ -14,6 +14,7 @@ import com.jacky8399.worstshop.helper.*;
 import com.jacky8399.worstshop.shops.Shop;
 import com.jacky8399.worstshop.shops.ShopDiscount;
 import com.jacky8399.worstshop.shops.ShopManager;
+import com.jacky8399.worstshop.shops.ShopReference;
 import com.jacky8399.worstshop.shops.conditions.Condition;
 import com.jacky8399.worstshop.shops.conditions.ConditionPermission;
 import com.jacky8399.worstshop.shops.elements.StaticShopElement;
@@ -140,7 +141,7 @@ public class CommandShop extends BaseCommand {
             detailBuilder.append("\nApplicable to:").color(ChatColor.GREEN);
             boolean hasCriteria = false;
             if (discount.shop != null) {
-                detailBuilder.append("\nShop: ").append(discount.shop);
+                detailBuilder.append("\nShop: ").append(discount.shop.id);
                 hasCriteria = true;
             }
             if (discount.material != null) {
@@ -180,7 +181,7 @@ public class CommandShop extends BaseCommand {
                 String value = strArgs[1];
                 switch (specifier) {
                     case "shop": {
-                        entry.shop = value;
+                        entry.shop = ShopReference.of(value);
                     }
                     break;
                     case "player": {
@@ -267,7 +268,7 @@ public class CommandShop extends BaseCommand {
                                     .append(DateTimeUtils.formatTime(timeElapsed) + " ago")
                                     .color(ChatColor.YELLOW)
                                     .event(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new Text(DateTimeUtils.formatTime(entry.getValue().date))))
-                                    .append(" - " + entry.getKey())
+                                    .append(" - " + entry.getKey() + " (" + entry.getValue().exception.getMessage() + ")")
                                     .event(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new Text(new ComponentBuilder("Click to inspect!").color(ChatColor.GREEN).create())))
                                     .event(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/worstshop log error show " + entry.getKey()))
                                     .create()
@@ -276,25 +277,36 @@ public class CommandShop extends BaseCommand {
             }
 
             @Subcommand("show")
-            public void showError(CommandSender sender, @Single String hash) {
+            public void showError(CommandSender sender, String hash, @Optional String full) {
+                boolean showFull = "full".equalsIgnoreCase(full);
                 Exceptions.ExceptionLog log = Exceptions.exceptions.get(hash);
                 if (log == null) {
                     throw new InvalidCommandArgument(translate("worstshop.errors.commands.no-error-log", hash), false);
                 }
                 LocalDateTime now = LocalDateTime.now();
                 Duration timeElapsed = Duration.between(log.date, now);
-                String stackTrace = ExceptionUtils.getStackTrace(log.exception);
+                String stackTrace = ExceptionUtils.getStackTrace(log.exception).replace("\t", "    ").replace("\r\n","\n");
                 // make fancy hover component if invoked by player
-                BaseComponent[] stackTraceComponent = sender instanceof Player ?
-                        new ComponentBuilder("  [Hover to see stack trace]")
+                BaseComponent[] showStackTraceComponent = sender instanceof Player ?
+                        new ComponentBuilder("  [Click to see full stack trace]")
                                 .color(ChatColor.GREEN)
-                                .event(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new Text(stackTrace))).create() :
+                                .event(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/worstshop log error show " + hash + " full")).create() :
+                        new ComponentBuilder("  To show stack trace, run ").color(ChatColor.GREEN)
+                                .append("/worstshop log error show " + hash + " full").color(ChatColor.YELLOW).create();
+                BaseComponent[] stackTraceComponent = showFull ?
+                        showStackTraceComponent :
                         new ComponentBuilder("  Stack trace:\n").color(ChatColor.GREEN)
                                 .append(stackTrace).color(ChatColor.DARK_RED).create();
+                // show cause of throwable
+                BaseComponent[] causeComponent = log.exception.getCause() != null ?
+                        new ComponentBuilder("  Caused by: ").color(ChatColor.YELLOW)
+                                .append(log.exception.getCause().toString()).color(ChatColor.GREEN).create() :
+                        new BaseComponent[]{new TextComponent("")};
                 BaseComponent[] components = new ComponentBuilder("")
                         .append("Error " + log.exception.getClass().getSimpleName()).color(ChatColor.RED).append("\n")
                         .append("  Message: ").color(ChatColor.YELLOW)
                         .append(log.exception.getMessage()).color(ChatColor.GREEN).append("\n")
+                        .append(causeComponent)
                         .append("  At: ").color(ChatColor.YELLOW)
                         .append(DateTimeUtils.formatTime(timeElapsed) + " ago")
                         .color(ChatColor.GREEN)
@@ -389,6 +401,18 @@ public class CommandShop extends BaseCommand {
                         .create());
             }
         }
+    }
+
+    @Private
+    @Subcommand("debugshop")
+    @CommandPermission("worstshop.debug")
+    @CommandCompletion("*")
+    public void debugShop(CommandSender sender, Shop shop) {
+        YamlConfiguration temp = new YamlConfiguration();
+        shop.toYaml(temp);
+        String str = temp.saveToString();
+        for (String line : str.split("\n"))
+            sender.sendMessage(line);
     }
 
     @Subcommand("open")

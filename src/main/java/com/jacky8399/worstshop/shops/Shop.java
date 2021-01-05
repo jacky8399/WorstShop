@@ -3,7 +3,10 @@ package com.jacky8399.worstshop.shops;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Streams;
 import com.jacky8399.worstshop.WorstShop;
-import com.jacky8399.worstshop.editor.*;
+import com.jacky8399.worstshop.editor.Adaptor;
+import com.jacky8399.worstshop.editor.DefaultAdaptors;
+import com.jacky8399.worstshop.editor.Editable;
+import com.jacky8399.worstshop.editor.Property;
 import com.jacky8399.worstshop.helper.*;
 import com.jacky8399.worstshop.shops.conditions.Condition;
 import com.jacky8399.worstshop.shops.conditions.ConditionConstant;
@@ -29,7 +32,6 @@ import org.bukkit.permissions.Permissible;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
-import java.util.concurrent.CompletableFuture;
 import java.util.function.BiFunction;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
@@ -63,7 +65,7 @@ public class Shop implements InventoryProvider, ParseContext.NamedContext {
 
     // parents
     @Property
-    public String parentShop = null;
+    public ShopReference parentShop = ShopReference.EMPTY;
     public boolean autoSetParentShop = false;
 
     // aliases
@@ -136,10 +138,10 @@ public class Shop implements InventoryProvider, ParseContext.NamedContext {
             inst.title = ConfigHelper.translateString(config.get("title", String.class));
             inst.updateInterval = config.find("update-interval", Integer.class).orElse(0);
 
-            inst.condition = config.find("condition", Config.class).map(Condition::fromMap).orElse(null);
+            inst.condition = config.find("condition", Config.class).map(Condition::fromMap).orElse(ConditionConstant.TRUE);
 
-            inst.parentShop = config.find("parent", String.class).orElse(null);
-            if ("auto".equals(inst.parentShop)) {
+            inst.parentShop = config.find("parent", String.class).map(ShopReference::of).orElse(ShopReference.EMPTY);
+            if ("auto".equals(inst.parentShop.id)) {
                 inst.autoSetParentShop = true;
             }
 
@@ -189,11 +191,11 @@ public class Shop implements InventoryProvider, ParseContext.NamedContext {
         yaml.set("title", title.replace(ChatColor.COLOR_CHAR, '&'));
         if (updateInterval != 0)
             yaml.set("update-interval", updateInterval);
-        if (parentShop != null)
-            yaml.set("parent", parentShop);
+        if (parentShop != ShopReference.EMPTY)
+            yaml.set("parent", parentShop.id);
         if (aliases != null && aliases.size() != 0)
             yaml.set("alias", String.join(",", aliases));
-        if (condition != null)
+        if (condition != ConditionConstant.TRUE)
             yaml.set("condition", condition.toMap(new HashMap<>()));
         //noinspection UnstableApiUsage
         yaml.set("items", Streams.concat(staticElements.stream(), dynamicElements.stream())
@@ -213,7 +215,8 @@ public class Shop implements InventoryProvider, ParseContext.NamedContext {
             try {
                 element.populateItems(player, contents, helper);
             } catch (Exception ex) {
-                ShopElement fakeElement = StaticShopElement.fromStack(ItemUtils.getErrorItem(ex));
+                RuntimeException wrapped = new RuntimeException("Error while populating element [" + index + "] in " + id, ex);
+                ShopElement fakeElement = StaticShopElement.fromStack(ItemUtils.getErrorItem(wrapped));
                 // copy renderer
                 fakeElement.fill = element.fill;
                 fakeElement.itemPositions = new ArrayList<>(element.itemPositions);
@@ -326,7 +329,7 @@ public class Shop implements InventoryProvider, ParseContext.NamedContext {
         // find parent
         SmartInventory openNextTick = of.get().getParent()
                 .orElseGet(()->
-                        Optional.ofNullable(ShopManager.SHOPS.get(parentShop))
+                        parentShop.find()
                                 .map(shop -> shop.getInventory(p, true))
                                 .orElse(null)
                 );
@@ -336,16 +339,15 @@ public class Shop implements InventoryProvider, ParseContext.NamedContext {
         }
     }
 
-    public class Adaptor implements EditableAdaptor<Shop>, InventoryProvider {
+    public class Adaptor extends DefaultAdaptors.EditableObjectAdaptor<Shop> {
         private static final String I18N_KEY = "worstshop.messages.editor.property.shop.";
+        public Adaptor() {
+            super(Shop.class);
+        }
+
         @Override
-        public CompletableFuture<Shop> onInteract(Player player, Shop val, @Nullable String fieldName) {
-            SmartInventory inventory = WorstShop.buildGui("worstshop:editor_shop_adaptor")
-                    .parent(WorstShop.get().inventories.getInventory(player).orElse(null))
-                    .provider(this).title(translate(I18N_KEY + "title", id)).size(6, 9)
-                    .build();
-            InventoryCloseListener.openSafely(player, inventory);
-            return CompletableFuture.completedFuture(Shop.this);
+        protected String getTitle() {
+            return translate(I18N_KEY + "title", id) + " " + ChatColor.DARK_RED + ChatColor.BOLD + "BETA";
         }
 
         @Override
@@ -355,8 +357,6 @@ public class Shop implements InventoryProvider, ParseContext.NamedContext {
 
         @Override
         public void init(Player player, InventoryContents contents) {
-            // header
-            contents.fillRow(0, ClickableItem.empty(ItemBuilder.of(Material.BLACK_STAINED_GLASS_PANE).name(ChatColor.BLACK.toString()).build()));
             // id
             contents.set(0, 4, ClickableItem.of(
                     ItemBuilder.of(Material.NAME_TAG).name(ChatColor.YELLOW + "id: " + ChatColor.GREEN + id)
@@ -372,8 +372,6 @@ public class Shop implements InventoryProvider, ParseContext.NamedContext {
         }
 
         @Override
-        public void update(Player player, InventoryContents contents) {
-
-        }
+        public void update(Player player, InventoryContents contents, boolean isRefreshingProperties) {}
     }
 }

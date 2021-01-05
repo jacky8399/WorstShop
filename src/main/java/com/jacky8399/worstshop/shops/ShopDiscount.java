@@ -25,7 +25,7 @@ public class ShopDiscount {
         @Nullable
         public final LocalDateTime expiry;
         public final double percentage;
-        public String shop;
+        public ShopReference shop;
         public Material material;
         public UUID player;
         public String permission;
@@ -35,7 +35,7 @@ public class ShopDiscount {
         }
 
         public boolean isApplicableTo(Shop shop, Material material, Player player) {
-            if (this.shop != null && !this.shop.equals(shop.id)) {
+            if (this.shop != null && !this.shop.refersTo(shop)) {
                 return false;
             }
             if (this.material != null && this.material != material) {
@@ -69,7 +69,7 @@ public class ShopDiscount {
             map.put("expiry", expiry != null ? expiry.toEpochSecond(ZoneOffset.UTC) : -1); // doesn't matter, will be read as UTC too
             map.put("percentage", percentage);
             if (shop != null)
-                map.put("shop", shop);
+                map.put("shop", shop.id);
             if (material != null)
                 map.put("material", material.name());
             if (player != null)
@@ -85,7 +85,7 @@ public class ShopDiscount {
             double percentage = ((Number) map.get("percentage")).doubleValue();
             Entry entry = new Entry(name, expiry != -1 ? LocalDateTime.ofEpochSecond(expiry, 0, ZoneOffset.UTC) : null, percentage);
             if (map.containsKey("shop"))
-                entry.shop = (String) map.get("shop");
+                entry.shop = ShopReference.of((String) map.get("shop"));
             if (map.containsKey("material"))
                 entry.material = Material.getMaterial((String) map.get("material"));
             if (map.containsKey("player"))
@@ -96,7 +96,7 @@ public class ShopDiscount {
         }
     }
 
-    public static final HashMap<String, Set<Entry>> BY_SHOP = Maps.newHashMap();
+    public static final HashMap<ShopReference, Set<Entry>> BY_SHOP = Maps.newHashMap();
     public static final EnumMap<Material, Set<Entry>> BY_MATERIAL = Maps.newEnumMap(Material.class);
     public static final HashMap<UUID, Set<Entry>> BY_PLAYER = Maps.newHashMap();
     public static final Set<Entry> NO_CRITERIA = Sets.newHashSet();
@@ -128,8 +128,9 @@ public class ShopDiscount {
         };
         // combine both
         Predicate<Entry> check = applicableCheck.and(staleCheck);
-        if (BY_SHOP.containsKey(shop.id)) {
-            BY_SHOP.get(shop.id).stream().filter(check).forEach(all::add);
+        ShopReference shopRef = ShopReference.of(shop);
+        if (BY_SHOP.containsKey(shopRef)) {
+            BY_SHOP.get(shopRef).stream().filter(check).forEach(all::add);
         }
         if (BY_MATERIAL.containsKey(material)) {
             BY_MATERIAL.get(material).stream().filter(check).forEach(all::add);

@@ -15,7 +15,6 @@ import java.io.IOException;
 import java.util.*;
 
 public class ShopManager {
-
     public static final HashMap<String, Shop> SHOPS = Maps.newHashMap();
 
     public static final EnumMap<Material, List<ItemShop>> ITEM_SHOPS = Maps.newEnumMap(Material.class);
@@ -42,15 +41,41 @@ public class ShopManager {
     public static void renameShop(Shop shop, String newId) {
         String oldId = shop.id;
         File shops = new File(WorstShop.get().getDataFolder(), "shops");
-        File oldFile = new File(shops, oldId);
-        File newFile = new File(shops, newId);
-        newFile.mkdirs();
+        File oldFile;
+        // figure out extension name
+        if (new File(shops, oldId + ".yml").exists()) {
+            oldFile = new File(shops, oldId + ".yml");
+        } else {
+            oldFile = new File(shops, oldId + ".yaml");
+        }
+        File newFile = new File(shops, newId + ".yml");
+        // ensure file is created??
+        int slash = newId.lastIndexOf('/');
+        if (slash != -1) {
+            File newFileDirectory = new File(shops, newId.substring(0, slash));
+            newFileDirectory.mkdirs();
+        }
         try {
             // noinspection UnstableApiUsage
             Files.copy(oldFile, newFile);
             oldFile.delete();
-            shop.id = newId;
+
+            renameAllOccurrences(shop, newId);
         } catch (IOException ignored) {}
+    }
+
+    private static void renameAllOccurrences(Shop shop, String newName) {
+        String oldId = shop.id;
+        // rename all ShopReferences
+        // how convenient
+        ShopReference reference = ShopReference.REFERENCES.remove(oldId);
+        if (reference != null) {
+            reference.id = newName;
+            ShopReference.REFERENCES.put(newName, reference);
+        }
+        shop.id = newName;
+        SHOPS.remove(oldId);
+        SHOPS.put(newName, shop);
     }
 
     public static void saveDiscounts() {

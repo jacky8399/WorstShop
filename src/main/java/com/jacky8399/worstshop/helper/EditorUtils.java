@@ -92,6 +92,7 @@ public class EditorUtils {
             // instantiate inner class
             try {
                 Constructor<T> ctor = clazz.getDeclaredConstructor(clazz.getDeclaringClass());
+                ctor.setAccessible(true);
                 return ctor.newInstance(editable);
             } catch (InvocationTargetException e) {
                 WorstShop.get().logger.severe("Failed to initialize adaptor " + clazz.getName() + " (inner class of " + clazz.getDeclaringClass().getName() + ")");
@@ -103,12 +104,13 @@ public class EditorUtils {
         } else {
             try {
                 Constructor<T> ctor = clazz.getConstructor();
+                ctor.setAccessible(true);
                 return ctor.newInstance();
             } catch (InvocationTargetException e) {
                 WorstShop.get().logger.severe("Failed to initialize adaptor " + clazz.getName());
                 throw new RuntimeException(e);
             } catch (ReflectiveOperationException e) {
-                WorstShop.get().logger.severe("Valid constructor for adaptor " + clazz.getName() + "does not exist?");
+                WorstShop.get().logger.severe("Valid constructor for adaptor " + clazz.getName() + " does not exist?");
                 throw new Error(e);
             }
         }

@@ -32,12 +32,9 @@ repositories {
     mavenLocal()
 }
 
-//configurations.all {
-//    // Can't find where the Bukkit API was from lol
-//    exclude module: "bukkit"
-//}
 configurations {
     // wow! gradle magic!
+    // makes test have the same sourceSet as main
     testCompile.extendsFrom compileOnly
 }
 
@@ -98,7 +95,7 @@ shadowJar {
 }
 
 test {
-    useJUnitPlatform()
+    //useJUnitPlatform()
 }
 
 build.dependsOn shadowJar

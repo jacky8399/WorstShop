@@ -2,6 +2,8 @@ package com.jacky8399.worstshop.helper;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.FormatStyle;
 import java.time.temporal.ChronoUnit;
@@ -50,7 +52,11 @@ public class DateTimeUtils {
         return sb.length() == 0 ? "0s" : sb.toString();
     }
 
-    public static String formatTime(LocalDateTime time) {
+    public static String formatTime(ZonedDateTime time) {
         return time.format(DateTimeFormatter.ofLocalizedDateTime(FormatStyle.LONG));
+    }
+
+    public static String formatTime(LocalDateTime time) {
+        return formatTime(time.atZone(ZoneId.systemDefault()));
     }
 }

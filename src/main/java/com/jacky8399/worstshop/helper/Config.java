@@ -41,7 +41,7 @@ public final class Config {
             return (T) obj;
         } else if (clazz.isEnum() && obj instanceof String) {
             @SuppressWarnings("rawtypes")
-            T enumObj = (T) Enum.valueOf((Class) clazz, (String) obj);
+            T enumObj = (T) ConfigHelper.parseEnum((String) obj, (Class) clazz);
             return enumObj;
         } else if (Config.class == clazz) {
             if (obj instanceof Map<?, ?>) {
@@ -137,14 +137,17 @@ public final class Config {
                     while (listIterator.hasNext()) {
                         int index = listIterator.nextIndex();
                         Object child = listIterator.next();
+                        T newChild = null;
                         for (Class<? extends T> clazz : classes) {
-                            T newChild = handleObj("[" + index + "]", child, clazz);
-                            if (newChild != null)
+                            newChild = handleObj("[" + index + "]", child, clazz);
+                            if (newChild != null) {
                                 newList.add(newChild);
-                            else
-                                throw new ConfigException("Expected " + stringifyListTypes(classes) + " at " + key +
-                                        ", but found " + child.getClass().getSimpleName() + " at " + nameOrdinal(index + 1) + " element", this);
+                                break;
+                            }
                         }
+                        if (newChild == null)
+                            throw new ConfigException("Expected " + stringifyListTypes(classes) + " at " + key +
+                                    ", but found " + child.getClass().getSimpleName() + " at " + nameOrdinal(index + 1) + " element", this);
                     }
                     return newList;
                 });

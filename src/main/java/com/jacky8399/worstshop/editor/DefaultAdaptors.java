@@ -32,10 +32,10 @@ import java.util.stream.Collectors;
 public class DefaultAdaptors {
     private DefaultAdaptors() {}
 
-    private static final String I18N_KEY = I18n.Keys.MESSAGES_KEY + "editor.property.";
+    public static final String I18N_KEY = I18n.Keys.MESSAGES_KEY + "editor.property.";
 
-    private static final I18n.Translatable NAME_FORMAT = I18n.createTranslatable(I18N_KEY + "name-format");
-    private static final I18n.Translatable VALUE_FORMAT = I18n.createTranslatable(I18N_KEY + "value-format");
+    public static final I18n.Translatable NAME_FORMAT = I18n.createTranslatable(I18N_KEY + "name-format");
+    public static final I18n.Translatable VALUE_FORMAT = I18n.createTranslatable(I18N_KEY + "value-format");
 
     /**
      * Opens a interactive GUI allowing users to pick from a list of values when clicked.
@@ -311,10 +311,13 @@ public class DefaultAdaptors {
                     contents.fillRow(0, ClickableItem.empty(ItemBuilder.of(Material.BLACK_STAINED_GLASS_PANE).name(ChatColor.BLACK.toString()).build()));
                     // properties
                     refresh(contents);
+                    // custom
+                    EditableObjectAdaptor.this.init(player, contents);
                 }
 
                 @Override
                 public void update(Player player, InventoryContents contents) {
+                    EditableObjectAdaptor.this.update(player, contents, shouldRefresh);
                     if (shouldRefresh) {
                         refresh(contents);
                         shouldRefresh = false;
@@ -331,13 +334,16 @@ public class DefaultAdaptors {
             return CompletableFuture.completedFuture(val);
         }
 
+        public void init(Player player, InventoryContents contents) {}
+        public void update(Player player, InventoryContents contents, boolean isRefreshingProperties) {}
+
         @Override
         public ItemStack getRepresentation(T val, @Nullable String fieldName) {
             return ItemBuilder.of(Material.WRITABLE_BOOK).name(NAME_FORMAT.apply(fieldName))
                     .lores(I18n.translate(I18N_KEY + "gui.edit")).build();
         }
 
-        private String getTitle() {
+        protected String getTitle() {
             return NAME_FORMAT.apply(clazz.getSimpleName());
         }
     }
