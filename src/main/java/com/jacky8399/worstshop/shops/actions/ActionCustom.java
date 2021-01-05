@@ -29,6 +29,7 @@ public class ActionCustom extends Action {
         if (optional.isPresent()) {
             Object comms = optional.get();
             if (comms instanceof List) {
+                //noinspection UnstableApiUsage
                 commands = ((List<?>) comms).stream().map(Object::toString).collect(ImmutableList.toImmutableList());
             } else {
                 commands = Collections.singletonList(comms.toString());

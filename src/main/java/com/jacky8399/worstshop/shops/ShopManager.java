@@ -46,6 +46,7 @@ public class ShopManager {
         File newFile = new File(shops, newId);
         newFile.mkdirs();
         try {
+            // noinspection UnstableApiUsage
             Files.copy(oldFile, newFile);
             oldFile.delete();
             shop.id = newId;
@@ -110,7 +111,7 @@ public class ShopManager {
             int count = 0;
             for (File shop : listFilesRecursively(shops, Lists.newArrayList())) {
                 String shopPath = shop.getAbsolutePath();
-                String shopExt = Files.getFileExtension(shopPath);
+                String shopExt = shopPath.substring(shopPath.lastIndexOf('.') + 1);
                 if (!("yml".equals(shopExt) || "yaml".equals(shopExt))) {
                     continue;
                 }

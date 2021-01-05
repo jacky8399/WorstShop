@@ -2,9 +2,12 @@ package com.jacky8399.worstshop.shops.wants;
 
 import com.google.common.collect.Lists;
 import com.jacky8399.worstshop.helper.Config;
+import com.jacky8399.worstshop.helper.ItemBuilder;
 import com.jacky8399.worstshop.shops.elements.ShopElement;
 import com.jacky8399.worstshop.shops.elements.StaticShopElement;
 import fr.minuskube.inv.content.SlotPos;
+import org.bukkit.ChatColor;
+import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
@@ -142,11 +145,6 @@ public class ShopWants implements Predicate<Player> {
         return canAfford;
     }
 
-    @Deprecated
-    public ItemStack createStack() {
-        return null;
-    }
-
     @Override
     public boolean test(Player player) {
         return canAfford(player);
@@ -186,6 +184,7 @@ public class ShopWants implements Predicate<Player> {
         }
     }
 
+    private static final ItemStack UNDEFINED = ItemBuilder.of(Material.BEDROCK).name(ChatColor.DARK_RED + "???").build();
     /**
      * Create a ShopElement to be displayed in ActionShop GUIs. Only called once per ActionShop GUI.
      * <p>
@@ -194,7 +193,7 @@ public class ShopWants implements Predicate<Player> {
      * @return the ShopElement to be displayed
      */
     public ShopElement createElement(TransactionType position) {
-        StaticShopElement elem = StaticShopElement.fromStack(createStack());
+        StaticShopElement elem = StaticShopElement.fromStack(UNDEFINED);
         elem.fill = ShopElement.FillType.NONE;
         elem.itemPositions = Collections.singletonList(position.pos);
         return elem;

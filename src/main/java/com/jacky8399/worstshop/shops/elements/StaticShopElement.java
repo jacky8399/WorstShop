@@ -230,9 +230,6 @@ public class StaticShopElement extends ShopElement {
      * Serializes an ItemStack.
      * <p>
      * This method always attempts to use the simplest representation.
-     * @param stack
-     * @param map
-     * @return
      */
     @SuppressWarnings("ConstantConditions")
     public static Map<String, Object> serializeItemStack(ItemStack stack, Map<String, Object> map) {

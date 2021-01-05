@@ -44,6 +44,8 @@ public class ShopCommands {
     public static void removeAliases() {
         try {
             CommandMap map = PaperHelper.getCommandMap();
+            if (map == null)
+                return;
             Map<String, Command> knownCommands = PaperHelper.getKnownCommands(map);
             if (knownCommands == null)
                 return;
@@ -62,7 +64,7 @@ public class ShopCommands {
 
     public static class ShopAliasCommand extends BukkitCommand {
 
-        private String shopName;
+        private final String shopName;
 
         protected ShopAliasCommand(String shopName, List<String> aliases, boolean ignorePermission) {
             super(aliases.remove(0)); // pop first arg
@@ -81,11 +83,10 @@ public class ShopCommands {
                 ShopManager.getShop(shopName)
                         .filter(shop -> shop.canPlayerView(player, true)) // check conditions
                         .ifPresent(shop -> shop.getInventory(player).open(player));
-                return true;
             } else {
                 sender.sendMessage(ChatColor.RED + "This command can only be run by a player!");
-                return true;
             }
+            return true;
         }
 
         @NotNull

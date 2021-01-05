@@ -3,11 +3,12 @@ package com.jacky8399.worstshop.shops.wants;
 import com.jacky8399.worstshop.I18n;
 import com.jacky8399.worstshop.WorstShop;
 import com.jacky8399.worstshop.helper.ItemBuilder;
-import org.black_ixx.playerpoints.PlayerPointsAPI;
+import com.jacky8399.worstshop.shops.elements.ShopElement;
+import com.jacky8399.worstshop.shops.elements.StaticShopElement;
 import net.md_5.bungee.api.ChatColor;
+import org.black_ixx.playerpoints.PlayerPointsAPI;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
-import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Map;
@@ -80,8 +81,8 @@ public class ShopWantsPlayerPoint extends ShopWants {
     }
 
     @Override
-    public ItemStack createStack() {
-        return ItemBuilder.of(Material.DIAMOND).name(formatPoints(points)).build();
+    public ShopElement createElement(TransactionType position) {
+        return StaticShopElement.fromStack(ItemBuilder.of(Material.DIAMOND).name(formatPoints(points)).build());
     }
 
     public static String formatPoints(int points) {

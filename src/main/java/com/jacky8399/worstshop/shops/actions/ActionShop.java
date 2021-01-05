@@ -203,8 +203,9 @@ public class ActionShop extends Action {
 
     public static class ShopGui implements InventoryProvider {
         private boolean firstClick = true;
-        private ActionShop shop;
-        private ShopWants cost, reward;
+        private final ActionShop shop;
+        private final ShopWants cost;
+        private final ShopWants reward;
         private ShopElement costElem, rewardElem;
         private ShopGui(ActionShop shop) {
             this.shop = shop;
@@ -302,7 +303,7 @@ public class ActionShop extends Action {
         int buyCount = 1;
         int lastBuyCount = buyCount;
 
-        int calculateItemColumn(boolean offset) {
+        int calculateItemColumn() {
             return (animationSequence == 4 ? 2 : animationSequence + 3);
         }
 
@@ -328,7 +329,7 @@ public class ActionShop extends Action {
             });
         }
 
-        private static List<Integer> BUTTON_SIZE = Lists.newArrayList(1, 4, 16, 64);
+        private static final List<Integer> BUTTON_SIZE = Lists.newArrayList(1, 4, 16, 64);
         private void populateBuyCountChangeButtons(Player player, InventoryContents contents) {
             ListIterator<Integer> iterator = BUTTON_SIZE.listIterator();
             int correctedBuyCount = buyCount - (firstClick ? 1 : 0);
@@ -402,7 +403,7 @@ public class ActionShop extends Action {
             }
 
             contents.set(0, animationSequence + 2, ARROW);
-            contents.set(1, calculateItemColumn(true), ARROW);
+            contents.set(1, calculateItemColumn(), ARROW);
             contents.set(2, animationSequence + 2, ARROW);
 
             // also update item lol

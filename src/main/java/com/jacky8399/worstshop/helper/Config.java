@@ -94,7 +94,7 @@ public final class Config {
         return str + "th";
     }
 
-    private static final <T> Class<? extends T>[] getClasses(Class<? extends T> clazz1, Class<? extends T>[] clazzOthers) throws IllegalArgumentException {
+    private static <T> Class<? extends T>[] getClasses(Class<? extends T> clazz1, Class<? extends T>[] clazzOthers) throws IllegalArgumentException {
         int length = 1 + clazzOthers.length;
         @SuppressWarnings("unchecked")
         Class<? extends T>[] arr = new Class[length];

@@ -68,7 +68,7 @@ public class I18n {
 
     private static String currentLang = "en";
 
-    private static HashMap<String, Translatable> translatables = new HashMap<>();
+    private static final HashMap<String, Translatable> translatables = new HashMap<>();
 
     public static void changeLang(String lang) {
         if (!langs.containsKey(lang)) {

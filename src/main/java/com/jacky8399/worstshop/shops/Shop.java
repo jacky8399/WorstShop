@@ -117,7 +117,7 @@ public class Shop implements InventoryProvider, ParseContext.NamedContext {
         return builder.title(title).build();
     }
 
-    @SuppressWarnings({"unchecked", "ConstantConditions", "null"})
+    @SuppressWarnings({"ConstantConditions", "null"})
     public static Shop fromYaml(String shopName, YamlConfiguration yaml) {
         Shop inst = new Shop();
         ShopManager.currentShop = inst;

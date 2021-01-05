@@ -191,6 +191,9 @@ public class CommandSell extends BaseCommand {
     @CommandPermission("worstshop.sell.material")
     @CommandCompletion("*")
     public void sellMaterial(Player player, Material mat) {
-
+        for (ItemStack stack : player.getInventory().getContents()) {
+            if (stack.getType() == mat)
+                sellStack(player, stack, true);
+        }
     }
 }

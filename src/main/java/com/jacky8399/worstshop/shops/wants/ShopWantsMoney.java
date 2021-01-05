@@ -1,13 +1,14 @@
 package com.jacky8399.worstshop.shops.wants;
 
 import com.jacky8399.worstshop.WorstShop;
+import com.jacky8399.worstshop.helper.ItemBuilder;
+import com.jacky8399.worstshop.shops.elements.ShopElement;
+import com.jacky8399.worstshop.shops.elements.StaticShopElement;
+import net.md_5.bungee.api.ChatColor;
 import net.milkbowl.vault.economy.Economy;
 import net.milkbowl.vault.economy.EconomyResponse;
-import net.md_5.bungee.api.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
-import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.ItemMeta;
 
 import java.util.Map;
 
@@ -45,12 +46,8 @@ public class ShopWantsMoney extends ShopWants {
     }
 
     @Override
-    public ItemStack createStack() {
-        ItemStack stack = new ItemStack(Material.GOLD_INGOT);
-        ItemMeta meta = stack.getItemMeta();
-        meta.setDisplayName(formatMoney(realMoney));
-        stack.setItemMeta(meta);
-        return stack;
+    public ShopElement createElement(TransactionType position) {
+        return StaticShopElement.fromStack(ItemBuilder.of(Material.GOLD_INGOT).name(formatMoney(realMoney)).build());
     }
 
     @Override

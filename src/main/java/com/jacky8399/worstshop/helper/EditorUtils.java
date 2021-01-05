@@ -13,7 +13,7 @@ import java.lang.reflect.Modifier;
 public class EditorUtils {
     @SuppressWarnings({"unchecked", "rawtypes"})
     public static <T> EditableAdaptor<T> findAdaptorForField(Object parent, Field field) {
-        EditableAdaptor<?> adaptor = null;
+        EditableAdaptor<?> adaptor;
         if (field.isAnnotationPresent(Adaptor.class)) {
             Adaptor annotation = field.getAnnotation(Adaptor.class);
             Class<? extends EditableAdaptor<?>> adaptorClazz = annotation.value();

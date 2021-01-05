@@ -13,7 +13,7 @@ import java.util.List;
 import java.util.function.Consumer;
 
 public class ItemBuilder {
-    private ItemStack stack;
+    private final ItemStack stack;
     private ItemBuilder(Material mat) {
         stack = new ItemStack(mat);
     }
@@ -40,9 +40,8 @@ public class ItemBuilder {
 
     private ItemMeta meta;
 
-    public ItemBuilder loadMeta() {
+    public void loadMeta() {
         meta = stack.getItemMeta();
-        return this;
     }
 
     public ItemBuilder meta(Consumer<ItemMeta> metaConsumer) {

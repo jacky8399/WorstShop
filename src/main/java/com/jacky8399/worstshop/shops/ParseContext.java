@@ -18,6 +18,7 @@ public final class ParseContext {
         CLAZZ_LOCATION.computeIfAbsent(ctx.getClass(), k -> new Stack<>()).push(nextIdx);
     }
 
+    @SuppressWarnings("unchecked")
     public static <T> T popContext() {
         if (STACK.isEmpty())
             throw new IllegalStateException("Stack is empty");

@@ -12,9 +12,9 @@ import net.md_5.bungee.api.chat.BaseComponent;
 import net.md_5.bungee.chat.ComponentSerializer;
 import org.apache.commons.lang.StringUtils;
 import org.bukkit.Bukkit;
-import org.bukkit.Server;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandMap;
+import org.bukkit.command.SimpleCommandMap;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
@@ -64,7 +64,7 @@ public class PaperHelper {
         } else {
             // use reflection
             try {
-                Field field = Server.class.getDeclaredField("commandMap");
+                Field field = Bukkit.getServer().getClass().getDeclaredField("commandMap");
                 field.setAccessible(true);
                 return (CommandMap) field.get(Bukkit.getServer());
             } catch (NoSuchFieldException | IllegalAccessException e) {
@@ -79,9 +79,13 @@ public class PaperHelper {
         } else {
             // use reflection
             try {
-                Field field = map.getClass().getDeclaredField("knownCommands");
-                field.setAccessible(true);
-                return (Map<String, Command>) field.get(map);
+                if (map instanceof SimpleCommandMap) {
+                    Field field = map.getClass().getDeclaredField("knownCommands");
+                    field.setAccessible(true);
+                    return (Map<String, Command>) field.get(map);
+                } else {
+                    return null;
+                }
             } catch (NoSuchFieldException | IllegalAccessException e) {
                 return null;
             }

@@ -14,10 +14,11 @@ import java.util.HashMap;
 import java.util.Map;
 
 public abstract class ShopWantsCustomizable extends ShopWants {
-    private ShopElement element;
-    boolean copyFromParent;
+    private final ShopElement element;
+    transient boolean copyFromParent;
     public ShopWantsCustomizable(@Nullable ShopWantsCustomizable carryOver) {
         this.element = carryOver != null ? carryOver.element : null;
+        this.copyFromParent = carryOver != null && carryOver.copyFromParent;
     }
 
     public ShopWantsCustomizable(@Nullable Map<String, Object> yaml) {

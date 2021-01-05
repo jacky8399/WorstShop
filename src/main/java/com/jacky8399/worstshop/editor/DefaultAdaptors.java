@@ -254,8 +254,8 @@ public class DefaultAdaptors {
     }
 
     public static class EditableObjectAdaptor<T> implements EditableAdaptor<T> {
-        private Class<T> clazz;
-        private List<Field> properties;
+        private final Class<T> clazz;
+        private final List<Field> properties;
         public EditableObjectAdaptor(Class<T> clazz) {
             this.clazz = clazz;
             properties = Arrays.stream(clazz.getFields())

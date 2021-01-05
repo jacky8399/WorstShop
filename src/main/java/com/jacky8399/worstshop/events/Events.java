@@ -10,7 +10,7 @@ public class Events {
         register(new ShopAliasListener());
     }
 
-    private static WorstShop plugin = WorstShop.get();
+    private static final WorstShop plugin = WorstShop.get();
     private static void register(Listener listener) {
         Bukkit.getPluginManager().registerEvents(listener, plugin);
     }

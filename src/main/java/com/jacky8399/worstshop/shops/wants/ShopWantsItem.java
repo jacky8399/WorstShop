@@ -2,6 +2,7 @@ package com.jacky8399.worstshop.shops.wants;
 
 import com.google.common.collect.Sets;
 import com.jacky8399.worstshop.I18n;
+import com.jacky8399.worstshop.shops.elements.ShopElement;
 import com.jacky8399.worstshop.shops.elements.StaticShopElement;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
@@ -65,8 +66,8 @@ public class ShopWantsItem extends ShopWants implements IFlexibleShopWants {
     }
 
     @Override
-    public ItemStack createStack() {
-        return stack.clone();
+    public ShopElement createElement(TransactionType position) {
+        return StaticShopElement.fromStack(stack.clone());
     }
 
     @Override

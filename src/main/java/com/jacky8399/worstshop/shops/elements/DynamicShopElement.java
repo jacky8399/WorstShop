@@ -18,6 +18,7 @@ public class DynamicShopElement extends ShopElement {
         Map<String, Object> yaml = config.getPrimitiveMap();
         DynamicShopElement inst;
         String preset = (String) yaml.get("preset");
+        //noinspection SwitchStatementWithTooFewBranches
         switch (preset) {
             case "animation": {
                 inst = new AnimationShopElement(config);

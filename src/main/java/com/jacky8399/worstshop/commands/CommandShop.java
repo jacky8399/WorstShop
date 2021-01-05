@@ -161,7 +161,7 @@ public class CommandShop extends BaseCommand {
             ComponentBuilder actualComponent = new ComponentBuilder((1 - discount.percentage) * 100 + "% discount ").color(ChatColor.YELLOW)
                     .append("(" + discount.name + ")").color(ChatColor.AQUA);
             if (putDetailsInHover)
-                actualComponent.event(new HoverEvent(HoverEvent.Action.SHOW_TEXT, detailBuilder.create()));
+                actualComponent.event(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new Text(detailBuilder.create())));
             else
                 actualComponent.append("\n").append(detailBuilder.create());
             return actualComponent.create();
@@ -226,7 +226,7 @@ public class CommandShop extends BaseCommand {
                                 .append(components)
                                 .append(" ")
                                 .append("[Delete]").color(ChatColor.RED).bold(true)
-                                .event(new HoverEvent(HoverEvent.Action.SHOW_TEXT, TextComponent.fromLegacyText(ChatColor.YELLOW + "Click here to delete the discount")))
+                                .event(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new Text(TextComponent.fromLegacyText(ChatColor.YELLOW + "Click here to delete the discount"))))
                                 .event(new ClickEvent(ClickEvent.Action.SUGGEST_COMMAND, "/worstshop discount delete " + entry.name))
                                 .create();
                     }).forEach(sender.spigot()::sendMessage);
@@ -357,10 +357,6 @@ public class CommandShop extends BaseCommand {
                 }
             }
         }
-    }
-
-    private static String replaceColor(String str) {
-        return str.replace(ChatColor.COLOR_CHAR, '&');
     }
 
     @Subcommand("inspectitem|itemmeta|item|meta")

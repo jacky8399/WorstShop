@@ -17,7 +17,7 @@ import java.util.stream.Collectors;
 public class AnimationShopElement extends DynamicShopElement {
     int intervalInTicks;
     // to prevent overlapping with other AnimationShopElements
-    private String self = UUID.randomUUID().toString();
+    private final String self = UUID.randomUUID().toString();
     ArrayList<ShopElement> elements;
     public AnimationShopElement(Config config) {
         intervalInTicks = config.find("interval", Integer.class).orElse(1);
