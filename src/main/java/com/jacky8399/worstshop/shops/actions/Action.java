@@ -1,6 +1,7 @@
 package com.jacky8399.worstshop.shops.actions;
 
 import com.jacky8399.worstshop.helper.Config;
+import com.jacky8399.worstshop.helper.ConfigHelper;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.ClickType;
 import org.bukkit.event.inventory.InventoryClickEvent;
@@ -14,22 +15,20 @@ public abstract class Action {
         if (yaml == null) {
             return;
         }
-        yaml.find("click", List.class, String.class).ifPresent(obj -> {
-            triggerOnClick.clear();
-            if (obj instanceof List<?>)
-                ((List<String>) obj).forEach(this::matchShopTrigger);
-            else if (obj instanceof String)
-                matchShopTrigger((String) obj);
-        });
+        Optional<String> click = yaml.tryFind("click", String.class);
+        if (click.isPresent()) {
+            triggerOnClick = matchShopTrigger(click.get());
+        } else {
+            // don't allow '*' here
+            yaml.findList("click", ClickType.class).ifPresent(triggerOnClick::addAll);
+        }
     }
 
-    private void matchShopTrigger(String input) {
+    private EnumSet<ClickType> matchShopTrigger(String input) {
         if (input.equals("*")) {
-            triggerOnClick = EnumSet.allOf(ClickType.class);
+            return EnumSet.allOf(ClickType.class);
         } else {
-            ClickType type = ClickType.valueOf(input.replace(' ', '_').toUpperCase());
-            if (!triggerOnClick.add(type))
-                throw new IllegalStateException(type.name() + " is already bound to!");
+            return EnumSet.of(ConfigHelper.parseEnum(input, ClickType.class));
         }
     }
 

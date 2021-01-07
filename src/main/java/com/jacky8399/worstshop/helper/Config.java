@@ -1,29 +1,28 @@
 package com.jacky8399.worstshop.helper;
 
-import org.bukkit.configuration.MemorySection;
+import com.jacky8399.worstshop.WorstShop;
 
 import javax.annotation.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
 import java.util.*;
 import java.util.function.Supplier;
+import java.util.logging.Logger;
 
 /**
  * Conceals ugly casts
  */
 @ParametersAreNonnullByDefault
 public final class Config {
+    private static final Logger logger = WorstShop.get().logger;
+
     private final Map<String, Object> backingMap;
     public final Config parent;
     public final String path;
-    public Config(MemorySection section) {
-        this(section.getValues(false), null, null);
-    }
-
     public Config(Map<String, Object> map, @Nullable Config parent, @Nullable String path) {
         backingMap = new LinkedHashMap<>(map);
         this.parent = parent;
         path = path == null ? "?" : path;
-        this.path = parent != null ? parent.path + "->" + path : path;
+        this.path = parent != null ? parent.path + " > " + path : path;
     }
 
     public Config(Map<String, Object> map) {
@@ -32,6 +31,10 @@ public final class Config {
 
     public Map<String, Object> getPrimitiveMap() {
         return backingMap;
+    }
+
+    public final Set<String> getKeys() {
+        return backingMap.keySet();
     }
 
     @SuppressWarnings("unchecked")
@@ -50,9 +53,11 @@ public final class Config {
         } else if (Number.class.isAssignableFrom(clazz) && obj instanceof Number) {
             // numbers huh
             Number num = (Number) obj;
-            if (clazz == Integer.class)
+            if (clazz == Integer.class) {
+                if (!(obj instanceof Integer))
+                    logger.warning("number \"" + num + "\" (@" + this.path + " > " + path + ") was rounded down to an integer.");
                 return (T) Integer.valueOf(num.intValue());
-            else if (clazz == Double.class)
+            } else if (clazz == Double.class)
                 return (T) Double.valueOf(num.doubleValue());
             else if (clazz == Long.class)
                 return (T) Long.valueOf(num.longValue());
@@ -105,8 +110,22 @@ public final class Config {
         return arr;
     }
 
+    public final boolean has(String key) {
+        return backingMap.containsKey(key);
+    }
+
+    public final boolean has(String key, Class<?> clazz1, Class<?>... clazzOthers) {
+        return tryFind(key, clazz1, clazzOthers).isPresent();
+    }
+
+    /**
+     * Try to find an object of type {@code T} with key {@code key}. <br>
+     * Does not throw an exception if object is not found or of an incompatible type
+     * @see #find(String, Class, Class[])
+     * @see #get(String, Class, Class[])
+     */
     @SafeVarargs
-    public final <T> Optional<T> find(String key, Class<? extends T> clazz1, Class<? extends T>... clazzOthers) throws ConfigException, IllegalArgumentException {
+    public final <T> Optional<T> tryFind(String key, Class<? extends T> clazz1, Class<? extends T>... clazzOthers) {
         Class<? extends T>[] classes = getClasses(clazz1, clazzOthers);
         Object obj = backingMap.get(key);
         if (obj == null) {
@@ -114,20 +133,49 @@ public final class Config {
         }
         for (Class<? extends T> clazz : classes) {
             // special classes
-            T val = handleObj(path, obj, clazz);
+            T val = handleObj(key, obj, clazz);
+            if (val != null)
+                return Optional.of(val);
+        }
+        return Optional.empty();
+    }
+
+    /**
+     * Try to find an object of type {@code T} with key {@code key}. <br>
+     * Does not throw an exception if object is not found
+     * @exception ConfigException thrown when object is of an incompatible type
+     * @see #tryFind(String, Class, Class[])
+     * @see #get(String, Class, Class[])
+     */
+    @SafeVarargs
+    public final <T> Optional<T> find(String key, Class<? extends T> clazz1, Class<? extends T>... clazzOthers) throws ConfigException {
+        Class<? extends T>[] classes = getClasses(clazz1, clazzOthers);
+        Object obj = backingMap.get(key);
+        if (obj == null) {
+            return Optional.empty();
+        }
+        for (Class<? extends T> clazz : classes) {
+            // special classes
+            T val = handleObj(key, obj, clazz);
             if (val != null)
                 return Optional.of(val);
         }
         throw new ConfigException("Expected " + stringifyTypes(classes) + " at " + key + ", found " + obj.getClass().getSimpleName(), this);
     }
 
+    /**
+     * Find an object of type {@code T} with key {@code key}.
+     * @exception ConfigException thrown when object is not found or of an incompatible type
+     * @see #tryFind(String, Class, Class[])
+     * @see #find(String, Class, Class[])
+     */
     @SafeVarargs
-    public final <T> T get(String key, Class<? extends T> clazz1, Class<? extends T>... classes) throws ConfigException, IllegalArgumentException {
+    public final <T> T get(String key, Class<? extends T> clazz1, Class<? extends T>... classes) throws ConfigException {
         return find(key, clazz1, classes).orElseThrow(throwFor(key, stringifyTypes(classes)));
     }
 
     @SafeVarargs
-    public final <T> Optional<List<? extends T>> findList(String key, Class<? extends T> listType1, Class<? extends T>... listTypes) throws ConfigException, IllegalArgumentException {
+    public final <T> Optional<List<? extends T>> findList(String key, Class<? extends T> listType1, Class<? extends T>... listTypes) throws ConfigException {
         Class<? extends T>[] classes = getClasses(listType1, listTypes);
         return find(key, List.class)
                 .map(list -> (List<?>) list)
@@ -154,7 +202,7 @@ public final class Config {
     }
 
     @SafeVarargs
-    public final <T> List<? extends T> getList(String key, Class<? extends T> listType1, Class<? extends T>... listTypes) throws ConfigException, IllegalArgumentException {
+    public final <T> List<? extends T> getList(String key, Class<? extends T> listType1, Class<? extends T>... listTypes) throws ConfigException {
         return findList(key, listType1, listTypes).orElseThrow(throwFor(key, stringifyListTypes(listTypes)));
     }
 

@@ -63,8 +63,8 @@ public class ActionItemShop extends Action {
     public ActionItemShop(Config yaml) {
         super(yaml);
 
-        yaml.find("buy-price", Number.class).ifPresent(num -> buyPrice = num.doubleValue());
-        yaml.find("sell-price", Number.class).ifPresent(num -> sellPrice = num.doubleValue());
+        buyPrice = yaml.find("buy-price", Double.class).orElse(0D);
+        sellPrice = yaml.find("sell-price", Double.class).orElse(0D);
 
         // shortcut
         yaml.find("prices", String.class).ifPresent(price -> {
@@ -86,16 +86,16 @@ public class ActionItemShop extends Action {
             Optional<Config> both = purchaseLimitsYaml.find("both", Config.class);
             if (both.isPresent()) {
                 buyLimitTemplate = sellLimitTemplate = PurchaseRecords.RecordTemplate.fromConfig(both.get());
-                buyLimit = sellLimit = both.get().get("limit", Number.class).intValue();
+                buyLimit = sellLimit = both.get().get("limit", Integer.class);
                 usedLimitShortcut = true;
             } else {
                 purchaseLimitsYaml.find("buy", Config.class).ifPresent(purchaseLimitYaml -> {
                     buyLimitTemplate = PurchaseRecords.RecordTemplate.fromConfig(purchaseLimitYaml);
-                    buyLimit = purchaseLimitYaml.get("limit", Number.class).intValue();
+                    buyLimit = purchaseLimitYaml.get("limit", Integer.class);
                 });
                 purchaseLimitsYaml.find("sell", Config.class).ifPresent(purchaseLimitYaml -> {
                     sellLimitTemplate = PurchaseRecords.RecordTemplate.fromConfig(purchaseLimitYaml);
-                    sellLimit = purchaseLimitYaml.get("limit", Number.class).intValue();
+                    sellLimit = purchaseLimitYaml.get("limit", Integer.class);
                 });
             }
         });

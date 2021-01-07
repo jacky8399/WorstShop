@@ -1,9 +1,9 @@
 package com.jacky8399.worstshop.shops.wants;
 
 import com.jacky8399.worstshop.WorstShop;
+import com.jacky8399.worstshop.helper.Config;
 import com.jacky8399.worstshop.helper.ItemBuilder;
 import com.jacky8399.worstshop.shops.elements.ShopElement;
-import com.jacky8399.worstshop.shops.elements.StaticShopElement;
 import net.md_5.bungee.api.ChatColor;
 import net.milkbowl.vault.economy.Economy;
 import net.milkbowl.vault.economy.EconomyResponse;
@@ -22,10 +22,11 @@ public class ShopWantsMoney extends ShopWants {
         ECONOMY = WorstShop.get().economy.getProvider();
     }
 
-    public double money, realMoney;
-    public double multiplier;
-    public ShopWantsMoney(Map<String, Object> yaml) {
-        this(((Number) yaml.getOrDefault("money", 0.0D)).doubleValue());
+    public double money;
+    public transient double realMoney;
+    public transient double multiplier;
+    public ShopWantsMoney(Config config) {
+        this(config.get("money", Double.class));
     }
 
     // to maintain serialization accuracy
@@ -46,8 +47,8 @@ public class ShopWantsMoney extends ShopWants {
     }
 
     @Override
-    public ShopElement createElement(TransactionType position) {
-        return StaticShopElement.fromStack(ItemBuilder.of(Material.GOLD_INGOT).name(formatMoney(realMoney)).build());
+    public ShopElement createElement(TransactionType pos) {
+        return ofStack(pos, ItemBuilder.of(Material.GOLD_INGOT).name(formatMoney(realMoney)).build());
     }
 
     @Override
@@ -78,7 +79,7 @@ public class ShopWantsMoney extends ShopWants {
     @Override
     public double grantOrRefund(Player player) {
         EconomyResponse response = ECONOMY.depositPlayer(player, realMoney);
-        return response.transactionSuccess() ? 0 : response.amount / money;
+        return response.transactionSuccess() ? 0 : (realMoney - response.amount) / money;
     }
 
     @Override

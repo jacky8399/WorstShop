@@ -21,42 +21,50 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 public class ShopWants implements Predicate<Player> {
-    public static ShopWants fromMap(Map<String, Object> map) {
-        String type = (String) map.getOrDefault("type", "free");
+    public static ShopWants fromMap(Config config) {
+        String type = config.find("type", String.class).orElse("free");
+        ShopWants commodity;
         switch (type) {
             case "money":
-                return new ShopWantsMoney(map);
+                commodity = new ShopWantsMoney(config);
+                break;
             case "item":
-                return new ShopWantsItem(map);
+                commodity = new ShopWantsItem(config);
+                break;
             case "command":
-                return new ShopWantsCommand(map);
+                commodity = new ShopWantsCommand(config);
+                break;
             case "points":
-                return new ShopWantsPlayerPoint(map);
+                commodity = new ShopWantsPlayerPoint(config);
+                break;
             case "exp":
-                return new ShopWantsExp(map);
+                commodity = new ShopWantsExp(config);
+                break;
             case "perm":
-                return new ShopWantsPermission(map);
+                commodity = new ShopWantsPermission(config);
+                break;
             case "free":
-                return new ShopWantsFree();
+                commodity = new ShopWantsFree();
+                break;
             default:
                 throw new IllegalArgumentException("Invalid commodity type " + type);
         }
+
+        // special case
+        if (config.has("display")) {
+            commodity = new ShopWantsCustomizable(commodity, config);
+        }
+        return commodity;
     }
 
-    public static ShopWants fromYamlNode(Object yaml) {
+    public static ShopWants fromObject(Object yaml) {
         // read type
         if (yaml instanceof String) { // one string
             return fromString((String) yaml);
         } else if (yaml instanceof Config) { // section
-            return fromMap(((Config) yaml).getPrimitiveMap());
-        } else if (yaml instanceof List<?>) {
-            List<ShopWants> wants = Lists.newArrayList();
-            for (Map<String, Object> want : (List<Map<String, Object>>)yaml) {
-                wants.add(fromMap(want));
-            }
-            return new ShopWantsMultiple(wants);
+            return fromMap((Config) yaml);
         }
-        return new ShopWantsFree();
+        throw new IllegalStateException("Invalid object type " + yaml.getClass().getSimpleName());
     }
 
     public static ShopWants fromString(@NotNull String str) {
@@ -81,7 +89,9 @@ public class ShopWants implements Predicate<Player> {
     public boolean canMultiply() { return true; }
 
     /**
-     * Multiply the commodity with the specified multiplier, rounded down if decimals are not accepted.
+     * Multiply the commodity with the specified multiplier, <br>rounded down if decimals are not accepted.
+     * <p>
+     * Note: it is recommended that the multiplier be stored in a variable
      * @param multiplier the multiplier
      * @return a new commodity with the applied multiplier
      */
@@ -126,7 +136,7 @@ public class ShopWants implements Predicate<Player> {
     /**
      * Grant the commodity to the player, optionally refunding if the player cannot accept the commodity
      * @param player the player
-     * @return the amount to refund
+     * @return the amount to refund. 0 = don't refund anything, 1 = refund one transaction
      */
     public double grantOrRefund(Player player) {
         return 0;
@@ -184,18 +194,22 @@ public class ShopWants implements Predicate<Player> {
         }
     }
 
-    private static final ItemStack UNDEFINED = ItemBuilder.of(Material.BEDROCK).name(ChatColor.DARK_RED + "???").build();
+    public static final ItemStack UNDEFINED = ItemBuilder.of(Material.BEDROCK).name(ChatColor.DARK_RED + "???").build();
     /**
      * Create a ShopElement to be displayed in ActionShop GUIs. Only called once per ActionShop GUI.
      * <p>
      * To have the element be updated every tick, override {@link #isElementDynamic()}
-     * @param position position of the returned element
+     * @param pos position of the returned element
      * @return the ShopElement to be displayed
      */
-    public ShopElement createElement(TransactionType position) {
-        StaticShopElement elem = StaticShopElement.fromStack(UNDEFINED);
+    public ShopElement createElement(TransactionType pos) {
+        return ofStack(pos, UNDEFINED);
+    }
+
+    protected static StaticShopElement ofStack(TransactionType pos, ItemStack stack) {
+        StaticShopElement elem = StaticShopElement.fromStack(stack);
         elem.fill = ShopElement.FillType.NONE;
-        elem.itemPositions = Collections.singletonList(position.pos);
+        elem.itemPositions = Collections.singletonList(pos.pos);
         return elem;
     }
 

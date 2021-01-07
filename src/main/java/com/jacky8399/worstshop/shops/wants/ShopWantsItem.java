@@ -2,6 +2,7 @@ package com.jacky8399.worstshop.shops.wants;
 
 import com.google.common.collect.Sets;
 import com.jacky8399.worstshop.I18n;
+import com.jacky8399.worstshop.helper.Config;
 import com.jacky8399.worstshop.shops.elements.ShopElement;
 import com.jacky8399.worstshop.shops.elements.StaticShopElement;
 import org.bukkit.entity.Player;
@@ -25,15 +26,14 @@ public class ShopWantsItem extends ShopWants implements IFlexibleShopWants {
     public final double multiplier;
     public HashSet<ItemMatcher> itemMatchers = Sets.newHashSet(ItemMatcher.SIMILAR);
 
-    public ShopWantsItem(Map<String, Object> yaml) {
+    public ShopWantsItem(Config config) {
         // parse itemstack
-        this(StaticShopElement.parseItemStack(yaml), 1);
-        if (yaml.containsKey("matches") /* not a typo */) {
-            List<String> matchers = (List<String>) yaml.get("matches");
+        this(StaticShopElement.parseItemStack(config.getPrimitiveMap()), 1);
+        config.findList("matches", String.class).ifPresent(matchers -> {
             itemMatchers.clear();
-            matchers.stream().map(s -> s.toLowerCase().replace(' ', '_'))
+            matchers.stream().map(s -> s.toLowerCase(Locale.ROOT).replace(' ', '_'))
                     .map(ItemMatcher.ITEM_MATCHERS::get).forEach(itemMatchers::add);
-        }
+        });
     }
 
     public ShopWantsItem(ItemStack stack) {
@@ -67,7 +67,7 @@ public class ShopWantsItem extends ShopWants implements IFlexibleShopWants {
 
     @Override
     public ShopElement createElement(TransactionType position) {
-        return StaticShopElement.fromStack(stack.clone());
+        return ofStack(position, stack.clone());
     }
 
     @Override

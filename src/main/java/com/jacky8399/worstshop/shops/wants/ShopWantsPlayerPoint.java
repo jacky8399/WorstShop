@@ -2,9 +2,9 @@ package com.jacky8399.worstshop.shops.wants;
 
 import com.jacky8399.worstshop.I18n;
 import com.jacky8399.worstshop.WorstShop;
+import com.jacky8399.worstshop.helper.Config;
 import com.jacky8399.worstshop.helper.ItemBuilder;
 import com.jacky8399.worstshop.shops.elements.ShopElement;
-import com.jacky8399.worstshop.shops.elements.StaticShopElement;
 import net.md_5.bungee.api.ChatColor;
 import org.black_ixx.playerpoints.PlayerPointsAPI;
 import org.bukkit.Material;
@@ -28,8 +28,8 @@ public class ShopWantsPlayerPoint extends ShopWants {
     double multiplier;
     transient int realPoints;
 
-    public ShopWantsPlayerPoint(Map<String, Object> yaml) {
-        this(((Number)yaml.get("points")).intValue());
+    public ShopWantsPlayerPoint(Config config) {
+        this(config.get("points", Integer.class));
     }
 
     public ShopWantsPlayerPoint(int points) {
@@ -81,8 +81,8 @@ public class ShopWantsPlayerPoint extends ShopWants {
     }
 
     @Override
-    public ShopElement createElement(TransactionType position) {
-        return StaticShopElement.fromStack(ItemBuilder.of(Material.DIAMOND).name(formatPoints(points)).build());
+    public ShopElement createElement(TransactionType pos) {
+        return ofStack(pos, ItemBuilder.of(Material.DIAMOND).name(formatPoints(points)).build());
     }
 
     public static String formatPoints(int points) {

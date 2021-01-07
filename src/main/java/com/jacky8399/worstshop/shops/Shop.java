@@ -60,12 +60,13 @@ public class Shop implements InventoryProvider, ParseContext.NamedContext {
     public String title;
     @Property
     public int updateInterval;
-
+    @Property
     public Condition condition = ConditionConstant.TRUE;
 
     // parents
     @Property
     public ShopReference parentShop = ShopReference.EMPTY;
+    @Property
     public boolean autoSetParentShop = false;
 
     // aliases
@@ -130,7 +131,7 @@ public class Shop implements InventoryProvider, ParseContext.NamedContext {
         try {
             ParseContext.pushContext(inst);
 
-            Config config = new Config(yaml);
+            Config config = new Config(yaml.getValues(false), null, "ROOT");
 
             inst.rows = config.find("rows", Integer.class).orElse(6);
             inst.type = config.find("type", InventoryType.class).orElse(InventoryType.CHEST);

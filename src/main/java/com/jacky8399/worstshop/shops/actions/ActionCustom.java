@@ -37,7 +37,7 @@ public class ActionCustom extends Action {
         } else {
             commands = Collections.emptyList();
         }
-        delayInTicks = yaml.find("delay", Number.class).map(num -> {
+        delayInTicks = yaml.find("delay", Integer.class).map(num -> {
             Logger logger = WorstShop.get().logger;
             logger.warning("'delay' on commands is deprecated. Please use 'preset: delay' instead");
             logger.warning("Offending action: " + ParseContext.getHierarchy());
@@ -45,7 +45,7 @@ public class ActionCustom extends Action {
                     "  preset: delay\n" +
                     "  actions:\n" +
                     "  - commands: ...");
-            return num.intValue();
+            return num;
         }).orElse(0);
     }
 

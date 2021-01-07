@@ -10,6 +10,7 @@ import com.jacky8399.worstshop.shops.elements.StaticShopElement;
 import com.jacky8399.worstshop.shops.wants.IFlexibleShopWants;
 import com.jacky8399.worstshop.shops.wants.ShopWants;
 import com.jacky8399.worstshop.shops.wants.ShopWantsItem;
+import com.jacky8399.worstshop.shops.wants.ShopWantsMultiple;
 import fr.minuskube.inv.ClickableItem;
 import fr.minuskube.inv.SmartInventory;
 import fr.minuskube.inv.content.InventoryContents;
@@ -26,6 +27,7 @@ import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 public class ActionShop extends Action {
     public ShopWants cost, reward;
@@ -33,13 +35,29 @@ public class ActionShop extends Action {
     public int purchaseLimit;
     public ActionShop(Config yaml) {
         super(yaml);
-        this.cost = yaml.find("cost", String.class, Config.class, List.class)
-                .map(ShopWants::fromYamlNode)
-                .orElseGet(ActionShop::findParent);
+        this.cost = yaml.tryFind("cost", String.class, Config.class)
+                .map(ShopWants::fromObject)
+                // check types even in lists
+                // the previous implementation might have allowed lists within lists
+                .orElseGet(()->yaml.findList("cost", String.class, Config.class)
+                        .map(list -> (ShopWants) // cast to ensure return type is ShopWants
+                                list.stream()
+                                        .map(ShopWants::fromObject)
+                                        .collect(Collectors.collectingAndThen(Collectors.toList(), ShopWantsMultiple::new))
+                        ).orElseGet(ActionShop::findParent)
+                );
 
-        this.reward = yaml.find("reward", String.class, Config.class, List.class)
-                .map(ShopWants::fromYamlNode)
-                .orElseGet(ActionShop::findParent);
+        this.reward = yaml.tryFind("reward", String.class, Config.class)
+                .map(ShopWants::fromObject)
+                // check types even in lists
+                // the previous implementation might have allowed lists within lists
+                .orElseGet(()->yaml.findList("reward", String.class, Config.class)
+                        .map(list -> (ShopWants) // cast to ensure return type is ShopWants
+                                list.stream()
+                                        .map(ShopWants::fromObject)
+                                        .collect(Collectors.collectingAndThen(Collectors.toList(), ShopWantsMultiple::new))
+                        ).orElseGet(ActionShop::findParent)
+                );
 
         yaml.find("purchase-limit", Config.class).ifPresent(purchaseLimitYaml -> {
             purchaseLimitTemplate = PurchaseRecords.RecordTemplate.fromConfig(purchaseLimitYaml);

@@ -19,7 +19,7 @@ public class ActionPage extends Action {
             pageOffset = -1;
         else
             pageOffset = 1;
-        yaml.find("pages", Number.class).ifPresent(pageCount -> pageOffset *= Math.abs(pageCount.intValue()));
+        yaml.find("pages", Integer.class).ifPresent(pageCount -> pageOffset *= Math.abs(pageCount));
     }
 
     public ActionPage(int page) {

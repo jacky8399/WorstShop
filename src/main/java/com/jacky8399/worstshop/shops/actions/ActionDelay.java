@@ -17,9 +17,9 @@ public class ActionDelay extends Action {
     public final List<Action> actions;
     public ActionDelay(Config yaml) {
         super(yaml);
-        Object delayInput = yaml.get("delay", Number.class, String.class);
-        if (delayInput instanceof Number) {
-            delay = ((Number) delayInput).intValue();
+        Object delayInput = yaml.get("delay", Integer.class, String.class);
+        if (delayInput instanceof Integer) {
+            delay = (int) delayInput;
         } else {
             delay = (int) (DateTimeUtils.parseTimeStr(delayInput.toString()).getSeconds() * 20);
         }

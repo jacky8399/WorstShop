@@ -12,7 +12,7 @@ import java.util.Map;
 public class ConditionShopWants extends Condition {
     public final ShopWants want;
     public ConditionShopWants(Config config) {
-        this(ShopWants.fromMap(config.getPrimitiveMap()));
+        this(ShopWants.fromMap(config));
         if (want instanceof INeverAffordableShopWants) {
             WorstShop.get().logger.warning("Using " + want.getClass().getSimpleName() + " makes the condition always fail!");
             WorstShop.get().logger.warning("Offending condition: " + ParseContext.getHierarchy());

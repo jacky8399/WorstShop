@@ -67,7 +67,7 @@ public class PurchaseRecords {
             return new RecordTemplate(
                     map.get("id", String.class),
                     DateTimeUtils.parseTimeStr(map.get("every", String.class)),
-                    map.find("max-records", Number.class).orElse(128).intValue()
+                    map.find("max-records", Integer.class).orElse(128)
             );
         }
 

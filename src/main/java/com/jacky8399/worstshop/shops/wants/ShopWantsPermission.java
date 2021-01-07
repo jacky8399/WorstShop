@@ -2,8 +2,11 @@ package com.jacky8399.worstshop.shops.wants;
 
 import com.jacky8399.worstshop.I18n;
 import com.jacky8399.worstshop.WorstShop;
+import com.jacky8399.worstshop.helper.Config;
 import com.jacky8399.worstshop.helper.ConfigHelper;
+import com.jacky8399.worstshop.helper.DateTimeUtils;
 import com.jacky8399.worstshop.helper.ItemBuilder;
+import com.jacky8399.worstshop.shops.elements.ShopElement;
 import net.luckperms.api.LuckPerms;
 import net.luckperms.api.context.ContextManager;
 import net.luckperms.api.model.data.DataMutateResult;
@@ -16,12 +19,11 @@ import net.luckperms.api.query.QueryOptions;
 import net.md_5.bungee.api.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
-import org.bukkit.inventory.ItemStack;
 
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
-public class ShopWantsPermission extends ShopWantsCustomizable {
+public class ShopWantsPermission extends ShopWants {
 
     public static final LuckPerms PERMS;
 
@@ -54,42 +56,56 @@ public class ShopWantsPermission extends ShopWantsCustomizable {
     PermissionType permType;
     boolean revokePermission;
 
-    public ShopWantsPermission(Map<String, Object> yaml) {
-        super(yaml);
+    public ShopWantsPermission(Config config) {
+        super();
         if (PERMS == null)
             throw new IllegalStateException();
         NodeBuilder<?, ?> builder = null;
-        if (yaml.containsKey("permission")) {
-            String permName = (String) yaml.get("permission");
-            builder = Node.builder(permName);
+        if (config.has("permission")) {
+            String permName = config.get("permission", String.class);
+            builder = PermissionNode.builder(permName);
             permissionDisplay = permName;
             permType = PermissionType.PERMISSION;
-        } else if (yaml.containsKey("group")) {
-            String groupName = (String) yaml.get("group");
+        } else if (config.has("group")) {
+            String groupName = config.get("group", String.class);
             builder = InheritanceNode.builder(groupName);
             permissionDisplay = groupName;
             permType = PermissionType.GROUP;
-        } else if (yaml.containsKey("meta")) {
-            Map<String, Object> innerData = (Map<String,Object>) yaml.get("meta");
-            builder = MetaNode.builder(
-                    (String) innerData.get("key"), (String) innerData.get("value")
-            );
-            permissionDisplay = innerData.get("key") + ": " + innerData.get("value");
+        } else if (config.has("meta")) {
+            Config innerData = config.get("meta", Config.class);
+            String key = innerData.get("key", String.class),
+                    value = innerData.get("value", String.class, Boolean.class).toString(); // allow booleans
+            builder = MetaNode.builder(key, value);
+            permissionDisplay = key + ": " + value;
             permType = PermissionType.META;
-        } else if (yaml.containsKey("prefix")) {
-            Map<String, Object> innerData = (Map<String,Object>) yaml.get("prefix");
-            String prefix = ConfigHelper.translateString((String) innerData.get("prefix"));
-            builder = PrefixNode.builder(
-                    prefix, (int) innerData.getOrDefault("priority", 100)
-            );
+        } else if (config.has("prefix")) {
+            Object prefixData = config.get("prefix", String.class, Config.class);
+            String prefix;
+            if (prefixData instanceof Config) {
+                Config innerData = (Config) prefixData;
+                prefix = ConfigHelper.translateString(innerData.get("prefix", String.class));
+                builder = PrefixNode.builder(
+                        prefix, innerData.find("priority", Integer.class).orElse(100)
+                );
+            } else {
+                prefix = ConfigHelper.translateString((String) prefixData);
+                builder = PrefixNode.builder(prefix, 100);
+            }
             permissionDisplay = prefix;
             permType = PermissionType.PREFIX;
-        } else if (yaml.containsKey("suffix")) {
-            Map<String, Object> innerData = (Map<String,Object>) yaml.get("suffix");
-            String suffix = ConfigHelper.translateString((String) innerData.get("suffix"));
-            builder = SuffixNode.builder(
-                    suffix, (int) innerData.getOrDefault("priority", 100)
-            );
+        } else if (config.has("suffix")) {
+            Object suffixData = config.get("suffix", String.class, Config.class);
+            String suffix;
+            if (suffixData instanceof Config) {
+                Config innerData = (Config) suffixData;
+                suffix = ConfigHelper.translateString(innerData.get("suffix", String.class));
+                builder = PrefixNode.builder(
+                        suffix, innerData.find("priority", Integer.class).orElse(100)
+                );
+            } else {
+                suffix = ConfigHelper.translateString((String) suffixData);
+                builder = SuffixNode.builder(suffix, 100);
+            }
             permissionDisplay = suffix;
             permType = PermissionType.SUFFIX;
         }
@@ -101,20 +117,22 @@ public class ShopWantsPermission extends ShopWantsCustomizable {
 
         // toggle
         if (permType != PermissionType.META)
-            builder.value((boolean) yaml.getOrDefault("value", true));
+            builder.value(config.find("value", Boolean.class).orElse(true));
         // expiry
-        if (yaml.containsKey("duration")) {
-            durationInSeconds = (int) yaml.get("duration");
-            durationShouldAppend = (boolean) yaml.getOrDefault("duration-append", true);
-            // set it later
-        }
-        revokePermission = (boolean) yaml.getOrDefault("revoke", false);
+        config.find("duration", Integer.class, String.class).ifPresent(obj -> {
+            if (obj instanceof Integer)
+                durationInSeconds = (Integer) obj;
+            else
+                durationInSeconds = (int) DateTimeUtils.parseTimeStr((String) obj).getSeconds();
+            durationShouldAppend = config.find("duration-append", Boolean.class).orElse(true);
+            // set duration later
+        });
+        revokePermission = config.find("revoke", Boolean.class).orElse(false);
 
         permissionNode = builder.build();
     }
 
     public ShopWantsPermission(ShopWantsPermission old, double multiplier) {
-        super(old);
         permissionNode = old.permissionNode;
         permType = old.permType;
         durationInSeconds = old.durationInSeconds;
@@ -122,7 +140,6 @@ public class ShopWantsPermission extends ShopWantsCustomizable {
         durationShouldAppend = old.durationShouldAppend;
         revokePermission = old.revokePermission;
         permissionDisplay = old.permissionDisplay;
-
     }
 
     @Override
@@ -230,7 +247,7 @@ public class ShopWantsPermission extends ShopWantsCustomizable {
     }
 
     @Override
-    public ItemStack getDefaultStack() {
-        return ItemBuilder.of(Material.PAPER).name(formatPermission()).build();
+    public ShopElement createElement(TransactionType pos) {
+        return ofStack(pos, ItemBuilder.of(Material.PAPER).name(formatPermission()).build());
     }
 }

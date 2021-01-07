@@ -6,47 +6,107 @@ import com.jacky8399.worstshop.shops.ParseContext;
 import com.jacky8399.worstshop.shops.elements.DynamicShopElement;
 import com.jacky8399.worstshop.shops.elements.ShopElement;
 import com.jacky8399.worstshop.shops.elements.StaticShopElement;
-import org.bukkit.inventory.ItemStack;
+import org.bukkit.entity.Player;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
-public abstract class ShopWantsCustomizable extends ShopWants {
+/**
+ * Special commodity to let users specify the display themselves
+ */
+public final class ShopWantsCustomizable extends ShopWants implements IFlexibleShopWants {
+    @NotNull
+    public final ShopWants base;
+    @NotNull
     private final ShopElement element;
     transient boolean copyFromParent;
-    public ShopWantsCustomizable(@Nullable ShopWantsCustomizable carryOver) {
-        this.element = carryOver != null ? carryOver.element : null;
-        this.copyFromParent = carryOver != null && carryOver.copyFromParent;
+    public ShopWantsCustomizable(@NotNull ShopWantsCustomizable carryOvery) {
+        this(carryOvery.base, carryOvery.element, carryOvery.copyFromParent);
     }
 
-    public ShopWantsCustomizable(@Nullable Map<String, Object> yaml) {
-        element = yaml != null && yaml.containsKey("display") ?
-                fromYaml((Map<String, Object>) yaml.get("display")) : null;
+    public ShopWantsCustomizable(@NotNull ShopWants base, @NotNull ShopElement element) {
+        this(base, element, false);
     }
 
-    public ShopElement fromYaml(Map<String, Object> yaml) {
-        if (yaml.containsKey("from") && ((String)yaml.get("from")).equalsIgnoreCase("parent")) {
-            // copy from parent
-            copyFromParent = true; // for serialization
-            return ParseContext.findLatest(ShopElement.class);
-        } else {
-            return ShopElement.fromConfig(new Config(yaml));
-        }
+    public ShopWantsCustomizable(@NotNull ShopWants base, @NotNull ShopElement element, boolean copyFromParent) {
+        this.base = base;
+        this.element = element;
+        this.copyFromParent = copyFromParent;
+    }
+
+    public ShopWantsCustomizable(@NotNull ShopWants base, @NotNull Config config) {
+        this.base = base;
+        ShopElement element = fromYaml(config.get("display", Config.class));
+        this.element = element != null ? element : StaticShopElement.fromStack(ShopWants.UNDEFINED);
+    }
+
+    public ShopElement fromYaml(Config config) {
+        return config.find("from", String.class).map(from -> {
+            if (from.equalsIgnoreCase("parent")) {
+                copyFromParent = true;
+                return ParseContext.findLatest(ShopElement.class);
+            }
+            throw new IllegalArgumentException("Unrecognized source " + from);
+        }).orElseGet(()->ShopElement.fromConfig(config));
+    }
+
+    @Override
+    public boolean canMultiply() {
+        return base.canMultiply();
+    }
+
+    @Override
+    public ShopWants multiply(double multiplier) {
+        return new ShopWantsCustomizable(base.multiply(multiplier), element, copyFromParent);
+    }
+
+    @Override
+    public boolean canAfford(Player player) {
+        return base.canAfford(player);
+    }
+
+    @Override
+    public String getPlayerTrait(Player player) {
+        return base.getPlayerTrait(player);
+    }
+
+    @Override
+    public String getPlayerResult(@Nullable Player player, TransactionType position) {
+        return base.getPlayerResult(player, position);
+    }
+
+    @Override
+    public void deduct(Player player) {
+        base.deduct(player);
+    }
+
+    @Override
+    public double grantOrRefund(Player player) {
+        return base.grantOrRefund(player);
+    }
+
+    @Override
+    public int getMaximumMultiplier(Player player) {
+        return base.getMaximumMultiplier(player);
+    }
+
+    @Override
+    public ShopWants adjustForPlayer(Player player) {
+        return base instanceof IFlexibleShopWants ?
+                new ShopWantsCustomizable(((IFlexibleShopWants) base).adjustForPlayer(player), element, copyFromParent) :
+                this;
     }
 
     @Override
     public ShopElement createElement(TransactionType position) {
-        if (element != null) {
-            // sanitize element
-            element.fill = ShopElement.FillType.NONE;
-            element.itemPositions = Collections.singletonList(position.pos);
-            element.actions = Lists.newArrayList();
-            return element;
-        } else {
-            return getDefaultElement(position);
-        }
+        // sanitize element
+        element.fill = ShopElement.FillType.NONE;
+        element.itemPositions = Collections.singletonList(position.pos);
+        element.actions = Lists.newArrayList();
+        return element;
     }
 
     @Override
@@ -54,19 +114,9 @@ public abstract class ShopWantsCustomizable extends ShopWants {
         return element instanceof DynamicShopElement;
     }
 
-    public ShopElement getDefaultElement(TransactionType position) {
-        StaticShopElement elem = StaticShopElement.fromStack(getDefaultStack());
-        elem.fill = ShopElement.FillType.NONE;
-        elem.itemPositions = Collections.singletonList(position.pos);
-        return elem;
-    }
-
-    public ItemStack getDefaultStack() {
-        return null;
-    }
-
     @Override
     public Map<String, Object> toMap(Map<String, Object> map) {
+        base.toMap(map);
         if (copyFromParent)
             map.put("display", Collections.singletonMap("from", "parent"));
         else
