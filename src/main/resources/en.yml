@@ -16,9 +16,10 @@ worstshop:
         shop:
           title: '&eEditing shop {0}'
           id: |
-            The unique ID of the shop.
+            &eThe unique ID of the shop.
             &4WARNING: changing the ID also moves
             &c&l&nthe file itself&4!
+            &4You must also change permissions yourself.
         gui:
           title: '&eEditing property {0}'
           current: '&aCurrent value!'

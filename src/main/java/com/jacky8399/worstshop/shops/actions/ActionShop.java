@@ -31,7 +31,7 @@ import java.util.stream.Collectors;
 
 public class ActionShop extends Action {
     public ShopWants cost, reward;
-    public PurchaseRecords.RecordTemplate purchaseLimitTemplate;
+    public PlayerPurchaseRecords.RecordTemplate purchaseLimitTemplate;
     public int purchaseLimit;
     public ActionShop(Config yaml) {
         super(yaml);
@@ -60,7 +60,7 @@ public class ActionShop extends Action {
                 );
 
         yaml.find("purchase-limit", Config.class).ifPresent(purchaseLimitYaml -> {
-            purchaseLimitTemplate = PurchaseRecords.RecordTemplate.fromConfig(purchaseLimitYaml);
+            purchaseLimitTemplate = PlayerPurchaseRecords.RecordTemplate.fromConfig(purchaseLimitYaml);
             purchaseLimit = purchaseLimitYaml.get("limit", Integer.class);
         });
     }
@@ -85,7 +85,7 @@ public class ActionShop extends Action {
         return element != null ? new ShopWantsItem(element.rawStack) : null;
     }
 
-    public ActionShop(ShopWants cost, ShopWants reward, PurchaseRecords.RecordTemplate purchaseLimitTemplate, int purchaseLimit) {
+    public ActionShop(ShopWants cost, ShopWants reward, PlayerPurchaseRecords.RecordTemplate purchaseLimitTemplate, int purchaseLimit) {
         super(null);
         this.cost = cost;
         this.reward = reward;
@@ -115,7 +115,7 @@ public class ActionShop extends Action {
             }
             // record the sale
             if (purchaseLimitTemplate != null) {
-                PurchaseRecords records = PurchaseRecords.getCopy(player);
+                PlayerPurchaseRecords records = PlayerPurchaseRecords.getCopy(player);
                 records.applyTemplate(purchaseLimitTemplate).addRecord(LocalDateTime.now(), (int) (count - refund));
                 records.updateFor(player);
             }
@@ -144,8 +144,8 @@ public class ActionShop extends Action {
         if (purchaseLimitTemplate == null) {
             return Integer.MAX_VALUE;
         }
-        PurchaseRecords records = PurchaseRecords.getCopy(player);
-        PurchaseRecords.RecordStorage storage = records.applyTemplate(purchaseLimitTemplate);
+        PlayerPurchaseRecords records = PlayerPurchaseRecords.getCopy(player);
+        PlayerPurchaseRecords.RecordStorage storage = records.applyTemplate(purchaseLimitTemplate);
         int totalPurchases = storage.getTotalPurchases();
         return purchaseLimit - totalPurchases;
     }
@@ -190,8 +190,8 @@ public class ActionShop extends Action {
     }
 
     public String formatPurchaseLimitMessage(Player player) {
-        PurchaseRecords records = PurchaseRecords.getCopy(player);
-        PurchaseRecords.RecordStorage storage = records.applyTemplate(purchaseLimitTemplate);
+        PlayerPurchaseRecords records = PlayerPurchaseRecords.getCopy(player);
+        PlayerPurchaseRecords.RecordStorage storage = records.applyTemplate(purchaseLimitTemplate);
         List<Map.Entry<LocalDateTime, Integer>> entries = storage.getEntries();
         Duration wait;
         if (entries.size() == 0) {
@@ -293,7 +293,7 @@ public class ActionShop extends Action {
                         I18n.Keys.MESSAGES_KEY + "shops.buttons.purchase-limit.limit",
                         shop.purchaseLimit, DateTimeUtils.formatTime(shop.purchaseLimitTemplate.retentionTime)
                 ), I18n.translate(I18n.Keys.MESSAGES_KEY + "shops.buttons.purchase-limit.previous-purchases"));
-                PurchaseRecords.RecordStorage records = PurchaseRecords.getCopy(player).applyTemplate(shop.purchaseLimitTemplate);
+                PlayerPurchaseRecords.RecordStorage records = PlayerPurchaseRecords.getCopy(player).applyTemplate(shop.purchaseLimitTemplate);
 
                 LocalDateTime now = LocalDateTime.now();
                 records.getEntries().stream().map(entry ->

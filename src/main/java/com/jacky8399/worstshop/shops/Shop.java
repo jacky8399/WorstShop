@@ -3,10 +3,7 @@ package com.jacky8399.worstshop.shops;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Streams;
 import com.jacky8399.worstshop.WorstShop;
-import com.jacky8399.worstshop.editor.Adaptor;
-import com.jacky8399.worstshop.editor.DefaultAdaptors;
-import com.jacky8399.worstshop.editor.Editable;
-import com.jacky8399.worstshop.editor.Property;
+import com.jacky8399.worstshop.editor.*;
 import com.jacky8399.worstshop.helper.*;
 import com.jacky8399.worstshop.shops.conditions.Condition;
 import com.jacky8399.worstshop.shops.conditions.ConditionConstant;
@@ -53,6 +50,7 @@ public class Shop implements InventoryProvider, ParseContext.NamedContext {
     @Property
     public int rows;
     @Property
+    @Representation(Material.CHEST)
     public InventoryType type;
     // not property - specially handled
     public String id;

@@ -265,9 +265,7 @@ public class CommandShop extends BaseCommand {
                         .forEach(entry -> {
                             Duration timeElapsed = Duration.between(entry.getValue().date, now);
                             sender.spigot().sendMessage(new ComponentBuilder("")
-                                    .append(DateTimeUtils.formatTime(timeElapsed) + " ago")
-                                    .color(ChatColor.YELLOW)
-                                    .event(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new Text(DateTimeUtils.formatTime(entry.getValue().date))))
+                                    .append(TextUtils.formatDuration(false, entry.getValue().date, timeElapsed))
                                     .append(" - " + entry.getKey() + " (" + entry.getValue().exception.getMessage() + ")")
                                     .event(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new Text(new ComponentBuilder("Click to inspect!").color(ChatColor.GREEN).create())))
                                     .event(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/worstshop log error show " + entry.getKey()))
@@ -308,64 +306,61 @@ public class CommandShop extends BaseCommand {
                         .append(log.exception.getMessage()).color(ChatColor.GREEN).append("\n")
                         .append(causeComponent)
                         .append("  At: ").color(ChatColor.YELLOW)
-                        .append(DateTimeUtils.formatTime(timeElapsed) + " ago")
-                        .color(ChatColor.GREEN)
-                        .event(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new Text(DateTimeUtils.formatTime(log.date)))).append("\n")
+                        .append(TextUtils.formatDuration(false, log.date, timeElapsed)).append("\n")
                         .append(stackTraceComponent)
                         .create();
                 sender.spigot().sendMessage(components);
             }
         }
-    }
 
-    @Subcommand("purchases")
-    @CommandPermission("worstshop.inspectpurchases")
-    public class InspectPurchases extends co.aikar.commands.BaseCommand {
-        public InspectPurchases() {
-            manager.getCommandCompletions().registerCompletion("@purchase_record_ids", ctx -> {
-               OnlinePlayer player = ctx.getContextValue(OnlinePlayer.class);
-               PurchaseRecords record = PurchaseRecords.getCopy(player.player);
-               return record.getKeys();
-            });
-        }
+        @Subcommand("purchases")
+        @CommandPermission("worstshop.log.purchases")
+        public class InspectPurchases extends co.aikar.commands.BaseCommand {
+            public InspectPurchases() {
+                manager.getCommandCompletions().registerCompletion("@purchase_record_ids", ctx -> {
+                    OnlinePlayer player = ctx.getContextValue(OnlinePlayer.class);
+                    PlayerPurchaseRecords record = PlayerPurchaseRecords.getCopy(player.player);
+                    return record.getKeys();
+                });
+            }
 
-        @Subcommand("show")
-        @CommandCompletion("* @purchase_record_ids")
-        public void showPlayerPurchaseRecords(CommandSender sender, OnlinePlayer onlinePlayer, @Optional String recordId) {
-            Player player = onlinePlayer.player;
-            PurchaseRecords record = PurchaseRecords.getCopy(player);
-            if (recordId == null) {
-                record.purgeOldRecords();
-                Set<String> keys = record.getKeys();
-                if (keys.size() == 0) {
-                    sender.sendMessage(ChatColor.RED + player.getName() + " doesn't have any purchase records.");
+            @Subcommand("show")
+            @CommandCompletion("* @purchase_record_ids")
+            public void showPlayerPurchaseRecords(CommandSender sender, OnlinePlayer onlinePlayer, @Optional String recordId) {
+                Player player = onlinePlayer.player;
+                PlayerPurchaseRecords record = PlayerPurchaseRecords.getCopy(player);
+                if (recordId == null) {
+                    record.purgeOldRecords();
+                    Set<String> keys = record.getKeys();
+                    if (keys.size() == 0) {
+                        sender.sendMessage(ChatColor.RED + player.getName() + " doesn't have any purchase records.");
+                    } else {
+                        sender.sendMessage(ChatColor.GREEN + player.getName() + " has purchase record(s) in the following categories:");
+                        for (String key : keys) {
+                            BaseComponent[] components = new ComponentBuilder()
+                                    .append(key).color(ChatColor.YELLOW)
+                                    .event(new ClickEvent(ClickEvent.Action.SUGGEST_COMMAND, "/worstshop purchases show " + player.getName() + " " + key))
+                                    .create();
+                            sender.spigot().sendMessage(components);
+                        }
+                    }
                 } else {
-                    sender.sendMessage(ChatColor.GREEN + player.getName() + " has purchase record(s) in the following categories:");
-                    for (String key : keys) {
-                        BaseComponent[] components = new ComponentBuilder()
-                                .append(key).color(ChatColor.YELLOW)
-                                .event(new ClickEvent(ClickEvent.Action.SUGGEST_COMMAND, "/worstshop purchases show " + player.getName() + " " + key))
+                    PlayerPurchaseRecords.RecordStorage purchases = record.get(recordId);
+                    if (purchases == null) {
+                        throw new InvalidCommandArgument(recordId + " is not a valid record ID!", false);
+                    }
+                    purchases.purgeOldRecords();
+                    List<Map.Entry<LocalDateTime, Integer>> entries = purchases.getEntries();
+                    sender.sendMessage(ChatColor.GREEN + player.getName() + " has " + entries.size() + " purchase record(s) in " + ChatColor.YELLOW + recordId);
+                    LocalDateTime now = LocalDateTime.now();
+                    for (Map.Entry<LocalDateTime, Integer> entry : entries) {
+                        BaseComponent[] components = new ComponentBuilder("")
+                                .append("x" + entry.getValue()).color(ChatColor.YELLOW)
+                                .append(" - ").color(ChatColor.YELLOW)
+                                .append(TextUtils.formatDuration(false, entry.getKey(), Duration.between(entry.getKey(), LocalDateTime.now())))
                                 .create();
                         sender.spigot().sendMessage(components);
                     }
-                }
-            } else {
-                PurchaseRecords.RecordStorage purchases = record.get(recordId);
-                if (purchases == null) {
-                    throw new InvalidCommandArgument(recordId + " is not a valid record ID!", false);
-                }
-                purchases.purgeOldRecords();
-                List<Map.Entry<LocalDateTime, Integer>> entries = purchases.getEntries();
-                sender.sendMessage(ChatColor.GREEN + player.getName() + " has " + entries.size() + " purchase record(s) in " + ChatColor.YELLOW + recordId);
-                LocalDateTime now = LocalDateTime.now();
-                for (Map.Entry<LocalDateTime, Integer> entry : entries) {
-                    BaseComponent[] components = new ComponentBuilder("")
-                            .append("x" + entry.getValue()).color(ChatColor.YELLOW)
-                            .append(" - ").color(ChatColor.YELLOW)
-                            .append(DateTimeUtils.formatTime(Duration.between(entry.getKey(), now)) + " ago").color(ChatColor.GREEN)
-                            .event(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new Text(DateTimeUtils.formatTime(entry.getKey()))))
-                            .create();
-                    sender.spigot().sendMessage(components);
                 }
             }
         }

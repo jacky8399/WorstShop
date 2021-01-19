@@ -84,7 +84,7 @@ public class CommandSell extends BaseCommand {
 
             @Override
             public @NotNull String getTitle() {
-                return "";
+                return inventory.getType().getDefaultTitle();
             }
         };
         if (!skipEventCalls) { // more events

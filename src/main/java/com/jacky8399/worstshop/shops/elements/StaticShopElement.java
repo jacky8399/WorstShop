@@ -205,7 +205,7 @@ public class StaticShopElement extends ShopElement {
                                     PaperHelper.createProfile(finalUuid, finalName));
                         }
                     } else {
-                        throw new IllegalArgumentException("skin can only be used on player heads!");
+                        throw new IllegalArgumentException("skull can only be used on player heads!");
                     }
                 });
             } else if (yaml.containsKey("skin")) {

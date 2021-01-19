@@ -17,11 +17,11 @@ import java.time.ZoneOffset;
 import java.util.*;
 import java.util.stream.Collectors;
 
-public class PurchaseRecords {
-    public static PurchaseRecords getCopy(Player player) {
+public class PlayerPurchaseRecords {
+    public static PlayerPurchaseRecords getCopy(Player player) {
         PersistentDataContainer container = player.getPersistentDataContainer();
         if (!container.has(PURCHASE_RECORD_KEY, PURCHASE_RECORD_STORAGE)) {
-            return new PurchaseRecords();
+            return new PlayerPurchaseRecords();
         }
         return container.get(PURCHASE_RECORD_KEY, PURCHASE_RECORD_STORAGE);
     }
@@ -139,7 +139,7 @@ public class PurchaseRecords {
     private static final WorstShop PLUGIN = WorstShop.get();
     private static final NamespacedKey PURCHASE_RECORD_KEY = new NamespacedKey(PLUGIN, "purchase_record");
     private static final PurchaseRecordStorage PURCHASE_RECORD_STORAGE = new PurchaseRecordStorage();
-    private static class PurchaseRecordStorage implements PersistentDataType<PersistentDataContainer, PurchaseRecords> {
+    private static class PurchaseRecordStorage implements PersistentDataType<PersistentDataContainer, PlayerPurchaseRecords> {
         private static String sanitizeKey(String key) {
             StringBuilder builder = new StringBuilder(key);
             for (int i = 0; i < builder.length(); i++) {
@@ -169,15 +169,15 @@ public class PurchaseRecords {
         }
         @NotNull
         @Override
-        public Class<PurchaseRecords> getComplexType() {
-            return PurchaseRecords.class;
+        public Class<PlayerPurchaseRecords> getComplexType() {
+            return PlayerPurchaseRecords.class;
         }
         private static final NamespacedKey RETENTION_TIME = makeKey("retention_time");
         private static final NamespacedKey MAX_RECORDS = makeKey("max_records");
         private static final NamespacedKey RECORDS = makeKey("records");
         @NotNull
         @Override
-        public PersistentDataContainer toPrimitive(@NotNull PurchaseRecords complex, @NotNull PersistentDataAdapterContext context) {
+        public PersistentDataContainer toPrimitive(@NotNull PlayerPurchaseRecords complex, @NotNull PersistentDataAdapterContext context) {
             PersistentDataContainer container = context.newPersistentDataContainer();
             complex.records.forEach((key, recordStorage)->{
                 // nest
@@ -201,9 +201,9 @@ public class PurchaseRecords {
         @NotNull
         @Override
         @SuppressWarnings({"null", "ConstantConditions"})
-        public PurchaseRecords fromPrimitive(@NotNull PersistentDataContainer primitive, @NotNull PersistentDataAdapterContext context) {
+        public PlayerPurchaseRecords fromPrimitive(@NotNull PersistentDataContainer primitive, @NotNull PersistentDataAdapterContext context) {
             // get keys
-            PurchaseRecords records = new PurchaseRecords();
+            PlayerPurchaseRecords records = new PlayerPurchaseRecords();
             Set<NamespacedKey> keys = primitive.getKeys();
             keys.forEach(key -> {
                 try {

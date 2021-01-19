@@ -207,6 +207,11 @@ public class PaperHelper {
         public boolean hasSkin() {
             return obj.getProperties().containsKey("skin") || obj.isComplete();
         }
+
+        @Override
+        public boolean equals(Object other) {
+            return other instanceof NmsGameProfile && ((NmsGameProfile) other).obj.equals(obj);
+        }
     }
 
     public static class PaperGameProfile extends GameProfile {
@@ -259,6 +264,11 @@ public class PaperHelper {
         @Override
         public boolean hasSkin() {
             return obj.hasProperty("skin") || obj.hasTextures();
+        }
+
+        @Override
+        public boolean equals(Object other) {
+            return other instanceof PaperGameProfile && ((PaperGameProfile) other).obj.equals(obj);
         }
     }
 
