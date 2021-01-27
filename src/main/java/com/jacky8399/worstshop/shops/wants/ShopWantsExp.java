@@ -3,7 +3,6 @@ package com.jacky8399.worstshop.shops.wants;
 import com.jacky8399.worstshop.I18n;
 import com.jacky8399.worstshop.helper.ItemBuilder;
 import com.jacky8399.worstshop.shops.elements.ShopElement;
-import com.jacky8399.worstshop.shops.elements.StaticShopElement;
 import net.md_5.bungee.api.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
@@ -64,7 +63,7 @@ public class ShopWantsExp extends ShopWants {
 
     @Override
     public ShopElement createElement(TransactionType position) {
-        return StaticShopElement.fromStack(ItemBuilder.of(Material.EXPERIENCE_BOTTLE)
+        return position.createElement(ItemBuilder.of(Material.EXPERIENCE_BOTTLE)
                 .name(ChatColor.BLUE +
                         (levels != 0 ? I18n.translate("worstshop.messages.shops.wants.level", levels) : "") + " " +
                         (points != 0 ? I18n.translate("worstshop.messages.shops.wants.points", points) : ""))

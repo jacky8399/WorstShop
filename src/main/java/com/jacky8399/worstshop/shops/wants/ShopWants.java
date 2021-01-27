@@ -182,6 +182,19 @@ public class ShopWants implements Predicate<Player> {
         TransactionType(SlotPos pos) {
             this.pos = pos;
         }
+
+        @NotNull
+        public ShopElement createElement(ItemStack stack) {
+            return createElement(StaticShopElement.fromStack(stack));
+        }
+
+        @NotNull
+        public ShopElement createElement(ShopElement element) {
+            ShopElement clone = element == null ? StaticShopElement.fromStack(UNDEFINED) : element.clone();
+            clone.fill = ShopElement.FillType.NONE;
+            clone.itemPositions = Collections.singletonList(pos);
+            return clone;
+        }
     }
 
     private static final ItemStack UNDEFINED = ItemBuilder.of(Material.BEDROCK).name(ChatColor.DARK_RED + "???").build();
@@ -193,10 +206,7 @@ public class ShopWants implements Predicate<Player> {
      * @return the ShopElement to be displayed
      */
     public ShopElement createElement(TransactionType position) {
-        StaticShopElement elem = StaticShopElement.fromStack(UNDEFINED);
-        elem.fill = ShopElement.FillType.NONE;
-        elem.itemPositions = Collections.singletonList(position.pos);
-        return elem;
+        return position.createElement(UNDEFINED);
     }
 
     /**

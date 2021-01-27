@@ -3,7 +3,6 @@ package com.jacky8399.worstshop.shops.wants;
 import com.jacky8399.worstshop.WorstShop;
 import com.jacky8399.worstshop.helper.ItemBuilder;
 import com.jacky8399.worstshop.shops.elements.ShopElement;
-import com.jacky8399.worstshop.shops.elements.StaticShopElement;
 import net.md_5.bungee.api.ChatColor;
 import net.milkbowl.vault.economy.Economy;
 import net.milkbowl.vault.economy.EconomyResponse;
@@ -47,7 +46,7 @@ public class ShopWantsMoney extends ShopWants {
 
     @Override
     public ShopElement createElement(TransactionType position) {
-        return StaticShopElement.fromStack(ItemBuilder.of(Material.GOLD_INGOT).name(formatMoney(realMoney)).build());
+        return position.createElement(ItemBuilder.of(Material.GOLD_INGOT).name(formatMoney(realMoney)).build());
     }
 
     @Override

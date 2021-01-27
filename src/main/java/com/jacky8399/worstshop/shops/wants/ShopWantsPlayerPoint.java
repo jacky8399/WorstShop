@@ -82,7 +82,7 @@ public class ShopWantsPlayerPoint extends ShopWants {
 
     @Override
     public ShopElement createElement(TransactionType position) {
-        return StaticShopElement.fromStack(ItemBuilder.of(Material.DIAMOND).name(formatPoints(points)).build());
+        return position.createElement(ItemBuilder.of(Material.DIAMOND).name(formatPoints(points)).build());
     }
 
     public static String formatPoints(int points) {

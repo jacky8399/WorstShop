@@ -8,6 +8,7 @@ import com.jacky8399.worstshop.shops.Shop;
 import com.jacky8399.worstshop.shops.actions.Action;
 import com.jacky8399.worstshop.shops.conditions.Condition;
 import com.jacky8399.worstshop.shops.conditions.ConditionAnd;
+import com.jacky8399.worstshop.shops.conditions.ConditionConstant;
 import com.jacky8399.worstshop.shops.conditions.ConditionPermission;
 import fr.minuskube.inv.ClickableItem;
 import fr.minuskube.inv.content.InventoryContents;
@@ -15,6 +16,8 @@ import fr.minuskube.inv.content.SlotPos;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.ItemStack;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -28,6 +31,7 @@ public abstract class ShopElement implements Cloneable, ParseContext.NamedContex
     }
 
     // for debugging
+    @Nullable
     public String id;
 
     @Override
@@ -36,13 +40,17 @@ public abstract class ShopElement implements Cloneable, ParseContext.NamedContex
     }
 
     // populateItems properties
+    @Nullable
     public List<SlotPos> itemPositions = null;
+    @NotNull
     public FillType fill = FillType.NONE;
 
     // common properties
     public transient Shop owner = null;
-    public Condition condition;
-    public List<Action> actions;
+    @NotNull
+    public Condition condition = ConditionConstant.TRUE;
+    @NotNull
+    public List<Action> actions = new ArrayList<>();
 
     public static ShopElement fromConfig(Config config) {
         boolean dynamic = config.find("dynamic", Boolean.class).orElse(false);
