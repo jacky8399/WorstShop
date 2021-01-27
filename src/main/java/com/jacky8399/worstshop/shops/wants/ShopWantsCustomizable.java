@@ -1,6 +1,5 @@
 package com.jacky8399.worstshop.shops.wants;
 
-import com.google.common.collect.Lists;
 import com.jacky8399.worstshop.helper.Config;
 import com.jacky8399.worstshop.shops.ParseContext;
 import com.jacky8399.worstshop.shops.elements.DynamicShopElement;
@@ -30,7 +29,8 @@ public abstract class ShopWantsCustomizable extends ShopWants {
         if (yaml.containsKey("from") && ((String)yaml.get("from")).equalsIgnoreCase("parent")) {
             // copy from parent
             copyFromParent = true; // for serialization
-            return ParseContext.findLatest(ShopElement.class);
+            ShopElement parent = ParseContext.findLatest(ShopElement.class);
+            return parent != null ? parent.clone() : null;
         } else {
             return ShopElement.fromConfig(new Config(yaml));
         }
@@ -42,7 +42,7 @@ public abstract class ShopWantsCustomizable extends ShopWants {
             // sanitize element
             element.fill = ShopElement.FillType.NONE;
             element.itemPositions = Collections.singletonList(position.pos);
-            element.actions = Lists.newArrayList();
+            element.actions = Collections.emptyList();
             return element;
         } else {
             return getDefaultElement(position);

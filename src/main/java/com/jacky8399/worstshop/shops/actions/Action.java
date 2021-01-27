@@ -8,7 +8,7 @@ import org.bukkit.inventory.ItemStack;
 
 import java.util.*;
 
-public abstract class Action {
+public abstract class Action implements Cloneable {
     EnumSet<ClickType> triggerOnClick = EnumSet.allOf(ClickType.class);
     public Action(Config yaml) {
         if (yaml == null) {
@@ -100,4 +100,12 @@ public abstract class Action {
     public abstract void onClick(InventoryClickEvent e);
 
     public abstract Map<String, Object> toMap(Map<String, Object> map);
+
+    public Action clone() {
+        try {
+            return (Action) super.clone();
+        } catch (CloneNotSupportedException ex) {
+            return null;
+        }
+    }
 }

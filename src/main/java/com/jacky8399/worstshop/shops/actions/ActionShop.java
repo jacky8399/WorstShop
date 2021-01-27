@@ -66,7 +66,7 @@ public class ActionShop extends Action {
 
     private static ShopWants findParent() {
         StaticShopElement element = ParseContext.findLatest(StaticShopElement.class);
-        return element != null ? new ShopWantsItem(element.rawStack) : null;
+        return element != null ? new ShopWantsItem(element.rawStack.clone()) : null;
     }
 
     public ActionShop(ShopWants cost, ShopWants reward, PurchaseRecords.RecordTemplate purchaseLimitTemplate, int purchaseLimit) {

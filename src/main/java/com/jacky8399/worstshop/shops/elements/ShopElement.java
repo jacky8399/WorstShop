@@ -178,7 +178,10 @@ public abstract class ShopElement implements Cloneable, ParseContext.NamedContex
 
     public ShopElement clone() {
         try {
-            return (ShopElement) super.clone();
+            ShopElement clone = (ShopElement) super.clone();
+            clone.itemPositions = itemPositions != null ? new ArrayList<>(itemPositions) : null;
+            clone.actions = actions.stream().map(Action::clone).collect(Collectors.toList());
+            return clone;
         } catch (CloneNotSupportedException e) {
             return null;
         }
