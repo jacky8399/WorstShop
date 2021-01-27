@@ -7,8 +7,10 @@ import com.jacky8399.worstshop.WorstShop;
 import com.jacky8399.worstshop.helper.*;
 import com.jacky8399.worstshop.shops.ParseContext;
 import com.jacky8399.worstshop.shops.Shop;
+import fr.minuskube.inv.content.InventoryContents;
 import me.clip.placeholderapi.PlaceholderAPI;
 import org.bukkit.Bukkit;
+import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.configuration.file.YamlConfiguration;
@@ -34,6 +36,9 @@ public class StaticShopElement extends ShopElement {
     public static NamespacedKey SAFETY_KEY = new NamespacedKey(WorstShop.get(), "shop_item");
 
     public ItemStack rawStack;
+
+    public boolean async = false;
+    public transient boolean hasRemindedAsync = false;
 
     // for faster client load times
     private PaperHelper.GameProfile skullCache;
@@ -69,6 +74,7 @@ public class StaticShopElement extends ShopElement {
         ParseContext.pushContext(inst);
 
         inst.rawStack = parseItemStack(yaml);
+        inst.async = config.find("async", Boolean.class).orElse(false);
 
         // die if null
         if (ItemUtils.isEmpty(inst.rawStack) && !((Boolean) yaml.getOrDefault("preserve-space", false)))
@@ -302,7 +308,34 @@ public class StaticShopElement extends ShopElement {
             map.put("preserve-space", true);
         else
             serializeItemStack(rawStack, map);
+        if (async)
+            map.put("async", true);
         return map;
+    }
+
+    @Override
+    public void populateItems(Player player, InventoryContents contents, Shop.PaginationHelper pagination) {
+        super.populateItems(player, contents, pagination);
+
+        if (async) {
+            Bukkit.getScheduler().runTaskAsynchronously(WorstShop.get(), ()->{
+                try {
+                    asyncHack = createStack(player);
+                    Bukkit.getScheduler().runTask(WorstShop.get(), ()->{
+                        try {
+                            super.populateItems(player, contents, pagination);
+                        } catch (Exception e) {
+                            RuntimeException wrapped = new RuntimeException("An error occurred while replacing asynchronous item for " + player.getName() + " (" + id + "@" + owner.id + ")");
+                            asyncHack = ItemUtils.getErrorItem(wrapped);
+                        }
+                    });
+                } catch (Exception e) {
+                    // error reporting
+                    RuntimeException wrapped = new RuntimeException("An error occurred while fetching asynchronous item for " + player.getName() + " (" + id + "@" + owner.id + ")");
+                    asyncHack = ItemUtils.getErrorItem(wrapped);
+                }
+            });
+        }
     }
 
     public ItemStack createPlaceholderStack(Player player) {
@@ -311,7 +344,13 @@ public class StaticShopElement extends ShopElement {
         }
 
         // parse placeholders
+        long start = System.currentTimeMillis();
         ItemStack stack = replacePlaceholders(player, this.rawStack);
+        long end = System.currentTimeMillis();
+        if (!async && !hasRemindedAsync && end - start > 500) {
+            WorstShop.get().logger.warning("Placeholders took " + (end - start) + "ms. Consider making this item async. (" + id + "@" + owner.id + ")");
+            hasRemindedAsync = true;
+        }
         // try to apply cache
         if (skullCache != null && stack.getType() == Material.PLAYER_HEAD) {
             SkullMeta meta = (SkullMeta) stack.getItemMeta();
@@ -321,8 +360,21 @@ public class StaticShopElement extends ShopElement {
         return stack;
     }
 
+    public static final ItemStack ASYNC_PLACEHOLDER = ItemBuilder.of(Material.BEDROCK)
+            .name(""+ChatColor.RED + ChatColor.BOLD + "LOADING").build();
+    private transient ItemStack asyncHack = null;
     @Override
     public ItemStack createStack(Player player) {
+        if (async) {
+            if (asyncHack != null) {
+                ItemStack result = asyncHack;
+                asyncHack = null;
+                return result;
+            } else if (Bukkit.isPrimaryThread()) {
+                return ASYNC_PLACEHOLDER.clone();
+            }
+        }
+
 
         final ItemStack readonlyStack = createPlaceholderStack(player);
 
