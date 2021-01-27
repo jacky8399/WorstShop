@@ -384,6 +384,8 @@ public class StaticShopElement extends ShopElement {
     }
 
     public static boolean isShopItem(ItemStack stack) {
+        if (stack == null || stack.getType() == Material.AIR)
+            return false;
         PersistentDataContainer container = stack.getItemMeta().getPersistentDataContainer();
         return container.has(SAFETY_KEY, PersistentDataType.BYTE);
     }
