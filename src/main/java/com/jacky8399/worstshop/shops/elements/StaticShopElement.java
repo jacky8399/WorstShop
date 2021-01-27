@@ -20,6 +20,8 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.Damageable;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.SkullMeta;
+import org.bukkit.persistence.PersistentDataContainer;
+import org.bukkit.persistence.PersistentDataType;
 import org.yaml.snakeyaml.Yaml;
 
 import java.nio.charset.StandardCharsets;
@@ -28,6 +30,9 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 public class StaticShopElement extends ShopElement {
+
+    public static NamespacedKey SAFETY_KEY = new NamespacedKey(WorstShop.get(), "shop_item");
+
     public ItemStack rawStack;
 
     // for faster client load times
@@ -328,6 +333,11 @@ public class StaticShopElement extends ShopElement {
         // let actions influence item
         actions.forEach(action -> action.influenceItem(player, readonlyStack.clone(), actualStack));
 
+        // put unique identifier
+        ItemMeta meta = actualStack.getItemMeta();
+        meta.getPersistentDataContainer().set(SAFETY_KEY, PersistentDataType.BYTE, (byte) 1);
+        actualStack.setItemMeta(meta);
+
         return actualStack;
     }
 
@@ -371,5 +381,10 @@ public class StaticShopElement extends ShopElement {
         }
         stack.setItemMeta(meta);
         return stack;
+    }
+
+    public static boolean isShopItem(ItemStack stack) {
+        PersistentDataContainer container = stack.getItemMeta().getPersistentDataContainer();
+        return container.has(SAFETY_KEY, PersistentDataType.BYTE);
     }
 }

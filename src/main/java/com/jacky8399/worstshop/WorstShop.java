@@ -2,6 +2,7 @@ package com.jacky8399.worstshop;
 
 import co.aikar.commands.PaperCommandManager;
 import com.jacky8399.worstshop.commands.Commands;
+import com.jacky8399.worstshop.events.Events;
 import com.jacky8399.worstshop.helper.InventoryCloseListener;
 import com.jacky8399.worstshop.helper.PaperHelper;
 import com.jacky8399.worstshop.shops.ShopManager;
@@ -59,7 +60,7 @@ public final class WorstShop extends JavaPlugin {
         // check is Paper
         PaperHelper.checkIsPaper();
         if (!PaperHelper.isPaper) {
-            logger.info(ChatColor.YELLOW + "Not using PaperSpigot. Using alternative methods.");
+            logger.info(ChatColor.YELLOW + "Not using Paper. Using alternative methods.");
         }
 
         // setup vault dependencies
@@ -99,6 +100,9 @@ public final class WorstShop extends JavaPlugin {
         // init commands
         commands = new PaperCommandManager(this);
         Commands.initCommands(this);
+
+        // listen to events
+        Events.registerEvents();
 
         ShopManager.loadShops();
     }
