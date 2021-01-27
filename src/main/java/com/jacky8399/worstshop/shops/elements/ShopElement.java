@@ -132,9 +132,17 @@ public abstract class ShopElement implements Cloneable, ParseContext.NamedContex
     }
 
     public void populateItems(Player player, InventoryContents contents, Shop.PaginationHelper pagination) {
-        ItemStack stack = createStack(player);
-        if (ItemUtils.isEmpty(stack))
-            return;
+        ItemStack stack;
+        try {
+            stack = createStack(player);
+            if (ItemUtils.isEmpty(stack))
+                return;
+        } catch (Exception ex) {
+            // something has gone horribly wrong
+            Shop owningShop = (Shop) contents.inventory().getProvider();
+            RuntimeException wrapped = new RuntimeException("An error occurred while populating item for " + player.getName() + " (" + id + "@" + owningShop.id + ")", ex);
+            stack = ItemUtils.getErrorItem(wrapped);
+        }
         ClickableItem item = ClickableItem.of(stack, e -> {
             try {
                 onClick(e);
