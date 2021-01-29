@@ -5,6 +5,7 @@ import com.jacky8399.worstshop.I18n;
 import com.jacky8399.worstshop.WorstShop;
 import com.jacky8399.worstshop.helper.*;
 import com.jacky8399.worstshop.shops.ParseContext;
+import com.jacky8399.worstshop.shops.Shop;
 import com.jacky8399.worstshop.shops.elements.ShopElement;
 import com.jacky8399.worstshop.shops.elements.StaticShopElement;
 import com.jacky8399.worstshop.shops.wants.IFlexibleShopWants;
@@ -21,6 +22,7 @@ import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryType;
+import org.bukkit.inventory.ItemStack;
 import org.bukkit.scheduler.BukkitRunnable;
 
 import java.time.Duration;
@@ -82,7 +84,7 @@ public class ActionShop extends Action {
 
     private static ShopWants findParent() {
         StaticShopElement element = ParseContext.findLatest(StaticShopElement.class);
-        return element != null ? new ShopWantsItem(element.rawStack) : null;
+        return element != null ? new ShopWantsItem(element.rawStack.clone()) : null;
     }
 
     public ActionShop(ShopWants cost, ShopWants reward, PlayerPurchaseRecords.RecordTemplate purchaseLimitTemplate, int purchaseLimit) {
@@ -258,10 +260,24 @@ public class ActionShop extends Action {
         public void init(Player player, InventoryContents contents) {
             contents.fill(FILLER);
 
-            costElem = cost.createElement(ShopWants.TransactionType.COST);
-            costElem.populateItems(player, contents, null);
-            rewardElem = reward.createElement(ShopWants.TransactionType.REWARD);
-            rewardElem.populateItems(player, contents, null);
+            try {
+                costElem = cost.createElement(ShopWants.TransactionType.COST);
+                costElem.populateItems(player, contents, null);
+                rewardElem = reward.createElement(ShopWants.TransactionType.REWARD);
+                rewardElem.populateItems(player, contents, null);
+            } catch (Exception ex) {
+                // guess parent
+                Optional<SmartInventory> parent = contents.inventory().getParent();
+                String parentShop = "failed to locate owning shop";
+                if (parent.isPresent() && parent.get().getProvider() instanceof Shop) {
+                    parentShop = ((Shop) parent.get().getProvider()).id;
+                }
+                RuntimeException wrapped = new RuntimeException("An error occurred while opening ActionShop for " + player.getName() + " (@" + parentShop + ")", ex);
+                ItemStack err = ItemUtils.getErrorItem(wrapped);
+                // spam the player
+                contents.fill(ClickableItem.empty(err));
+                return;
+            }
 
             updateItemCount(player, contents);
             if (cost.canMultiply() && reward.canMultiply())
@@ -426,11 +442,24 @@ public class ActionShop extends Action {
 
             // also update item lol
             if (animationSequence == 4) {
-                if (shop.cost.isElementDynamic()) {
-                    costElem.populateItems(player, contents, null);
-                }
-                if (shop.reward.isElementDynamic()) {
-                    rewardElem.populateItems(player, contents, null);
+                try {
+                    if (shop.cost.isElementDynamic()) {
+                        costElem.populateItems(player, contents, null);
+                    }
+                    if (shop.reward.isElementDynamic()) {
+                        rewardElem.populateItems(player, contents, null);
+                    }
+                } catch (Exception ex) {
+                    // guess parent
+                    Optional<SmartInventory> parent = contents.inventory().getParent();
+                    String parentShop = "failed to locate owning shop";
+                    if (parent.isPresent() && parent.get().getProvider() instanceof Shop) {
+                        parentShop = ((Shop) parent.get().getProvider()).id;
+                    }
+                    RuntimeException wrapped = new RuntimeException("An error occurred while opening ActionShop for " + player.getName() + " (@" + parentShop + ")", ex);
+                    ItemStack err = ItemUtils.getErrorItem(wrapped);
+                    // spam the player
+                    contents.fill(ClickableItem.empty(err));
                 }
             }
         }

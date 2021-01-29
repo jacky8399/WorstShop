@@ -192,25 +192,31 @@ public class ShopWants implements Predicate<Player> {
         TransactionType(SlotPos pos) {
             this.pos = pos;
         }
+
+        @NotNull
+        public ShopElement createElement(ItemStack stack) {
+            return createElement(StaticShopElement.fromStack(stack));
+        }
+
+        @NotNull
+        public ShopElement createElement(ShopElement element) {
+            ShopElement clone = element == null ? StaticShopElement.fromStack(UNDEFINED) : element.clone();
+            clone.fill = ShopElement.FillType.NONE;
+            clone.itemPositions = Collections.singletonList(pos);
+            return clone;
+        }
     }
 
-    public static final ItemStack UNDEFINED = ItemBuilder.of(Material.BEDROCK).name(ChatColor.DARK_RED + "???").build();
+    private static final ItemStack UNDEFINED = ItemBuilder.of(Material.BEDROCK).name(ChatColor.DARK_RED + "???").build();
     /**
      * Create a ShopElement to be displayed in ActionShop GUIs. Only called once per ActionShop GUI.
      * <p>
      * To have the element be updated every tick, override {@link #isElementDynamic()}
-     * @param pos position of the returned element
+     * @param position position of the returned element
      * @return the ShopElement to be displayed
      */
-    public ShopElement createElement(TransactionType pos) {
-        return ofStack(pos, UNDEFINED);
-    }
-
-    protected static StaticShopElement ofStack(TransactionType pos, ItemStack stack) {
-        StaticShopElement elem = StaticShopElement.fromStack(stack);
-        elem.fill = ShopElement.FillType.NONE;
-        elem.itemPositions = Collections.singletonList(pos.pos);
-        return elem;
+    public ShopElement createElement(TransactionType position) {
+        return position.createElement(UNDEFINED);
     }
 
     /**

@@ -67,7 +67,7 @@ public class ShopWantsItem extends ShopWants implements IFlexibleShopWants {
 
     @Override
     public ShopElement createElement(TransactionType position) {
-        return ofStack(position, stack.clone());
+        return position.createElement(stack.clone());
     }
 
     @Override

@@ -47,8 +47,8 @@ public class ShopWantsMoney extends ShopWants {
     }
 
     @Override
-    public ShopElement createElement(TransactionType pos) {
-        return ofStack(pos, ItemBuilder.of(Material.GOLD_INGOT).name(formatMoney(realMoney)).build());
+    public ShopElement createElement(TransactionType position) {
+        return position.createElement(ItemBuilder.of(Material.GOLD_INGOT).name(formatMoney(realMoney)).build());
     }
 
     @Override

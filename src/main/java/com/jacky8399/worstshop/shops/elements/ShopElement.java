@@ -8,6 +8,7 @@ import com.jacky8399.worstshop.shops.Shop;
 import com.jacky8399.worstshop.shops.actions.Action;
 import com.jacky8399.worstshop.shops.conditions.Condition;
 import com.jacky8399.worstshop.shops.conditions.ConditionAnd;
+import com.jacky8399.worstshop.shops.conditions.ConditionConstant;
 import com.jacky8399.worstshop.shops.conditions.ConditionPermission;
 import fr.minuskube.inv.ClickableItem;
 import fr.minuskube.inv.content.InventoryContents;
@@ -15,6 +16,8 @@ import fr.minuskube.inv.content.SlotPos;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.ItemStack;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -28,6 +31,7 @@ public abstract class ShopElement implements Cloneable, ParseContext.NamedContex
     }
 
     // for debugging
+    @Nullable
     public String id;
 
     @Override
@@ -36,13 +40,17 @@ public abstract class ShopElement implements Cloneable, ParseContext.NamedContex
     }
 
     // populateItems properties
+    @Nullable
     public List<SlotPos> itemPositions = null;
+    @NotNull
     public FillType fill = FillType.NONE;
 
     // common properties
     public transient Shop owner = null;
-    public Condition condition;
-    public List<Action> actions;
+    @NotNull
+    public Condition condition = ConditionConstant.TRUE;
+    @NotNull
+    public List<Action> actions = new ArrayList<>();
 
     public static ShopElement fromConfig(Config config) {
         boolean dynamic = config.find("dynamic", Boolean.class).orElse(false);
@@ -124,9 +132,17 @@ public abstract class ShopElement implements Cloneable, ParseContext.NamedContex
     }
 
     public void populateItems(Player player, InventoryContents contents, Shop.PaginationHelper pagination) {
-        ItemStack stack = createStack(player);
-        if (ItemUtils.isEmpty(stack))
-            return;
+        ItemStack stack;
+        try {
+            stack = createStack(player);
+            if (ItemUtils.isEmpty(stack))
+                return;
+        } catch (Exception ex) {
+            // something has gone horribly wrong
+            Shop owningShop = (Shop) contents.inventory().getProvider();
+            RuntimeException wrapped = new RuntimeException("An error occurred while populating item for " + player.getName() + " (" + id + "@" + owningShop.id + ")", ex);
+            stack = ItemUtils.getErrorItem(wrapped);
+        }
         ClickableItem item = ClickableItem.of(stack, e -> {
             try {
                 onClick(e);
@@ -162,7 +178,10 @@ public abstract class ShopElement implements Cloneable, ParseContext.NamedContex
 
     public ShopElement clone() {
         try {
-            return (ShopElement) super.clone();
+            ShopElement clone = (ShopElement) super.clone();
+            clone.itemPositions = itemPositions != null ? new ArrayList<>(itemPositions) : null;
+            clone.actions = actions.stream().map(Action::clone).collect(Collectors.toList());
+            return clone;
         } catch (CloneNotSupportedException e) {
             return null;
         }

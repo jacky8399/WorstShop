@@ -71,10 +71,12 @@ public class ShopWantsExp extends ShopWants {
     }
 
     @Override
-    public ShopElement createElement(TransactionType pos) {
-        return ofStack(pos, ItemBuilder.of(Material.EXPERIENCE_BOTTLE)
-                .name(formatMessage((int) (levels * multiplier), (int) (points * multiplier)))
-                .build());
+    public ShopElement createElement(TransactionType position) {
+        return position.createElement(
+                ItemBuilder.of(Material.EXPERIENCE_BOTTLE)
+                        .name(formatMessage((int) (levels * multiplier), (int) (points * multiplier)))
+                        .build()
+        );
     }
 
     @Override

@@ -8,6 +8,7 @@ public class Events {
 
     public static void registerEvents() {
         register(new ShopAliasListener());
+        register(new IllegalShopItemListener());
     }
 
     private static final WorstShop plugin = WorstShop.get();
