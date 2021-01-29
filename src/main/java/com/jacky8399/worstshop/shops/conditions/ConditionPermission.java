@@ -13,13 +13,26 @@ public class ConditionPermission extends Condition {
         this.perm = permission;
     }
 
+    // i forgot to escape quotes lol
+    public static ConditionPermission untangleQuotes(String permission) {
+        StringBuilder builder = new StringBuilder(permission);
+        int idx = 0;
+        while ((idx = builder.indexOf("\"", idx)) != -1) {
+            if (idx != 0 && builder.charAt(idx - 1) == '\\')
+                builder.deleteCharAt(idx - 1);
+            else // remove unescaped quotation marks
+                builder.deleteCharAt(idx);
+        }
+        return new ConditionPermission(builder.toString());
+    }
+
     public static Condition fromPermString(String permRaw) {
         final String perm = permRaw.trim();
         if (perm.equalsIgnoreCase("true") || perm.equalsIgnoreCase("false")) {
             boolean result = perm.equalsIgnoreCase("true");
             return ConditionConstant.valueOf(result);
         } else if (ONLY_PERMS.matcher(perm).matches()) {
-            return new ConditionPermission(perm);
+            return untangleQuotes(perm);
         }
         Matcher bracketsMatcher = BRACKETS.matcher(perm);
         if (bracketsMatcher.matches()) {
@@ -62,7 +75,7 @@ public class ConditionPermission extends Condition {
 
     private static final Pattern BRACKETS = Pattern.compile("^\\(\\s*(.+)\\s*\\)$");
     //private static final String permsCriterion = "(?:[A-Za-z0-9.\\-_]|\"[A-Za-z0-9.\\-_\\s]+\")+";
-    private static final String permsCriterion = "(?:[A-Za-z0-9.\\-_]|(?<=\\.)\".+?\")+";
+    private static final String permsCriterion = "(?:[A-Za-z0-9.\\-_]|(?<=\\.|^)\".+?(?<!\\\\)\")+";
     private static final Pattern AND = Pattern.compile("^(\\(.+\\)|" + permsCriterion + ")\\s*&\\s*(\\(.+\\)|" + permsCriterion + ")$");
     private static final Pattern OR = Pattern.compile("^(\\(.+\\)|" + permsCriterion + ")\\s*\\|\\s*(\\(.+\\)|" + permsCriterion + ")$");
     private static final Pattern NEGATE = Pattern.compile("^[!~](\\(.+\\)|" + permsCriterion + ")$");

@@ -25,15 +25,13 @@ public class ConditionOr extends Condition {
     @NotNull
     @Override
     public ConditionOr or(@NotNull Condition other) {
+        ArrayList<Condition> newConditions = Lists.newArrayList(conditions);
         if (other instanceof ConditionOr) {
-            ArrayList<Condition> newConditions = Lists.newArrayList(conditions);
             newConditions.addAll(((ConditionOr) other).conditions);
-            return new ConditionOr(newConditions);
         } else {
-            ArrayList<Condition> newConditions = Lists.newArrayList(conditions);
             newConditions.add(other);
-            return new ConditionOr(newConditions);
         }
+        return new ConditionOr(newConditions);
     }
 
     @Override
