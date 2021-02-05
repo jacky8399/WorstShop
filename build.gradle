@@ -23,7 +23,7 @@ repositories {
     }
     maven { url = 'https://jitpack.io' }
     maven { url = "https://repo.aikar.co/content/groups/aikar/" }
-    maven { url = 'http://repo.extendedclip.com/content/repositories/placeholderapi/' }
+    maven { url = 'https://repo.extendedclip.com/content/repositories/placeholderapi/' }
     maven {
         name = 'minecraft-repo'
         url = 'https://libraries.minecraft.net/'
