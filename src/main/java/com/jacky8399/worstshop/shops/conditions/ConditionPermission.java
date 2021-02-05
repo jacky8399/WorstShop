@@ -73,9 +73,19 @@ public class ConditionPermission extends Condition {
         return map;
     }
 
+    @Override
+    public int hashCode() {
+        return perm.hashCode();
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        return obj instanceof ConditionPermission && ((ConditionPermission) obj).perm.equals(perm);
+    }
+
     private static final Pattern BRACKETS = Pattern.compile("^\\(\\s*(.+)\\s*\\)$");
     //private static final String permsCriterion = "(?:[A-Za-z0-9.\\-_]|\"[A-Za-z0-9.\\-_\\s]+\")+";
-    private static final String permsCriterion = "(?:[A-Za-z0-9.\\-_]|(?<=\\.|^)\".+?(?<!\\\\)\")+";
+    private static final String permsCriterion = "(?:[A-Za-z0-9.\\-_]|(?<=[.\\s]|^)\".+?(?<!\\\\)\")+";
     private static final Pattern AND = Pattern.compile("^(\\(.+\\)|" + permsCriterion + ")\\s*&\\s*(\\(.+\\)|" + permsCriterion + ")$");
     private static final Pattern OR = Pattern.compile("^(\\(.+\\)|" + permsCriterion + ")\\s*\\|\\s*(\\(.+\\)|" + permsCriterion + ")$");
     private static final Pattern NEGATE = Pattern.compile("^[!~](\\(.+\\)|" + permsCriterion + ")$");

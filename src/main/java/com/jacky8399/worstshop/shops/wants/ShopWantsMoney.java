@@ -97,4 +97,19 @@ public class ShopWantsMoney extends ShopWants {
     public static String formatMoney(double money) {
         return ChatColor.GOLD + ECONOMY.format(money);
     }
+
+    @Override
+    public int hashCode() {
+        return Double.hashCode(realMoney);
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        return obj instanceof ShopWantsMoney && ((ShopWantsMoney) obj).realMoney == realMoney;
+    }
+
+    @Override
+    public String toString() {
+        return "[give/take " + money + "]";
+    }
 }

@@ -36,14 +36,19 @@ public abstract class Condition implements Predicate<Player> {
                 }
             }
         }
-        Optional<String> preset = yaml.find("preset", String.class);
+        Optional<Object> preset = yaml.find("preset", String.class, Boolean.class);
         if (!preset.isPresent()) {
             // compatibility with ShopWants
             WorstShop.get().logger.warning("Using cost & rewards as conditions is deprecated. Please add 'preset: commodity' before it.");
             WorstShop.get().logger.warning("Offending condition is in " + ParseContext.getHierarchy());
             return new ConditionShopWants(yaml);
         }
-        switch (preset.get()) {
+        // thanks YAML
+        if (preset.get() instanceof Boolean) {
+             return ConditionConstant.valueOf((Boolean) preset.get());
+        }
+
+        switch ((String) preset.get()) {
             case "commodity":
                 return new ConditionShopWants(yaml);
             case "placeholder":
@@ -52,7 +57,7 @@ public abstract class Condition implements Predicate<Player> {
                 return ConditionPermission.fromPermString(yaml.get("permission", String.class));
             case "true":
             case "false":
-                return ConditionConstant.valueOf(Boolean.parseBoolean(preset.get()));
+                return ConditionConstant.valueOf(Boolean.parseBoolean((String) preset.get()));
             default:
                 throw new IllegalArgumentException("Unknown condition preset " + preset);
         }

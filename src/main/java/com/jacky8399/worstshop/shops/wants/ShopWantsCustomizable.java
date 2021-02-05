@@ -3,6 +3,7 @@ package com.jacky8399.worstshop.shops.wants;
 import com.google.common.collect.Lists;
 import com.jacky8399.worstshop.helper.Config;
 import com.jacky8399.worstshop.shops.ParseContext;
+import com.jacky8399.worstshop.shops.conditions.Condition;
 import com.jacky8399.worstshop.shops.elements.DynamicShopElement;
 import com.jacky8399.worstshop.shops.elements.ShopElement;
 import com.jacky8399.worstshop.shops.elements.StaticShopElement;
@@ -13,6 +14,7 @@ import org.jetbrains.annotations.Nullable;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * Special commodity to let users specify the display themselves
@@ -23,8 +25,8 @@ public final class ShopWantsCustomizable extends ShopWants implements IFlexibleS
     @NotNull
     private final ShopElement element;
     transient boolean copyFromParent;
-    public ShopWantsCustomizable(@NotNull ShopWantsCustomizable carryOvery) {
-        this(carryOvery.base, carryOvery.element, carryOvery.copyFromParent);
+    public ShopWantsCustomizable(@NotNull ShopWantsCustomizable carryOver) {
+        this(carryOver.base, carryOver.element, carryOver.copyFromParent);
     }
 
     public ShopWantsCustomizable(@NotNull ShopWants base, @NotNull ShopElement element) {
@@ -122,5 +124,28 @@ public final class ShopWantsCustomizable extends ShopWants implements IFlexibleS
         else
             map.put("display", element.toMap(new HashMap<>()));
         return map;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(base, element);
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (!(obj instanceof ShopWantsCustomizable))
+            return false;
+        ShopWantsCustomizable other = (ShopWantsCustomizable) obj;
+        return other.base.equals(base) && other.element.equals(element);
+    }
+
+    @Override
+    public Condition toCondition() {
+        return base.toCondition();
+    }
+
+    @Override
+    public String toString() {
+        return base.toString() + " (w/ custom display)";
     }
 }

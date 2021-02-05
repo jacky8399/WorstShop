@@ -59,4 +59,17 @@ public class AnimationShopElement extends DynamicShopElement {
         current.actions = newAction;
         current.populateItems(player, contents, pagination);
     }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(elements, intervalInTicks);
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (!(obj instanceof AnimationShopElement))
+            return false;
+        AnimationShopElement other = (AnimationShopElement) obj;
+        return other.elements.equals(elements) && other.intervalInTicks == intervalInTicks;
+    }
 }

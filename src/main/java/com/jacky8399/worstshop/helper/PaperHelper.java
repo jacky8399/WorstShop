@@ -44,13 +44,13 @@ public class PaperHelper {
     }
 
     public static String getItemName(ItemStack stack) {
+        ItemMeta meta = stack.getItemMeta();
+        if (meta.hasDisplayName()) {
+            return meta.getDisplayName();
+        }
         if (isPaper) {
             return stack.getI18NDisplayName();
         } else {
-            ItemMeta meta = stack.getItemMeta();
-            if (meta.hasDisplayName()) {
-                return meta.getDisplayName();
-            }
             // return name from material type
             return StringUtils.capitalize(
                     stack.getType().toString().replace('_', ' ').toLowerCase()

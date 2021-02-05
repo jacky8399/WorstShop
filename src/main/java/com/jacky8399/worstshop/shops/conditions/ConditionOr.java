@@ -22,6 +22,22 @@ public class ConditionOr extends Condition {
         this.conditions.add(condition);
     }
 
+    public void mergeCondition(@NotNull Condition condition) {
+        if (condition instanceof ConditionOr) {
+            conditions.addAll(((ConditionOr) condition).conditions);
+        } else {
+            conditions.add(condition);
+        }
+    }
+
+    public boolean removeCondition(@NotNull Condition condition) {
+        return this.conditions.remove(condition);
+    }
+
+    public List<Condition> getConditions() {
+        return conditions;
+    }
+
     @NotNull
     @Override
     public ConditionOr or(@NotNull Condition other) {
@@ -49,5 +65,15 @@ public class ConditionOr extends Condition {
         map.put("logic", "or");
         map.put("conditions", conditions.stream().map(condition -> condition.toMap(new HashMap<>())).collect(Collectors.toList()));
         return map;
+    }
+
+    @Override
+    public int hashCode() {
+        return conditions.hashCode();
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        return obj instanceof ConditionOr && ((ConditionOr) obj).conditions.equals(conditions);
     }
 }

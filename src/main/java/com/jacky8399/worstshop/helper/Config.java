@@ -22,7 +22,7 @@ public final class Config {
         backingMap = new LinkedHashMap<>(map);
         this.parent = parent;
         path = path == null ? "?" : path;
-        this.path = parent != null ? parent.path + " > " + path : path;
+        this.path = parent != null && !parent.path.isEmpty() ? parent.path + " > " + path : path;
     }
 
     public Config(Map<String, Object> map) {
@@ -171,7 +171,7 @@ public final class Config {
      */
     @SafeVarargs
     public final <T> T get(String key, Class<? extends T> clazz1, Class<? extends T>... classes) throws ConfigException {
-        return find(key, clazz1, classes).orElseThrow(throwFor(key, stringifyTypes(classes)));
+        return find(key, clazz1, classes).orElseThrow(throwFor(key, stringifyTypes(getClasses(clazz1, classes))));
     }
 
     @SafeVarargs
@@ -203,7 +203,7 @@ public final class Config {
 
     @SafeVarargs
     public final <T> List<? extends T> getList(String key, Class<? extends T> listType1, Class<? extends T>... listTypes) throws ConfigException {
-        return findList(key, listType1, listTypes).orElseThrow(throwFor(key, stringifyListTypes(listTypes)));
+        return findList(key, listType1, listTypes).orElseThrow(throwFor(key, stringifyListTypes(getClasses(listType1, listTypes))));
     }
 
     private Supplier<? extends ConfigException> throwFor(String key, String type) {

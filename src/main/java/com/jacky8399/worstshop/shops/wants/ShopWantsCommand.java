@@ -9,7 +9,9 @@ import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 
 public class ShopWantsCommand extends ShopWants implements INeverAffordableShopWants {
 
@@ -18,8 +20,8 @@ public class ShopWantsCommand extends ShopWants implements INeverAffordableShopW
     }
 
     String command;
-    CommandInvocationMethod method = CommandInvocationMethod.PLAYER;
-    int multiplier = 1;
+    CommandInvocationMethod method;
+    int multiplier;
 
     public ShopWantsCommand(Config config) {
         command = config.get("command", String.class);
@@ -74,7 +76,7 @@ public class ShopWantsCommand extends ShopWants implements INeverAffordableShopW
 
     @Override
     public ShopElement createElement(TransactionType pos) {
-        return ofStack(pos, ItemBuilder.of(Material.COMMAND_BLOCK).name(ChatColor.GREEN + command).build());
+        return pos.createElement(ItemBuilder.of(Material.COMMAND_BLOCK).name(ChatColor.GREEN + command).build());
     }
 
     @Override
@@ -88,6 +90,25 @@ public class ShopWantsCommand extends ShopWants implements INeverAffordableShopW
         map.put("preset", "command");
         map.put("command", command);
         map.put("multiplier", multiplier);
+        map.put("method", method.name().toLowerCase(Locale.ROOT).replace('_', ' '));
         return map;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(command, method, multiplier);
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (!(obj instanceof ShopWantsCommand))
+            return false;
+        ShopWantsCommand other = (ShopWantsCommand) obj;
+        return other.multiplier == multiplier && other.command.equals(command) && other.method == method;
+    }
+
+    @Override
+    public String toString() {
+        return "[runs command \"" + command + "\n as " + (method == CommandInvocationMethod.PLAYER_OP ? "PLAYER (temporarily opped)" : method.name()) + "]";
     }
 }

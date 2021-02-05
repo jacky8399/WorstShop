@@ -8,10 +8,8 @@ import fr.minuskube.inv.content.InventoryContents;
 import fr.minuskube.inv.content.SlotPos;
 import org.bukkit.entity.Player;
 
-import java.util.Collections;
-import java.util.List;
-import java.util.OptionalDouble;
-import java.util.UUID;
+import java.util.*;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 public class ShopWantsMultiple extends ShopWants {
@@ -22,7 +20,22 @@ public class ShopWantsMultiple extends ShopWants {
     }
 
     public ShopWantsMultiple(List<ShopWants> wants) {
-        this.wants = Lists.newArrayList(wants);
+        this.wants = Lists.newArrayList();
+        for (ShopWants commodity : wants) {
+            if (commodity instanceof ShopWantsMultiple)
+                throw new IllegalArgumentException("Cannot embed ShopWantsMultiple!");
+            this.wants.add(commodity);
+        }
+    }
+
+    @Override
+    public boolean canMultiply() {
+        return wants.stream().allMatch(ShopWants::canMultiply);
+    }
+
+    @Override
+    public int getMaximumMultiplier(Player player) {
+        return wants.stream().mapToInt(wants -> getMaximumMultiplier(player)).min().orElse(0);
     }
 
     @Override
@@ -42,9 +55,21 @@ public class ShopWantsMultiple extends ShopWants {
 
     @Override
     public double grantOrRefund(Player player) {
-        // try to average the refund
-        OptionalDouble refund = wants.stream().mapToDouble(want->want.grantOrRefund(player)).average();
-        return refund.orElse(0);
+        // need to refund other commodities ourselves
+        Map<ShopWants, Double> result = wants.stream()
+                .collect(Collectors.toMap(Function.identity(), want -> want.grantOrRefund(player)));
+
+        Map.Entry<ShopWants, Double> maxRefund = Collections.max(result.entrySet(), Comparator.comparingDouble(Map.Entry::getValue));
+        if (maxRefund != null && maxRefund.getValue() != 0) {
+            result.forEach((want, refund)->{
+                if (want != maxRefund.getKey()) {
+                    double refundDifference = maxRefund.getValue() - refund;
+                    want.multiply(refundDifference).deduct(player);
+                }
+            });
+            return maxRefund.getValue();
+        }
+        return 0;
     }
 
     @Override
@@ -106,7 +131,28 @@ public class ShopWantsMultiple extends ShopWants {
     }
 
     @Override
+    public Map<String, Object> toMap(Map<String, Object> map) {
+        // handled by ShopWants.class
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
     public boolean isElementDynamic() {
         return wants.size() > 3;
+    }
+
+    @Override
+    public int hashCode() {
+        return wants.hashCode();
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        return obj instanceof ShopWantsMultiple && ((ShopWantsMultiple) obj).wants.equals(wants);
+    }
+
+    @Override
+    public String toString() {
+        return wants.stream().map(ShopWants::toString).collect(Collectors.joining(",", "{", "}"));
     }
 }

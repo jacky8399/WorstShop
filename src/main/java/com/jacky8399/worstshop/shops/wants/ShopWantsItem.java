@@ -3,6 +3,7 @@ package com.jacky8399.worstshop.shops.wants;
 import com.google.common.collect.Sets;
 import com.jacky8399.worstshop.I18n;
 import com.jacky8399.worstshop.helper.Config;
+import com.jacky8399.worstshop.helper.PaperHelper;
 import com.jacky8399.worstshop.shops.elements.ShopElement;
 import com.jacky8399.worstshop.shops.elements.StaticShopElement;
 import org.bukkit.entity.Player;
@@ -199,6 +200,29 @@ public class ShopWantsItem extends ShopWants implements IFlexibleShopWants {
                 .collect(Collectors.toList()));
         StaticShopElement.serializeItemStack(stack, map);
         return map;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(stack, itemMatchers, multiplier);
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (!(obj instanceof ShopWantsItem))
+            return false;
+        ShopWantsItem other = (ShopWantsItem) obj;
+        return other.multiplier == multiplier && other.stack.equals(stack) && other.itemMatchers.equals(itemMatchers);
+    }
+
+    @Override
+    public String toString() {
+        return "[give/take " + PaperHelper.getItemName(stack) +
+                (itemMatchers.size() != 0 ?
+                        "by matching " + itemMatchers.stream().map(matcher -> matcher.name).collect(Collectors.joining(", ")) :
+                        ""
+                ) +
+                "]";
     }
 
     @SuppressWarnings({"StaticInitializerReferencesSubClass", "unused"})

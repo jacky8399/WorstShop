@@ -33,6 +33,10 @@ public class ConditionAnd extends Condition {
         return this.conditions.remove(condition);
     }
 
+    public List<Condition> getConditions() {
+        return conditions;
+    }
+
     public boolean isEmpty() {
         return conditions.size() == 0;
     }
@@ -65,5 +69,15 @@ public class ConditionAnd extends Condition {
         map.put("logic", "and");
         map.put("conditions", conditions.stream().map(condition->condition.toMap(new HashMap<>())).collect(Collectors.toList()));
         return map;
+    }
+
+    @Override
+    public int hashCode() {
+        return conditions.hashCode();
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        return obj instanceof ConditionAnd && ((ConditionAnd) obj).conditions.equals(conditions);
     }
 }

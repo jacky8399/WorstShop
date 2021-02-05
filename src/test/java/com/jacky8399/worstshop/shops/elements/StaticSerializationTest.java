@@ -1,5 +1,6 @@
 package com.jacky8399.worstshop.shops.elements;
 
+import com.jacky8399.worstshop.WorstShop;
 import org.bukkit.Bukkit;
 import org.bukkit.Server;
 import org.bukkit.configuration.file.YamlConfiguration;
@@ -7,9 +8,11 @@ import org.bukkit.configuration.serialization.ConfigurationSerialization;
 import org.bukkit.craftbukkit.v1_16_R3.inventory.CraftItemFactory;
 import org.bukkit.craftbukkit.v1_16_R3.util.CraftMagicNumbers;
 import org.bukkit.inventory.ItemStack;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.mockito.MockedStatic;
 
 import java.io.File;
 import java.util.HashMap;
@@ -17,15 +20,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.logging.Logger;
 
-import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.*;
 
 @SuppressWarnings("deprecation")
 public class StaticSerializationTest {
     private static final Logger logger = Logger.getLogger("Minecraft");
-    @BeforeEach
+    @BeforeAll
     @SuppressWarnings("ConstantConditions")
-    public void setupServer() {
+    public static void setupServer() {
         if (Bukkit.getServer() == null) {
             Server server = mock(Server.class);
             doReturn(logger).when(server).getLogger();
@@ -39,6 +41,21 @@ public class StaticSerializationTest {
 
             Bukkit.setServer(server);
         }
+    }
+
+    static MockedStatic<WorstShop> plugin;
+    @BeforeAll
+    static void mockPlugin() {
+        WorstShop inst = mock(WorstShop.class);
+        inst.logger = Logger.getLogger("WorstShop");
+        doReturn("WorstShop").when(inst).getName();
+        plugin = mockStatic(WorstShop.class);
+        plugin.when(WorstShop::get).thenReturn(inst);
+    }
+
+    @AfterAll
+    public static void cleanup() {
+        plugin.close();
     }
 
     @SuppressWarnings("ConstantConditions")

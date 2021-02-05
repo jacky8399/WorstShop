@@ -8,7 +8,6 @@ import com.jacky8399.worstshop.helper.DateTimeUtils;
 import com.jacky8399.worstshop.helper.ItemBuilder;
 import com.jacky8399.worstshop.shops.elements.ShopElement;
 import net.luckperms.api.LuckPerms;
-import net.luckperms.api.context.ContextManager;
 import net.luckperms.api.model.data.DataMutateResult;
 import net.luckperms.api.model.data.TemporaryNodeMergeStrategy;
 import net.luckperms.api.model.user.User;
@@ -21,6 +20,7 @@ import org.bukkit.Material;
 import org.bukkit.entity.Player;
 
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
 public class ShopWantsPermission extends ShopWants {
@@ -35,7 +35,7 @@ public class ShopWantsPermission extends ShopWants {
     }
 
     Node permissionNode;
-    String permissionDisplay;
+    transient String permissionDisplay;
     int durationInSeconds;
     double multiplier = 1;
     // whether the duration should be added to the existing duration
@@ -74,7 +74,7 @@ public class ShopWantsPermission extends ShopWants {
         } else if (config.has("meta")) {
             Config innerData = config.get("meta", Config.class);
             String key = innerData.get("key", String.class),
-                    value = innerData.get("value", String.class, Boolean.class).toString(); // allow booleans
+                    value = innerData.get("value", Object.class).toString(); // allow booleans and numbers
             builder = MetaNode.builder(key, value);
             permissionDisplay = key + ": " + value;
             permType = PermissionType.META;
@@ -212,7 +212,6 @@ public class ShopWantsPermission extends ShopWants {
     @Override
     public void deduct(Player player) {
         if (revokePermission) {
-            ContextManager ctx = PERMS.getContextManager();
             Node permissionNode = createNodeWithDuration(player);
             User user = PERMS.getUserManager().getUser(player.getUniqueId());
             user.data().remove(permissionNode);
@@ -248,6 +247,26 @@ public class ShopWantsPermission extends ShopWants {
 
     @Override
     public ShopElement createElement(TransactionType pos) {
-        return ofStack(pos, ItemBuilder.of(Material.PAPER).name(formatPermission()).build());
+        return pos.createElement(ItemBuilder.of(Material.PAPER).name(formatPermission()).build());
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(permissionNode, durationInSeconds, durationShouldAppend, revokePermission, multiplier);
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (!(obj instanceof ShopWantsPermission))
+            return false;
+        ShopWantsPermission other = (ShopWantsPermission) obj;
+        return other.permissionNode.equals(permissionNode) && other.durationInSeconds == durationInSeconds &&
+                other.durationShouldAppend == durationShouldAppend && other.revokePermission == revokePermission;
+    }
+
+    @Override
+    public String toString() {
+        return "[" + (revokePermission ? "give/take " : "give ") + permType.name() + " " + permissionDisplay +
+                (durationInSeconds > 0 ? " for " + (durationShouldAppend ? "+" : "") + durationInSeconds + "s" : "");
     }
 }

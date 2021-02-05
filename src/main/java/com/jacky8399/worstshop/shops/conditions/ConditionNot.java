@@ -34,4 +34,14 @@ public class ConditionNot extends Condition {
         map.put("condition", condition.toMap(new HashMap<>()));
         return map;
     }
+
+    @Override
+    public int hashCode() {
+        return 31 * condition.hashCode();
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        return obj instanceof ConditionNot && ((ConditionNot) obj).condition.equals(condition);
+    }
 }

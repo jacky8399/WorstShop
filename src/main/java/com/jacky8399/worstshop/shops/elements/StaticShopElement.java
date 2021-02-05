@@ -26,6 +26,7 @@ import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
 import org.yaml.snakeyaml.Yaml;
 
+import javax.annotation.Nullable;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.regex.Pattern;
@@ -41,6 +42,7 @@ public class StaticShopElement extends ShopElement {
     public transient boolean hasRemindedAsync = false;
 
     // for faster client load times
+    @Nullable
     private PaperHelper.GameProfile skullCache;
 
     public static final PaperHelper.GameProfile VIEWER_SKULL = PaperHelper.createProfile(null, "{player}");
@@ -440,5 +442,18 @@ public class StaticShopElement extends ShopElement {
             return false;
         PersistentDataContainer container = stack.getItemMeta().getPersistentDataContainer();
         return container.has(SAFETY_KEY, PersistentDataType.BYTE);
+    }
+
+    @Override
+    public int hashCode() {
+        return super.hashCode();
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (!(obj instanceof StaticShopElement))
+            return false;
+        StaticShopElement other = (StaticShopElement) obj;
+        return other.rawStack.equals(rawStack) && Objects.equals(other.skullCache, skullCache) && other.async == async;
     }
 }

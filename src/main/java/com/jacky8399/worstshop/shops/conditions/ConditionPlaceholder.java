@@ -6,6 +6,7 @@ import me.clip.placeholderapi.PlaceholderAPI;
 import org.bukkit.entity.Player;
 
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
@@ -39,7 +40,24 @@ public class ConditionPlaceholder extends Condition {
     public Map<String, Object> toMap(Map<String, Object> map) {
         map.put("preset", "placeholder");
         map.put("placeholder", placeholderStr);
+        if (matcher instanceof CompareRegex)
+            map.put("matches", ((CompareRegex) matcher).pattern.toString());
+        else
+            map.put("equals", ((CompareString) matcher).string);
         return map;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(placeholderStr, matcher.toString());
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (!(obj instanceof ConditionPlaceholder))
+            return false;
+        ConditionPlaceholder other = (ConditionPlaceholder) obj;
+        return other.placeholderStr.equals(placeholderStr) && other.matcher.equals(matcher);
     }
 
     private static abstract class Internal implements Predicate<String> {
@@ -62,6 +80,11 @@ public class ConditionPlaceholder extends Condition {
         public boolean test(String s) {
             return pattern.matcher(s).matches();
         }
+
+        @Override
+        public boolean equals(Object obj) {
+            return obj instanceof CompareRegex && ((CompareRegex) obj).pattern.toString().equals(pattern.toString());
+        }
     }
 
     private class CompareString extends Internal {
@@ -78,6 +101,11 @@ public class ConditionPlaceholder extends Condition {
         @Override
         public boolean test(String s) {
             return string.equals(s);
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            return obj instanceof CompareString && ((CompareString) obj).string.equals(string);
         }
     }
 }

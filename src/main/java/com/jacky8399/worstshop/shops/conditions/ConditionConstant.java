@@ -32,4 +32,14 @@ public class ConditionConstant extends Condition {
         map.put("preset", Boolean.toString(value));
         return map;
     }
+
+    @Override
+    public int hashCode() {
+        return Boolean.hashCode(value);
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        return obj instanceof ConditionConstant && ((ConditionConstant) obj).value == value;
+    }
 }

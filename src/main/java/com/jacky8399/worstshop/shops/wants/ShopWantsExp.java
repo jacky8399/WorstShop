@@ -10,6 +10,7 @@ import org.bukkit.entity.Player;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Map;
+import java.util.Objects;
 
 public class ShopWantsExp extends ShopWants {
     public ShopWantsExp(Config config) {
@@ -85,5 +86,23 @@ public class ShopWantsExp extends ShopWants {
         map.put("levels", levels);
         map.put("points", points);
         return map;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(levels, points, multiplier);
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (!(obj instanceof ShopWantsExp))
+            return false;
+        ShopWantsExp other = (ShopWantsExp) obj;
+        return other.multiplier == multiplier && other.levels == levels && other.points == points;
+    }
+
+    @Override
+    public String toString() {
+        return "[give/take " + levels + " levels and " + points + " xp points]";
     }
 }

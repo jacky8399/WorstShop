@@ -1,0 +1,22 @@
+- type: command
+  command: /icanhasbukkit
+  method: console
+- type: exp
+  levels: 123
+  points: 456
+- type: free
+- type: item
+  item: tnt
+  name: boom
+  count: 10
+  matches:
+    - material
+    - name
+- type: money
+  money: 101.23
+- $101.24
+- type: points
+  points: 13
+- type: free
+  display:
+    item: structure void

@@ -3,6 +3,9 @@ package com.jacky8399.worstshop.shops.wants;
 import com.google.common.collect.Lists;
 import com.jacky8399.worstshop.helper.Config;
 import com.jacky8399.worstshop.helper.ItemBuilder;
+import com.jacky8399.worstshop.shops.conditions.Condition;
+import com.jacky8399.worstshop.shops.conditions.ConditionConstant;
+import com.jacky8399.worstshop.shops.conditions.ConditionShopWants;
 import com.jacky8399.worstshop.shops.elements.ShopElement;
 import com.jacky8399.worstshop.shops.elements.StaticShopElement;
 import fr.minuskube.inv.content.SlotPos;
@@ -17,12 +20,11 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
-public class ShopWants implements Predicate<Player> {
+public abstract class ShopWants {
     public static ShopWants fromMap(Config config) {
-        String type = config.find("type", String.class).orElse("free");
+        String type = config.get("type", String.class);
         ShopWants commodity;
         switch (type) {
             case "money":
@@ -44,7 +46,7 @@ public class ShopWants implements Predicate<Player> {
                 commodity = new ShopWantsPermission(config);
                 break;
             case "free":
-                commodity = new ShopWantsFree();
+                commodity = ShopWantsFree.INSTANCE;
                 break;
             default:
                 throw new IllegalArgumentException("Invalid commodity type " + type);
@@ -155,11 +157,6 @@ public class ShopWants implements Predicate<Player> {
         return canAfford;
     }
 
-    @Override
-    public boolean test(Player player) {
-        return canAfford(player);
-    }
-
     private static List<ShopWants> mergeWants(ShopWants orig, ShopWants other) {
         List<ShopWants> wants = Lists.newArrayList();
         if (other instanceof ShopWantsMultiple) {
@@ -207,7 +204,7 @@ public class ShopWants implements Predicate<Player> {
         }
     }
 
-    private static final ItemStack UNDEFINED = ItemBuilder.of(Material.BEDROCK).name(ChatColor.DARK_RED + "???").build();
+    public static final ItemStack UNDEFINED = ItemBuilder.of(Material.BEDROCK).name(ChatColor.DARK_RED + "???").build();
     /**
      * Create a ShopElement to be displayed in ActionShop GUIs. Only called once per ActionShop GUI.
      * <p>
@@ -244,5 +241,9 @@ public class ShopWants implements Predicate<Player> {
         else if (this instanceof ShopWantsMultiple)
             return ((ShopWantsMultiple) this).wants.stream().map(want -> want.toSerializable(new HashMap<>())).collect(Collectors.toList());
         return toMap(map);
+    }
+
+    public Condition toCondition() {
+        return this instanceof INeverAffordableShopWants ? ConditionConstant.FALSE : new ConditionShopWants(this);
     }
 }

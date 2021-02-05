@@ -39,4 +39,14 @@ public class ConditionShopWants extends Condition {
         want.toMap(map);
         return map;
     }
+
+    @Override
+    public int hashCode() {
+        return want.hashCode();
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        return obj instanceof ConditionShopWants && ((ConditionShopWants) obj).want.equals(want);
+    }
 }
