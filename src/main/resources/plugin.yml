@@ -1,7 +1,7 @@
 name: WorstShop
 version: @version@
 main: com.jacky8399.worstshop.WorstShop
-api-version: 1.15
+api-version: 1.16
 depend:
   - Vault
 softdepend:
@@ -12,14 +12,24 @@ author: jacky8399
 description: The worst shop plugin.
 
 permissions:
-  worstshop.discount.*:
-    children:
-      worstshop.discount.create: true
+#  worstshop.discount.*:
+#    children:
+#      worstshop.discount.create: true
+#      worstshop.discount.list: true
+#      worstshop.discount.delete: true
+#
+#  worstshop.log.*:
+#    children:
+#      worstshop.log.error: true
+#      worstshop.log.purchases: true
 
   worstshop.*:
     default: op
     children:
       worstshop.discount.*: true
+      worstshop.log.*: true
+      worstshop.shops.*: true
+      worstshop.shop.*: true
 
 commands:
   worstshop:
