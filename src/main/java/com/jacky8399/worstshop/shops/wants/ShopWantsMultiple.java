@@ -98,7 +98,7 @@ public class ShopWantsMultiple extends ShopWants {
             return new StaticShopElement() {
                 @Override
                 public void populateItems(Player player, InventoryContents contents, Shop.PaginationHelper pagination) {
-                    int itemSequence = contents.property("shopWantsItemSequence", 0);
+                    int itemSequence = contents.property(self + "_shopWantsItemSequence", 0);
                     int nextItemSequence = wrapIndexOffset(itemSequence, 1);
 
                     contents.setProperty(self + "_shopWantsItemSequence", nextItemSequence);
@@ -138,7 +138,7 @@ public class ShopWantsMultiple extends ShopWants {
 
     @Override
     public boolean isElementDynamic() {
-        return wants.size() > 3;
+        return wants.size() >= 3;
     }
 
     @Override

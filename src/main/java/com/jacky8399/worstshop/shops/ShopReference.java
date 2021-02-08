@@ -22,7 +22,7 @@ public class ShopReference {
 
     public static final HashMap<String, ShopReference> REFERENCES = new HashMap<>();
     /**
-     * Please don't modify this unless you are trying to rename the shop0
+     * Please don't modify this unless you are trying to rename the shop
      */
     public String id;
     private Shop ref;
@@ -63,6 +63,10 @@ public class ShopReference {
         if (ref == null)
             ref = ShopManager.SHOPS.get(id);
         return ref == shop;
+    }
+
+    public void invalidate() {
+        ref = null;
     }
 
     @Override

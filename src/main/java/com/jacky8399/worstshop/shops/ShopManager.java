@@ -95,6 +95,7 @@ public class ShopManager {
     public static void cleanUp() {
         closeAllShops();
         ShopCommands.removeAliases();
+        ShopReference.REFERENCES.values().forEach(ShopReference::invalidate);
         SHOPS.clear();
         ITEM_SHOPS.clear();
     }

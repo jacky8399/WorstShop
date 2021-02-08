@@ -441,7 +441,7 @@ public class ActionShop extends Action {
             contents.set(2, animationSequence + 2, ARROW);
 
             // also update item lol
-            if (animationSequence == 4) {
+            if (animationSequence == 3) {
                 try {
                     if (shop.cost.isElementDynamic()) {
                         costElem.populateItems(player, contents, null);
