@@ -44,6 +44,11 @@ public class ItemBuilder {
         meta = stack.getItemMeta();
     }
 
+    public ItemBuilder meta(ItemMeta meta) {
+        stack.setItemMeta(meta);
+        return this;
+    }
+
     public ItemBuilder meta(Consumer<ItemMeta> metaConsumer) {
         if (meta == null)
             loadMeta();

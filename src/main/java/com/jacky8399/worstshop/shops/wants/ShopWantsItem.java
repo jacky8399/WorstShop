@@ -29,7 +29,7 @@ public class ShopWantsItem extends ShopWants implements IFlexibleShopWants {
 
     public ShopWantsItem(Config config) {
         // parse itemstack
-        this(StaticShopElement.parseItemStack(config.getPrimitiveMap()), 1);
+        this(StaticShopElement.parseItemStack(config), 1);
         config.findList("matches", String.class).ifPresent(matchers -> {
             itemMatchers.clear();
             matchers.stream().map(s -> s.toLowerCase(Locale.ROOT).replace(' ', '_'))

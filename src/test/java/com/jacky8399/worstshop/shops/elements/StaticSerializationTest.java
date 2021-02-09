@@ -1,6 +1,7 @@
 package com.jacky8399.worstshop.shops.elements;
 
 import com.jacky8399.worstshop.WorstShop;
+import com.jacky8399.worstshop.helper.Config;
 import org.bukkit.Bukkit;
 import org.bukkit.Server;
 import org.bukkit.configuration.file.YamlConfiguration;
@@ -78,7 +79,7 @@ public class StaticSerializationTest {
             System.out.println(getClass().getSimpleName() + ": Testing " + toParse.get("desc"));
 
             Map<String, Object> toParseObject = new HashMap<>((Map<String, Object>) toParse.get("to-parse"));
-            ItemStack stack = StaticShopElement.parseItemStack(toParseObject);
+            ItemStack stack = StaticShopElement.parseItemStack(new Config(toParseObject, null, "ROOT"));
 
             Map<String, Object> bukkitObject = new HashMap<>((Map<String, ?>) toParse.get("bukkit"));
             // add version

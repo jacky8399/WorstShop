@@ -56,30 +56,28 @@ public class StaticShopElement extends ShopElement {
 
     private static final Pattern VALID_MC_NAME = Pattern.compile("[A-Za-z0-9_]{1,16}");
     public static ShopElement fromYaml(Config config) {
-        Map<String, Object> yaml = config.getPrimitiveMap();
         // static parsing
         StaticShopElement inst = new StaticShopElement();
 
-        if (yaml.containsKey("id")) {
-            inst.id = (String) yaml.get("id");
-        } else {
+        inst.id = config.find("id", Object.class).map(Object::toString).orElseGet(()-> {
             // try to assign random id
             Shop shop = ParseContext.findLatest(Shop.class);
             if (shop != null) {
-                inst.id = "index=" + (shop.staticElements.size() + shop.dynamicElements.size());
+                return "index=" + (shop.staticElements.size() + shop.dynamicElements.size());
             }
-        }
+            return "???";
+        });
 
         inst.owner = ParseContext.findLatest(Shop.class);
 
         // push context earlier for error-handling
         ParseContext.pushContext(inst);
 
-        inst.rawStack = parseItemStack(yaml);
+        inst.rawStack = parseItemStack(config);
         inst.async = config.find("async", Boolean.class).orElse(false);
 
         // die if null
-        if (ItemUtils.isEmpty(inst.rawStack) && !((Boolean) yaml.getOrDefault("preserve-space", false)))
+        if (ItemUtils.isEmpty(inst.rawStack) && !config.find("preserve-space", Boolean.class).orElse(false))
             return null;
 
         // obtain the skull meta
@@ -121,87 +119,69 @@ public class StaticShopElement extends ShopElement {
         return SUPPORTED_ITEM_META_TYPES.contains(meta.serialize().get("meta-type"));
     }
 
-    @SuppressWarnings({"unchecked"})
-    public static ItemStack parseItemStack(Map<String, Object> yaml) {
+    public static ItemStack parseItemStack(Config yaml) {
         try {
-            Material material = Material.getMaterial(
-                    ((String) yaml.get("item")).toUpperCase().replace(' ', '_')
-            );
+            Material material = Material.getMaterial(yaml.get("item", String.class).toUpperCase(Locale.US).replace(' ', '_'));
             if (material == null) {
-                throw new IllegalStateException("Illegal material " + yaml.get("item"));
+                throw new IllegalStateException("Illegal material " + yaml.get("item", String.class));
             }
             if (material == Material.AIR || material == Material.CAVE_AIR || material == Material.VOID_AIR) {
                 return null; // skip air
             }
             ItemBuilder is = ItemBuilder.of(material);
-            is.amount(Math.max((int) yaml.getOrDefault("count", 1), 1));
+            int amount = yaml.find("count", Integer.class).orElseGet(()->yaml.find("amount", Integer.class).orElse(1));
+            is.amount(Math.min(Math.max(amount, 1), material.getMaxStackSize()));
 
-            if (yaml.containsKey("item-meta")) {
-                String itemMetaStr = (String) yaml.get("item-meta");
-                ItemMeta decoded = deserializeBase64ItemMeta(itemMetaStr);
-                ItemStack stack = is.build();
-                stack.setItemMeta(decoded);
+            Optional<String> itemMetaString = yaml.find("item-meta", String.class);
+            if (itemMetaString.isPresent()) {
+                ItemMeta decoded = deserializeBase64ItemMeta(itemMetaString.get());
+                is.meta(decoded);
                 // allow basic properties to further influence this ItemStack
-                is = ItemBuilder.from(stack);
             }
+            yaml.find("damage", Integer.class).ifPresent(damage -> {
+                if (damage != 0)
+                    is.meta(meta -> {
+                        if (meta instanceof Damageable)
+                            ((Damageable) meta).setDamage(damage);
+                    });
+            });
 
-            int damage = (int) yaml.getOrDefault("damage", 0);
-            if (damage != 0) {
-                is.meta(meta -> {
-                    if (meta instanceof Damageable)
-                        ((Damageable) meta).setDamage(damage);
-                });
-            }
+            yaml.find("custom-model-data", Integer.class).ifPresent(customModelData ->
+                    is.meta(meta -> meta.setCustomModelData(customModelData))
+            );
 
-            if (yaml.containsKey("custom-model-data")) {
-                is.meta(meta -> meta.setCustomModelData(((Number) yaml.get("custom-model-data")).intValue()));
-            }
+            yaml.find("enchants", Config.class).ifPresent(enchants ->
+                    is.meta(meta ->
+                            enchants.getPrimitiveMap().entrySet().stream()
+                                    .map(entry -> {
+                                        String ench = entry.getKey();
+                                        int level = ((Number) entry.getValue()).intValue();
+                                        Enchantment enchType = Enchantment.getByKey(NamespacedKey.minecraft(ench));
+                                        if (enchType == null)
+                                            throw new ConfigException(ench + " is not a valid enchant!", enchants);
+                                        return Maps.immutableEntry(enchType, level);
+                                    })
+                                    .forEach(entry -> meta.addEnchant(entry.getKey(), entry.getValue(), true))));
 
-            if (yaml.containsKey("enchants")) {
-                Map<String, Object> enchants = (Map<String, Object>) yaml.get("enchants");
-                Map<Enchantment, Integer> enchant = enchants.entrySet().stream().map(entry -> {
-                    String ench = entry.getKey();
-                    int level = ((Number) entry.getValue()).intValue();
-                    Enchantment enchType = Enchantment.getByKey(NamespacedKey.minecraft(ench));
-                    if (enchType != null) {
-                        return Maps.immutableEntry(enchType, level);
-                    }
-                    return null;
-                }).filter(Objects::nonNull).collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
-                is.meta(meta -> enchant.forEach((ench, level) -> meta.addEnchant(ench, level, true)));
-            }
+            yaml.find("name", String.class).map(ConfigHelper::translateString).ifPresent(is::name);
 
-            String displayName = ConfigHelper.translateString((String) yaml.get("name"));
-            if (displayName != null) {
-                is.name(displayName);
-            }
-            String locName = (String) yaml.get("loc-name");
-            if (locName != null) {
-                is.meta(meta -> meta.setLocalizedName(locName));
-            }
-            if (yaml.containsKey("lore")) {
-                Object loreObj = yaml.get("lore");
+            yaml.find("loc-name", String.class).ifPresent(locName -> is.meta(meta -> meta.setLocalizedName(locName)));
+
+            yaml.find("lore", List.class, String.class).ifPresent(loreObj -> {
                 if (loreObj instanceof List<?>) {
-                    List<String> lore = ((List<String>) loreObj).stream()
+                    List<String> lore = yaml.getList("lore", String.class).stream()
                             .map(ConfigHelper::translateString)
                             .collect(Collectors.toList());
                     is.lore(lore);
                 } else {
-                    // probably a string
                     is.lores(ConfigHelper.translateString(loreObj.toString()).split("\n"));
                 }
-            }
-            if (yaml.containsKey("hide-flags")) {
-                ItemFlag[] flags = ((List<String>) yaml.get("hide-flags")).stream()
-                        .map(str -> !str.startsWith("hide") ? "HIDE_" + str : str)
-                        .map(str -> str.toUpperCase().replace(' ', '_'))
-                        .map(ItemFlag::valueOf)
-                        .toArray(ItemFlag[]::new);
-                is.meta(meta -> meta.addItemFlags(flags));
-            }
+            });
+
+            yaml.findList("hide-flags", ItemFlag.class).ifPresent(flags -> is.meta(meta -> meta.addItemFlags(flags.toArray(new ItemFlag[0]))));
+
             // skull
-            if (yaml.containsKey("skull")) {
-                String uuidOrName = yaml.get("skull").toString();
+            yaml.find("skull", String.class).ifPresent(uuidOrName -> {
                 UUID uuid = null;
                 try {
                     uuid = UUID.fromString(uuidOrName);
@@ -221,8 +201,8 @@ public class StaticShopElement extends ShopElement {
                         throw new IllegalArgumentException("skull can only be used on player heads!");
                     }
                 });
-            } else if (yaml.containsKey("skin")) {
-                String skin = (String) yaml.get("skin");
+            });
+            yaml.find("skin", String.class).ifPresent(skin -> {
                 PaperHelper.GameProfile profile = PaperHelper.createProfile(UUID.randomUUID(), null);
                 profile.setSkin(skin);
                 is.meta(meta -> {
@@ -232,7 +212,7 @@ public class StaticShopElement extends ShopElement {
                         throw new IllegalArgumentException("skin can only be used on player heads!");
                     }
                 });
-            }
+            });
             return is.build();
         } catch (Exception ex) {
             throw new IllegalArgumentException(ex);
