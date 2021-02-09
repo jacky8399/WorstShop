@@ -10,7 +10,7 @@ import java.lang.annotation.Target;
 public @interface Property {
     /**
      * Returns the translation key of the description of this item. <br>
-     * Prefix of enclosing class "worstshop.editor.items.&lt;clazz&gt;.desc" will be prepended. <br>
+     * Prefix of enclosing class "worstshop.editor.property.&lt;clazz&gt;.&lt;value&gt;.desc" will be prepended. <br>
      * Defaults to the name of the field.
      * @return the translation key of this the description of this item
      */

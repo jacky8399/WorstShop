@@ -1,5 +1,6 @@
 package com.jacky8399.worstshop.helper;
 
+import com.jacky8399.worstshop.I18n;
 import com.jacky8399.worstshop.WorstShop;
 import com.jacky8399.worstshop.editor.*;
 import com.jacky8399.worstshop.editor.DefaultAdaptors.*;
@@ -114,5 +115,9 @@ public class EditorUtils {
                 throw new Error(e);
             }
         }
+    }
+
+    public static String[] getDesc(@Nullable String parentName, @Nullable String fieldName) {
+        return parentName != null && fieldName != null ? I18n.translate("worstshop.editor.property." + parentName + "." + fieldName + ".desc").split("\n") : null;
     }
 }

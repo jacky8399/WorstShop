@@ -16,6 +16,7 @@ public class EditorMainMenu implements InventoryProvider {
 
     public static SmartInventory getInventory() {
         return WorstShop.buildGui("worstshop:editor_main")
+                .provider(new EditorMainMenu())
                 .size(3, 9)
                 .title(I18n.translate(I18N_KEY + "title"))
                 .build();

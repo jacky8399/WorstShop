@@ -3,6 +3,7 @@ package com.jacky8399.worstshop.shops;
 import com.jacky8399.worstshop.editor.Adaptor;
 import com.jacky8399.worstshop.editor.DefaultAdaptors;
 import com.jacky8399.worstshop.editor.Editable;
+import com.jacky8399.worstshop.helper.EditorUtils;
 import com.jacky8399.worstshop.helper.ItemBuilder;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -112,11 +113,13 @@ public class ShopReference {
         }
 
         @Override
-        public ItemStack getRepresentation(ShopReference val, @Nullable String fieldName) {
+        public ItemStack getRepresentation(ShopReference val, @Nullable String parentName, @Nullable String fieldName) {
             if (fieldName != null)
                 return ItemBuilder.of(Material.EMERALD_BLOCK)
                         .name(DefaultAdaptors.NAME_FORMAT.apply(fieldName))
-                        .lores(DefaultAdaptors.VALUE_FORMAT.apply(val == EMPTY ? "?" : val.id)).build();
+                        .lores(DefaultAdaptors.VALUE_FORMAT.apply(val == EMPTY ? "?" : val.id))
+                        .addLores(EditorUtils.getDesc(parentName, fieldName))
+                        .build();
             return ItemBuilder.of(Material.EMERALD_BLOCK).name(ChatColor.GREEN + val.id).build();
         }
     }

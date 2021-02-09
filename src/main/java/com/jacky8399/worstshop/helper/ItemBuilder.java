@@ -74,15 +74,19 @@ public class ItemBuilder {
     }
 
     public ItemBuilder addLores(String... lore) {
-        return addLore(lore.length == 1 ? Collections.singletonList(lore[0]) : Arrays.asList(lore));
+        if (lore != null)
+            addLore(lore.length == 1 ? Collections.singletonList(lore[0]) : Arrays.asList(lore));
+        return this;
     }
 
     public ItemBuilder addLore(List<String> lore) {
-        return meta(meta-> {
-           List<String> oldLore = meta.hasLore() ? meta.getLore() : Lists.newArrayList();
-           oldLore.addAll(lore);
-           meta.setLore(oldLore);
-        });
+        if (lore != null)
+            meta(meta-> {
+               List<String> oldLore = meta.hasLore() ? meta.getLore() : Lists.newArrayList();
+               oldLore.addAll(lore);
+               meta.setLore(oldLore);
+            });
+        return this;
     }
 
 }

@@ -61,7 +61,7 @@ public class DefaultAdaptors {
                 // items
                 ClickableItem[] items = getValues().stream()
                         .map(val -> {
-                            ItemBuilder repr = ItemBuilder.from(getRepresentation(val, null));
+                            ItemBuilder repr = ItemBuilder.from(getRepresentation(val, null, null));
                             if (val == value) {
                                 repr.meta(meta -> {
                                     meta.addEnchant(Enchantment.BINDING_CURSE, 1, true);
@@ -111,7 +111,7 @@ public class DefaultAdaptors {
         }
 
         @Override
-        public ItemStack getRepresentation(T val, @Nullable String fieldName) {
+        public ItemStack getRepresentation(T val, @Nullable String parentName, @Nullable String fieldName) {
             return ItemBuilder.of(Material.EMERALD_BLOCK)
                     .name(NAME_FORMAT.apply(fieldName))
                     .lores(VALUE_FORMAT.apply(val.name()))
@@ -126,7 +126,7 @@ public class DefaultAdaptors {
         }
 
         @Override
-        public ItemStack getRepresentation(Boolean val, @Nullable String fieldName) {
+        public ItemStack getRepresentation(Boolean val, @Nullable String parentName, @Nullable String fieldName) {
             ItemBuilder builder = val ?
                     ItemBuilder.of(Material.GREEN_CONCRETE)
                             .lores(VALUE_FORMAT.apply(I18n.translate(I18N_KEY + "boolean.true"))) :
@@ -213,9 +213,11 @@ public class DefaultAdaptors {
         }
 
         @Override
-        public ItemStack getRepresentation(String val, @Nullable String fieldName) {
+        public ItemStack getRepresentation(String val, @Nullable String parentName, @Nullable String fieldName) {
             return ItemBuilder.of(Material.NAME_TAG).name(NAME_FORMAT.apply(fieldName))
-                    .lores(VALUE_FORMAT.apply(val)).build();
+                    .lores(VALUE_FORMAT.apply(val))
+                    .addLores(EditorUtils.getDesc(parentName, fieldName))
+                    .build();
         }
     }
 
@@ -247,17 +249,21 @@ public class DefaultAdaptors {
         }
 
         @Override
-        public ItemStack getRepresentation(Integer val, @Nullable String fieldName) {
+        public ItemStack getRepresentation(Integer val, @Nullable String parentName, @Nullable String fieldName) {
             return ItemBuilder.of(Material.PAPER).name(NAME_FORMAT.apply(fieldName))
-                    .lores(VALUE_FORMAT.apply(Integer.toString(val))).build();
+                    .lores(VALUE_FORMAT.apply(Integer.toString(val)))
+                    .addLores(EditorUtils.getDesc(parentName, fieldName))
+                    .build();
         }
     }
 
     public static class EditableObjectAdaptor<T> implements EditableAdaptor<T> {
         private final Class<T> clazz;
+        private final String name;
         private final List<Field> properties;
         public EditableObjectAdaptor(Class<T> clazz) {
             this.clazz = clazz;
+            name = clazz.getAnnotation(Editable.class).value();
             properties = Arrays.stream(clazz.getFields())
                     .filter(field -> field.isAnnotationPresent(Property.class))
                     .sorted(Comparator.comparing(Field::getName))
@@ -275,6 +281,10 @@ public class DefaultAdaptors {
                 @SuppressWarnings("unchecked")
                 private <TValue> ClickableItem createItemForField(Field field) {
                     EditableAdaptor<TValue> adaptor = EditorUtils.findAdaptorForField(val, field);
+                    if (adaptor == null) // no adaptor; probably can't edit
+                        return ClickableItem.empty(
+                                ItemBuilder.of(Material.BARRIER).name(NAME_FORMAT.apply(fieldName)).build()
+                        );
                     TValue value;
                     String fieldName = field.getName();
                     try {
@@ -285,7 +295,7 @@ public class DefaultAdaptors {
                         return ClickableItem.empty(ItemUtils.getErrorItem(wrapped));
                     }
                     return ClickableItem.of(
-                            adaptor.getRepresentation(value, fieldName),
+                            adaptor.getRepresentation(value, name, fieldName),
                             e -> adaptor.onInteract(player, value, fieldName)
                                     .thenAccept(newValue -> {
                                         try {
@@ -338,9 +348,11 @@ public class DefaultAdaptors {
         public void update(Player player, InventoryContents contents, boolean isRefreshingProperties) {}
 
         @Override
-        public ItemStack getRepresentation(T val, @Nullable String fieldName) {
+        public ItemStack getRepresentation(T val, @Nullable String parentName, @Nullable String fieldName) {
             return ItemBuilder.of(Material.WRITABLE_BOOK).name(NAME_FORMAT.apply(fieldName))
-                    .lores(I18n.translate(I18N_KEY + "gui.edit")).build();
+                    .lores(I18n.translate(I18N_KEY + "gui.edit"))
+                    .addLores(EditorUtils.getDesc(parentName, fieldName))
+                    .build();
         }
 
         protected String getTitle() {
@@ -362,8 +374,8 @@ public class DefaultAdaptors {
         }
 
         @Override
-        public ItemStack getRepresentation(T val, @Nullable String fieldName) {
-            ItemStack stack = internal.getRepresentation(val, fieldName);
+        public ItemStack getRepresentation(T val, @Nullable String parentName, @Nullable String fieldName) {
+            ItemStack stack = internal.getRepresentation(val, parentName, fieldName);
             ItemStack ret = new ItemStack(material);
             ret.setAmount(stack.getAmount());
             ret.setItemMeta(Bukkit.getItemFactory().asMetaFor(stack.getItemMeta(), material));

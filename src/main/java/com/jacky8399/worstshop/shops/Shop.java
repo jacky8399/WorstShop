@@ -41,7 +41,9 @@ import static com.jacky8399.worstshop.I18n.translate;
 public class Shop implements InventoryProvider, ParseContext.NamedContext {
     public static final String SHOP_ID_PREFIX = "worstshop:shop/";
 
+    @Property
     public List<ShopElement> staticElements = Lists.newArrayList();
+    @Property
     public List<ShopElement> dynamicElements = Lists.newArrayList();
 
     public Shop() { }
@@ -69,6 +71,7 @@ public class Shop implements InventoryProvider, ParseContext.NamedContext {
 
     // aliases
     public static final Pattern ALIAS_PATTERN = Pattern.compile("^\\w+$", Pattern.UNICODE_CHARACTER_CLASS);
+    @Property
     public List<String> aliases;
     @Property
     public boolean aliasesIgnorePermission;
@@ -350,7 +353,7 @@ public class Shop implements InventoryProvider, ParseContext.NamedContext {
         }
 
         @Override
-        public ItemStack getRepresentation(Shop val, @Nullable String fieldName) {
+        public ItemStack getRepresentation(Shop val, @Nullable String parentName, @Nullable String fieldName) {
             return ItemBuilder.of(Material.EMERALD).name(id).build();
         }
 

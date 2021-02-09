@@ -12,5 +12,5 @@ import java.util.concurrent.CompletableFuture;
  */
 public interface EditableAdaptor<T> {
     CompletableFuture<T> onInteract(Player player, T val, @Nullable String fieldName);
-    ItemStack getRepresentation(T val, @Nullable String fieldName);
+    ItemStack getRepresentation(T val, @Nullable String parentName, @Nullable String fieldName);
 }

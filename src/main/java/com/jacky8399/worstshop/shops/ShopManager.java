@@ -38,16 +38,20 @@ public class ShopManager {
         Bukkit.getOnlinePlayers().forEach(p -> manager.getInventory(p).ifPresent(inv -> inv.close(p)));
     }
 
+    public static File getShopFile(String id) {
+        // figure out extension name
+        File shops = new File(WorstShop.get().getDataFolder(), "shops");
+        if (new File(shops, id + ".yml").exists()) {
+            return new File(shops, id + ".yml");
+        } else {
+            return new File(shops, id + ".yaml");
+        }
+    }
+
     public static void renameShop(Shop shop, String newId) {
         String oldId = shop.id;
         File shops = new File(WorstShop.get().getDataFolder(), "shops");
-        File oldFile;
-        // figure out extension name
-        if (new File(shops, oldId + ".yml").exists()) {
-            oldFile = new File(shops, oldId + ".yml");
-        } else {
-            oldFile = new File(shops, oldId + ".yaml");
-        }
+        File oldFile = getShopFile(oldId);
         File newFile = new File(shops, newId + ".yml");
         // ensure file is created??
         int slash = newId.lastIndexOf('/');
