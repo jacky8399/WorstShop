@@ -29,6 +29,7 @@ import static org.mockito.Mockito.*;
 
 public class CommoditySerializationTest {
     static MockedStatic<WorstShop> plugin;
+    @SuppressWarnings({"unchecked", "ResultOfMethodCallIgnored"})
     @BeforeAll
     static void beforeAll() {
         // setup item factory thing
@@ -42,9 +43,9 @@ public class CommoditySerializationTest {
 
         // Vault and PlayerPoints
         // for Vault, just mock the service provider
-        RegisteredServiceProvider<?> provider = mock(RegisteredServiceProvider.class);
+        RegisteredServiceProvider<Economy> provider = mock(RegisteredServiceProvider.class);
         doReturn(null).when(provider).getProvider();
-        inst.economy = (RegisteredServiceProvider<Economy>) provider;
+        inst.economy = provider;
         inst.playerPoints = mock(PlayerPoints.class);
     }
 
@@ -53,6 +54,7 @@ public class CommoditySerializationTest {
         plugin.close();
     }
 
+    @SuppressWarnings({"unchecked", "ConstantConditions"})
     @Test
     public void testDeserialization() {
         List<ShopWants> expected = Arrays.asList(

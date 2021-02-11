@@ -2,6 +2,7 @@ package com.jacky8399.worstshop.shops.wants;
 
 import com.google.common.collect.Lists;
 import com.jacky8399.worstshop.helper.Config;
+import com.jacky8399.worstshop.helper.ConfigException;
 import com.jacky8399.worstshop.shops.ParseContext;
 import com.jacky8399.worstshop.shops.conditions.Condition;
 import com.jacky8399.worstshop.shops.elements.DynamicShopElement;
@@ -49,9 +50,12 @@ public final class ShopWantsCustomizable extends ShopWants implements IFlexibleS
         return config.find("from", String.class).map(from -> {
             if (from.equalsIgnoreCase("parent")) {
                 copyFromParent = true;
-                return ParseContext.findLatest(ShopElement.class);
+                ShopElement parent = ParseContext.findLatest(ShopElement.class);
+                if (parent == null)
+                    throw new ConfigException("Failed to find parent element with 'from: parent'", config, "from");
+                return parent.clone();
             }
-            throw new IllegalArgumentException("Unrecognized source " + from);
+            throw new ConfigException("Unsupported source " + from, config, "from");
         }).orElseGet(()->ShopElement.fromConfig(config));
     }
 
@@ -105,6 +109,7 @@ public final class ShopWantsCustomizable extends ShopWants implements IFlexibleS
     @Override
     public ShopElement createElement(TransactionType position) {
         // sanitize element
+        ShopElement element = this.element.clone();
         element.fill = ShopElement.FillType.NONE;
         element.itemPositions = Collections.singletonList(position.pos);
         element.actions = Lists.newArrayList();

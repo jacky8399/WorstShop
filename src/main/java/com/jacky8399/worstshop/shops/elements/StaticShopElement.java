@@ -183,7 +183,13 @@ public class StaticShopElement extends ShopElement {
                 }
             });
 
-            yaml.findList("hide-flags", ItemFlag.class).ifPresent(flags -> is.meta(meta -> meta.addItemFlags(flags.toArray(new ItemFlag[0]))));
+            yaml.findList("hide-flags", String.class).ifPresent(flags -> {
+                ItemFlag[] itemFlags = flags.stream()
+                        .map(flag -> !flag.startsWith("HIDE_") ? "HIDE_" + flag : flag)
+                        .map(flag -> ConfigHelper.parseEnum(flag, ItemFlag.class))
+                        .toArray(ItemFlag[]::new);
+                is.meta(meta -> meta.addItemFlags(itemFlags));
+            });
 
             // skull
             yaml.find("skull", String.class).ifPresent(uuidOrName -> {

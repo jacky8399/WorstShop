@@ -261,9 +261,9 @@ public class ActionShop extends Action {
             contents.fill(FILLER);
 
             try {
-                costElem = cost.createElement(ShopWants.TransactionType.COST);
+                costElem = cost.createElement(ShopWants.TransactionType.COST).clone();
                 costElem.populateItems(player, contents, null);
-                rewardElem = reward.createElement(ShopWants.TransactionType.REWARD);
+                rewardElem = reward.createElement(ShopWants.TransactionType.REWARD).clone();
                 rewardElem.populateItems(player, contents, null);
             } catch (Exception ex) {
                 // guess parent
