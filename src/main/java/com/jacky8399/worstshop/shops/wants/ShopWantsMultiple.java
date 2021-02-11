@@ -1,7 +1,7 @@
 package com.jacky8399.worstshop.shops.wants;
 
 import com.google.common.collect.Lists;
-import com.jacky8399.worstshop.shops.Shop;
+import com.jacky8399.worstshop.shops.ElementPopulationContext;
 import com.jacky8399.worstshop.shops.elements.ShopElement;
 import com.jacky8399.worstshop.shops.elements.StaticShopElement;
 import fr.minuskube.inv.content.InventoryContents;
@@ -86,7 +86,7 @@ public class ShopWantsMultiple extends ShopWants {
             elem2.itemPositions = Collections.singletonList(pos2);
             return new StaticShopElement() {
                 @Override
-                public void populateItems(Player player, InventoryContents contents, Shop.PaginationHelper pagination) {
+                public void populateItems(Player player, InventoryContents contents, ElementPopulationContext pagination) {
                     elem1.populateItems(player, contents, pagination);
                     elem2.populateItems(player, contents, pagination);
                 }
@@ -97,7 +97,7 @@ public class ShopWantsMultiple extends ShopWants {
             String self = UUID.randomUUID().toString();
             return new StaticShopElement() {
                 @Override
-                public void populateItems(Player player, InventoryContents contents, Shop.PaginationHelper pagination) {
+                public void populateItems(Player player, InventoryContents contents, ElementPopulationContext pagination) {
                     int itemSequence = contents.property(self + "_shopWantsItemSequence", 0);
                     int nextItemSequence = wrapIndexOffset(itemSequence, 1);
 

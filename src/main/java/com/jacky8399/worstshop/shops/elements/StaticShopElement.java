@@ -5,6 +5,7 @@ import com.google.common.collect.Maps;
 import com.jacky8399.worstshop.I18n;
 import com.jacky8399.worstshop.WorstShop;
 import com.jacky8399.worstshop.helper.*;
+import com.jacky8399.worstshop.shops.ElementPopulationContext;
 import com.jacky8399.worstshop.shops.ParseContext;
 import com.jacky8399.worstshop.shops.Shop;
 import fr.minuskube.inv.content.InventoryContents;
@@ -309,7 +310,7 @@ public class StaticShopElement extends ShopElement {
     }
 
     @Override
-    public void populateItems(Player player, InventoryContents contents, Shop.PaginationHelper pagination) {
+    public void populateItems(Player player, InventoryContents contents, ElementPopulationContext pagination) {
         super.populateItems(player, contents, pagination);
 
         if (async) {

@@ -5,7 +5,6 @@ import com.jacky8399.worstshop.helper.Config;
 import com.jacky8399.worstshop.helper.ConfigException;
 import com.jacky8399.worstshop.shops.ParseContext;
 import com.jacky8399.worstshop.shops.conditions.Condition;
-import com.jacky8399.worstshop.shops.elements.DynamicShopElement;
 import com.jacky8399.worstshop.shops.elements.ShopElement;
 import com.jacky8399.worstshop.shops.elements.StaticShopElement;
 import org.bukkit.entity.Player;
@@ -118,7 +117,7 @@ public final class ShopWantsCustomizable extends ShopWants implements IFlexibleS
 
     @Override
     public boolean isElementDynamic() {
-        return element instanceof DynamicShopElement;
+        return element.isDynamic();
     }
 
     @Override

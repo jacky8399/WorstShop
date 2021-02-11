@@ -3,6 +3,7 @@ package com.jacky8399.worstshop.shops.elements;
 import com.google.common.collect.Lists;
 import com.jacky8399.worstshop.helper.Config;
 import com.jacky8399.worstshop.helper.ItemUtils;
+import com.jacky8399.worstshop.shops.ElementPopulationContext;
 import com.jacky8399.worstshop.shops.ParseContext;
 import com.jacky8399.worstshop.shops.Shop;
 import com.jacky8399.worstshop.shops.actions.Action;
@@ -24,7 +25,7 @@ import java.util.stream.Collectors;
 
 public abstract class ShopElement implements Cloneable, ParseContext.NamedContext {
     public interface SlotFiller {
-        void fill(ShopElement element, ClickableItem item, InventoryContents contents, Shop.PaginationHelper pagination);
+        void fill(ShopElement element, ClickableItem item, InventoryContents contents, ElementPopulationContext pagination);
     }
     public enum FillType {
         ALL((element, item, contents, pagination) -> contents.fill(item)),
@@ -74,10 +75,21 @@ public abstract class ShopElement implements Cloneable, ParseContext.NamedContex
     @NotNull
     public List<Action> actions = new ArrayList<>();
 
+    public boolean isDynamic() {
+        return this instanceof DynamicShopElement;
+    }
+
     public static ShopElement fromConfig(Config config) {
         boolean dynamic = config.find("dynamic", Boolean.class).orElse(false);
 
-        ShopElement element = dynamic ? DynamicShopElement.fromYaml(config) : StaticShopElement.fromYaml(config);
+        ShopElement element;
+        if (config.find("dynamic", Boolean.class).orElse(false)) {
+            element = DynamicShopElement.fromYaml(config);
+        } else if (config.has("if")) {
+            element = ConditionalShopElement.fromYaml(config);
+        } else {
+            element = StaticShopElement.fromYaml(config);
+        }
 
         if (element == null) {
             return null;
@@ -162,7 +174,7 @@ public abstract class ShopElement implements Cloneable, ParseContext.NamedContex
         return list;
     }
 
-    public void populateItems(Player player, InventoryContents contents, Shop.PaginationHelper pagination) {
+    public void populateItems(Player player, InventoryContents contents, ElementPopulationContext pagination) {
         ItemStack stack;
         try {
             stack = createStack(player);

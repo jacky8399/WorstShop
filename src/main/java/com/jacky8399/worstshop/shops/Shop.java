@@ -7,7 +7,6 @@ import com.jacky8399.worstshop.editor.*;
 import com.jacky8399.worstshop.helper.*;
 import com.jacky8399.worstshop.shops.conditions.Condition;
 import com.jacky8399.worstshop.shops.conditions.ConditionConstant;
-import com.jacky8399.worstshop.shops.elements.DynamicShopElement;
 import com.jacky8399.worstshop.shops.elements.ShopElement;
 import com.jacky8399.worstshop.shops.elements.StaticShopElement;
 import fr.minuskube.inv.ClickableItem;
@@ -15,7 +14,6 @@ import fr.minuskube.inv.InventoryListener;
 import fr.minuskube.inv.SmartInventory;
 import fr.minuskube.inv.content.InventoryContents;
 import fr.minuskube.inv.content.InventoryProvider;
-import fr.minuskube.inv.content.Pagination;
 import fr.minuskube.inv.content.SlotIterator;
 import net.md_5.bungee.api.ChatColor;
 import org.bukkit.Bukkit;
@@ -29,7 +27,6 @@ import org.bukkit.permissions.Permissible;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
-import java.util.function.BiFunction;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -150,7 +147,7 @@ public class Shop implements InventoryProvider, ParseContext.NamedContext {
             config.getList("items", Config.class).forEach(itemConfig -> {
                 ShopElement element = ShopElement.fromConfig(itemConfig);
                 if (element != null)
-                    (element instanceof DynamicShopElement ? inst.dynamicElements : inst.staticElements).add(element);
+                    (element.isDynamic() ? inst.dynamicElements : inst.staticElements).add(element);
             });
 
             // commands
@@ -207,7 +204,7 @@ public class Shop implements InventoryProvider, ParseContext.NamedContext {
     }
 
     public void populateElements(List<ShopElement> elementList,
-                                 Player player, InventoryContents contents, PaginationHelper helper) {
+                                 Player player, InventoryContents contents, ElementPopulationContext helper) {
         ListIterator<ShopElement> iterator = elementList.listIterator();
         while (iterator.hasNext()) {
             int index = iterator.nextIndex();
@@ -233,59 +230,12 @@ public class Shop implements InventoryProvider, ParseContext.NamedContext {
         while (!it.ended()) {
             it.next().set(null);
         }
-        PaginationHelper helper = new PaginationHelper(contents);
+        ElementPopulationContext helper = new ElementPopulationContext(contents);
         populateElements(staticElements, player, contents, helper);
         if (updateDynamic)
             populateElements(dynamicElements, player, contents, helper);
         // ensure pagination
         helper.doPaginationNow();
-    }
-
-    public static class PaginationHelper {
-        SlotIterator slotIterator;
-        Pagination pagination;
-        InventoryContents contents;
-        boolean hasDonePagination = false;
-        ArrayList<ClickableItem> paginationItems;
-        PaginationHelper(InventoryContents contents) {
-            this.contents = contents;
-            slotIterator = contents.newIterator(SlotIterator.Type.HORIZONTAL, 0, 0).allowOverride(false);
-            pagination = contents.pagination();
-            paginationItems = Lists.newArrayList();
-        }
-
-        public void add(ClickableItem item) {
-            paginationItems.add(item);
-        }
-
-        public void forEachRemaining(BiFunction<Integer, Integer, ClickableItem> supplier) {
-            doPaginationNow();
-            while (!slotIterator.ended()) {
-                slotIterator.next();
-                ClickableItem next = supplier.apply(slotIterator.row(), slotIterator.column());
-                slotIterator.set(next);
-            }
-        }
-
-        public InventoryContents getPrimitive() {
-            return contents;
-        }
-
-        void doPaginationNow() {
-            if (hasDonePagination)
-                return;
-            hasDonePagination = true;
-            pagination.setItems(paginationItems.toArray(new ClickableItem[0]));
-            int emptySlots = 0;
-            for (ClickableItem[] arr : contents.all()) {
-                for (ClickableItem item : arr) {
-                    if (item == null)
-                        emptySlots++;
-                }
-            }
-            pagination.setItemsPerPage(emptySlots);
-            pagination.addToIterator(slotIterator);
-        }
     }
 
     @Override

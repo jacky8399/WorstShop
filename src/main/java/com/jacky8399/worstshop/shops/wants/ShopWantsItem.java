@@ -2,6 +2,7 @@ package com.jacky8399.worstshop.shops.wants;
 
 import com.google.common.collect.Sets;
 import com.jacky8399.worstshop.I18n;
+import com.jacky8399.worstshop.WorstShop;
 import com.jacky8399.worstshop.helper.Config;
 import com.jacky8399.worstshop.helper.PaperHelper;
 import com.jacky8399.worstshop.shops.elements.ShopElement;
@@ -170,20 +171,34 @@ public class ShopWantsItem extends ShopWants implements IFlexibleShopWants {
     @Override
     public double grantOrRefund(Player player) {
         double refund = 0;
-        ItemStack remaining = grant(player.getInventory());
-        if (remaining != null) {
-            refund = (double) remaining.getAmount() / (double) stack.getAmount(); // get original amount for correct refund
+        int remaining = grant(player.getInventory());
+        if (remaining != -1) {
+            refund = (double) remaining / (double) stack.getAmount(); // get original amount for correct refund
             player.sendMessage(I18n.translate(I18n.Keys.MESSAGES_KEY + "shops.transaction-inv-full"));
         }
         player.updateInventory();
         return refund;
     }
 
-    public ItemStack grant(Inventory inventory) {
-        ItemStack newIs = stack.clone();
-        newIs.setAmount(getAmount());
-        HashMap<Integer, ItemStack> unfit = inventory.addItem(newIs);
-        return unfit.size() > 0 ? unfit.get(0) : null;
+    public int grant(Inventory inventory) {
+        // split into correct stack sizes
+        int amount = getAmount(), maxStackSize = stack.getType().getMaxStackSize();
+        if (maxStackSize <= 0) maxStackSize = 64;
+        List<ItemStack> stacks = new ArrayList<>();
+        while (amount > 0) {
+            int stackAmount = Math.min(amount, maxStackSize);
+            WorstShop.get().logger.info("amount: " + amount + ", stack amount: " + stackAmount);
+            amount -= stackAmount;
+            ItemStack s = stack.clone();
+            s.setAmount(stackAmount);
+            stacks.add(s);
+            if (stacks.size() >= 54) {
+                // ...why would you buy so many items
+                break;
+            }
+        }
+        HashMap<Integer, ItemStack> unfit = inventory.addItem(stacks.toArray(new ItemStack[0]));
+        return unfit.size() > 0 ? amount + unfit.values().stream().mapToInt(ItemStack::getAmount).sum() : -1;
     }
 
     @Override

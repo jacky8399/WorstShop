@@ -8,7 +8,6 @@ import com.jacky8399.worstshop.helper.Config;
 import com.jacky8399.worstshop.helper.ItemBuilder;
 import com.jacky8399.worstshop.helper.PlayerPurchaseRecords;
 import com.jacky8399.worstshop.shops.*;
-import com.jacky8399.worstshop.shops.elements.DynamicShopElement;
 import com.jacky8399.worstshop.shops.elements.ShopElement;
 import com.jacky8399.worstshop.shops.elements.StaticShopElement;
 import com.jacky8399.worstshop.shops.wants.ShopWants;
@@ -156,7 +155,7 @@ public class ActionItemShop extends Action {
         if (parentShop == null || element == null)
             throw new IllegalStateException("Couldn't find parent shop / element! Not in parse context?");
         parentElement = element.clone();
-        isStackDynamic = parentElement instanceof DynamicShopElement;
+        isStackDynamic = parentElement.isDynamic();
 
         if (parentElement instanceof StaticShopElement) {
             getItemShops(((StaticShopElement) parentElement).rawStack.getType()).add(new ItemShop(this, parentElement.condition));

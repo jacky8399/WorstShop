@@ -2,8 +2,8 @@ package com.jacky8399.worstshop.shops.elements.dynamic;
 
 import com.google.common.collect.Lists;
 import com.jacky8399.worstshop.helper.Config;
+import com.jacky8399.worstshop.shops.ElementPopulationContext;
 import com.jacky8399.worstshop.shops.ParseContext;
-import com.jacky8399.worstshop.shops.Shop;
 import com.jacky8399.worstshop.shops.actions.Action;
 import com.jacky8399.worstshop.shops.elements.DynamicShopElement;
 import com.jacky8399.worstshop.shops.elements.ShopElement;
@@ -37,7 +37,7 @@ public class AnimationShopElement extends DynamicShopElement {
     }
 
     @Override
-    public void populateItems(Player player, InventoryContents contents, Shop.PaginationHelper pagination) {
+    public void populateItems(Player player, InventoryContents contents, ElementPopulationContext pagination) {
         if (!condition.test(player)) {
             return;
         }
