@@ -24,10 +24,32 @@ import java.util.stream.Collectors;
 
 public abstract class ShopElement implements Cloneable, ParseContext.NamedContext {
     public interface SlotFiller {
-        void fill(Player player, InventoryContents contents, Shop.PaginationHelper pagination);
+        void fill(ShopElement element, ClickableItem item, InventoryContents contents, Shop.PaginationHelper pagination);
     }
     public enum FillType {
-        ALL, BORDER_1, NONE, REMAINING
+        ALL((element, item, contents, pagination) -> contents.fill(item)),
+        BORDER_1((element, item, contents, pagination) -> contents.fillBorders(item)),
+        NONE((element, item, contents, pagination) -> {
+            if (element.itemPositions != null) {
+                for (SlotPos pos : element.itemPositions) {
+                    contents.set(pos, item);
+                }
+            } else {
+                pagination.add(item);
+            }
+        }),
+        REMAINING((element, item, contents, pagination) -> {
+            pagination.forEachRemaining((integer, integer2) -> item);
+        });
+
+        SlotFiller filler;
+        FillType(SlotFiller filler) {
+            this.filler = filler;
+        }
+
+        public SlotFiller getFiller() {
+            return filler;
+        }
     }
 
     // for debugging
@@ -104,6 +126,15 @@ public abstract class ShopElement implements Cloneable, ParseContext.NamedContex
     }
 
     public Map<String, Object> toMap(Map<String, Object> map) {
+        if (id != null && !id.startsWith("index="))
+            map.put("id", id);
+        if (fill != FillType.NONE)
+            map.put("fill", fill.name());
+        if (itemPositions != null)
+            map.put("pos", itemPositions.stream()
+                    .map(pos -> pos.getRow() + "," + pos.getColumn())
+                    .collect(Collectors.joining(";")));
+
         if (this instanceof DynamicShopElement)
             map.put("dynamic", true);
         if (actions.size() != 0)
@@ -153,27 +184,28 @@ public abstract class ShopElement implements Cloneable, ParseContext.NamedContex
                 e.setCurrentItem(err);
             }
         });
-        switch (fill) {
-            case ALL:
-                contents.fill(item);
-                break;
-            case BORDER_1:
-                contents.fillBorders(item);
-                break;
-            case REMAINING:
-                pagination.forEachRemaining((row, col)->item);
-                break;
-            case NONE:
-                if (itemPositions != null) {
-                    for (SlotPos pos : itemPositions) {
-                        contents.set(pos, item);
-                    }
-                } else {
-                    // pagination
-                    pagination.add(item);
-                }
-                break;
-        }
+        fill.getFiller().fill(this, item, contents, pagination);
+//        switch (fill) {
+//            case ALL:
+//                contents.fill(item);
+//                break;
+//            case BORDER_1:
+//                contents.fillBorders(item);
+//                break;
+//            case REMAINING:
+//                pagination.forEachRemaining((row, col)->item);
+//                break;
+//            case NONE:
+//                if (itemPositions != null) {
+//                    for (SlotPos pos : itemPositions) {
+//                        contents.set(pos, item);
+//                    }
+//                } else {
+//                    // pagination
+//                    pagination.add(item);
+//                }
+//                break;
+//        }
     }
 
     public ShopElement clone() {

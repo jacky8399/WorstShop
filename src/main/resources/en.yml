@@ -63,7 +63,7 @@ worstshop:
       buttons:
         confirm: '&aOK'
         cancel: '&cCancel'
-        maximize-purchase: '&b&lPurchase as many as possible'
+        maximize-purchase: '&b&lMaximize purchase amount'
         purchase-limit:
           name: '&bPurchase limit'
           limit: '&aYou can only purchase &e{0}&a every &e{1}'

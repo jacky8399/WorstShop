@@ -24,9 +24,9 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.SkullMeta;
 import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
+import org.jetbrains.annotations.Nullable;
 import org.yaml.snakeyaml.Yaml;
 
-import javax.annotation.Nullable;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.regex.Pattern;
@@ -39,6 +39,8 @@ public class StaticShopElement extends ShopElement {
     public ItemStack rawStack;
 
     public boolean async = false;
+    @Nullable
+    public ItemStack asyncLoadingItem = null;
     public transient boolean hasRemindedAsync = false;
 
     // for faster client load times
@@ -75,6 +77,9 @@ public class StaticShopElement extends ShopElement {
 
         inst.rawStack = parseItemStack(config);
         inst.async = config.find("async", Boolean.class).orElse(false);
+        if (inst.async)
+            inst.asyncLoadingItem = config.find("async-loading-item", Config.class)
+                    .map(StaticShopElement::parseItemStack).orElse(null);
 
         // die if null
         if (ItemUtils.isEmpty(inst.rawStack) && !config.find("preserve-space", Boolean.class).orElse(false))
@@ -292,6 +297,8 @@ public class StaticShopElement extends ShopElement {
             serializeItemStack(rawStack, map);
         if (async)
             map.put("async", true);
+        if (asyncLoadingItem != null)
+            map.put("async-loading-item", serializeItemStack(asyncLoadingItem, new HashMap<>()));
         return map;
     }
 
@@ -302,19 +309,21 @@ public class StaticShopElement extends ShopElement {
         if (async) {
             Bukkit.getScheduler().runTaskAsynchronously(WorstShop.get(), ()->{
                 try {
-                    asyncHack = createStack(player);
+                    asyncHack.put(player, createStack(player));
+                    if (!player.isOnline())
+                        return;
                     Bukkit.getScheduler().runTask(WorstShop.get(), ()->{
                         try {
                             super.populateItems(player, contents, pagination);
                         } catch (Exception e) {
                             RuntimeException wrapped = new RuntimeException("An error occurred while replacing asynchronous item for " + player.getName() + " (" + id + "@" + owner.id + ")");
-                            asyncHack = ItemUtils.getErrorItem(wrapped);
+                            asyncHack.put(player, ItemUtils.getErrorItem(wrapped));
                         }
                     });
                 } catch (Exception e) {
                     // error reporting
                     RuntimeException wrapped = new RuntimeException("An error occurred while fetching asynchronous item for " + player.getName() + " (" + id + "@" + owner.id + ")");
-                    asyncHack = ItemUtils.getErrorItem(wrapped);
+                    asyncHack.put(player, ItemUtils.getErrorItem(wrapped));
                 }
             });
         }
@@ -343,17 +352,17 @@ public class StaticShopElement extends ShopElement {
     }
 
     public static final ItemStack ASYNC_PLACEHOLDER = ItemBuilder.of(Material.BEDROCK)
-            .name(""+ChatColor.RED + ChatColor.BOLD + "LOADING").build();
-    private transient ItemStack asyncHack = null;
+            .name(""+ChatColor.RED + ChatColor.BOLD + "...").build();
+    // use a map to prevent conflicts
+    private static final WeakHashMap<Player, ItemStack> asyncHack = new WeakHashMap<>();
     @Override
     public ItemStack createStack(Player player) {
         if (async) {
-            if (asyncHack != null) {
-                ItemStack result = asyncHack;
-                asyncHack = null;
-                return result;
+            ItemStack asyncHackResult = asyncHack.remove(player);
+            if (asyncHackResult != null) {
+                return asyncHackResult;
             } else if (Bukkit.isPrimaryThread()) {
-                return ASYNC_PLACEHOLDER.clone();
+                return (asyncLoadingItem != null ? asyncLoadingItem : ASYNC_PLACEHOLDER).clone();
             }
         }
 

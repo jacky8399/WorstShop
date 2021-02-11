@@ -69,7 +69,7 @@ dependencies {
     // Placeholders
     compileOnly 'me.clip:placeholderapi:2.10.3'
     // Annotations
-    api 'org.jetbrains:annotations:16.0.2'
+    compileOnly 'org.jetbrains:annotations:16.0.2'
 
     // Tests
     testImplementation "org.mockito:mockito-inline:3.6.0"
