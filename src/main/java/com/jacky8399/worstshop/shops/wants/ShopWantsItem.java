@@ -2,7 +2,6 @@ package com.jacky8399.worstshop.shops.wants;
 
 import com.google.common.collect.Sets;
 import com.jacky8399.worstshop.I18n;
-import com.jacky8399.worstshop.WorstShop;
 import com.jacky8399.worstshop.helper.Config;
 import com.jacky8399.worstshop.helper.PaperHelper;
 import com.jacky8399.worstshop.shops.elements.ShopElement;
@@ -187,7 +186,6 @@ public class ShopWantsItem extends ShopWants implements IFlexibleShopWants {
         List<ItemStack> stacks = new ArrayList<>();
         while (amount > 0) {
             int stackAmount = Math.min(amount, maxStackSize);
-            WorstShop.get().logger.info("amount: " + amount + ", stack amount: " + stackAmount);
             amount -= stackAmount;
             ItemStack s = stack.clone();
             s.setAmount(stackAmount);

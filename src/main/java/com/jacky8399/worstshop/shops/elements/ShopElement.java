@@ -6,6 +6,7 @@ import com.jacky8399.worstshop.helper.ItemUtils;
 import com.jacky8399.worstshop.shops.ElementPopulationContext;
 import com.jacky8399.worstshop.shops.ParseContext;
 import com.jacky8399.worstshop.shops.Shop;
+import com.jacky8399.worstshop.shops.ShopReference;
 import com.jacky8399.worstshop.shops.actions.Action;
 import com.jacky8399.worstshop.shops.conditions.Condition;
 import com.jacky8399.worstshop.shops.conditions.ConditionAnd;
@@ -69,7 +70,7 @@ public abstract class ShopElement implements Cloneable, ParseContext.NamedContex
     public FillType fill = FillType.NONE;
 
     // common properties
-    public transient Shop owner = null;
+    public transient ShopReference owner = null;
     @NotNull
     public Condition condition = ConditionConstant.TRUE;
     @NotNull

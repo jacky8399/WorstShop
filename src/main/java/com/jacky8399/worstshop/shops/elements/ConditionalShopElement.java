@@ -4,6 +4,9 @@ import com.google.common.collect.Lists;
 import com.jacky8399.worstshop.helper.Config;
 import com.jacky8399.worstshop.helper.ConfigException;
 import com.jacky8399.worstshop.shops.ElementPopulationContext;
+import com.jacky8399.worstshop.shops.ParseContext;
+import com.jacky8399.worstshop.shops.Shop;
+import com.jacky8399.worstshop.shops.ShopReference;
 import com.jacky8399.worstshop.shops.actions.Action;
 import com.jacky8399.worstshop.shops.conditions.Condition;
 import fr.minuskube.inv.content.InventoryContents;
@@ -12,6 +15,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
+import java.util.Objects;
 
 public class ConditionalShopElement extends ShopElement {
     @NotNull
@@ -39,7 +43,11 @@ public class ConditionalShopElement extends ShopElement {
         if (element == null)
             throw new ConfigException("'then' must not be empty", config, "then");
         ShopElement elementFalse = config.find("else", Config.class).map(ShopElement::fromConfig).orElse(null);
-        return new ConditionalShopElement(condition, element, elementFalse);
+
+        ShopReference owner = ShopReference.of(ParseContext.findLatest(Shop.class));
+        ConditionalShopElement ret = new ConditionalShopElement(condition, element, elementFalse);
+        ret.owner = owner;
+        return ret;
     }
 
     @Override
@@ -59,6 +67,16 @@ public class ConditionalShopElement extends ShopElement {
 
             clone.populateItems(player, contents, pagination);
         }
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(condition, elementTrue, elementFalse);
+    }
+
+    @Override
+    public String toString() {
+        return elementTrue.toString() + " if " + condition.toString() + (elementFalse != null ? " else " + elementFalse.toString() : "");
     }
 
     @Override

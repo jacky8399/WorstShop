@@ -72,4 +72,16 @@ public class AnimationShopElement extends DynamicShopElement {
         AnimationShopElement other = (AnimationShopElement) obj;
         return other.elements.equals(elements) && other.intervalInTicks == intervalInTicks;
     }
+
+    @Override
+    public String toString() {
+        return "animation (every " + intervalInTicks + " ticks; elements = " + elements.stream().map(ShopElement::toString).collect(Collectors.joining(", ")) + ")";
+    }
+
+    @Override
+    public AnimationShopElement clone() {
+        AnimationShopElement element = (AnimationShopElement) super.clone();
+        element.elements = elements.stream().map(ShopElement::clone).collect(Collectors.toCollection(ArrayList::new));
+        return element;
+    }
 }

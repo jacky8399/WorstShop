@@ -8,6 +8,7 @@ import com.jacky8399.worstshop.helper.*;
 import com.jacky8399.worstshop.shops.ElementPopulationContext;
 import com.jacky8399.worstshop.shops.ParseContext;
 import com.jacky8399.worstshop.shops.Shop;
+import com.jacky8399.worstshop.shops.ShopReference;
 import fr.minuskube.inv.content.InventoryContents;
 import me.clip.placeholderapi.PlaceholderAPI;
 import org.bukkit.Bukkit;
@@ -21,6 +22,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.Damageable;
+import org.bukkit.inventory.meta.EnchantmentStorageMeta;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.SkullMeta;
 import org.bukkit.persistence.PersistentDataContainer;
@@ -30,6 +32,7 @@ import org.yaml.snakeyaml.Yaml;
 
 import java.nio.charset.StandardCharsets;
 import java.util.*;
+import java.util.function.Consumer;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -71,7 +74,7 @@ public class StaticShopElement extends ShopElement {
             return "???";
         });
 
-        inst.owner = ParseContext.findLatest(Shop.class);
+        inst.owner = ShopReference.of(ParseContext.findLatest(Shop.class));
 
         // push context earlier for error-handling
         ParseContext.pushContext(inst);
@@ -119,7 +122,7 @@ public class StaticShopElement extends ShopElement {
     }
 
     // values are from CraftMetaItem.SerializableMeta.classMap
-    public static final Set<String> SUPPORTED_ITEM_META_TYPES = ImmutableSet.<String>builder().add("UNSPECIFIC", "SKULL").build();
+    public static final Set<String> SUPPORTED_ITEM_META_TYPES = ImmutableSet.<String>builder().add("UNSPECIFIC", "SKULL", "ENCHANTED").build();
     public static boolean isItemMetaSupported(ItemMeta meta) {
         //noinspection SuspiciousMethodCalls
         return SUPPORTED_ITEM_META_TYPES.contains(meta.serialize().get("meta-type"));
@@ -157,17 +160,24 @@ public class StaticShopElement extends ShopElement {
             );
 
             yaml.find("enchants", Config.class).ifPresent(enchants ->
-                    is.meta(meta ->
-                            enchants.getPrimitiveMap().entrySet().stream()
-                                    .map(entry -> {
-                                        String ench = entry.getKey();
-                                        int level = ((Number) entry.getValue()).intValue();
-                                        Enchantment enchType = Enchantment.getByKey(NamespacedKey.minecraft(ench));
-                                        if (enchType == null)
-                                            throw new ConfigException(ench + " is not a valid enchant!", enchants);
-                                        return Maps.immutableEntry(enchType, level);
-                                    })
-                                    .forEach(entry -> meta.addEnchant(entry.getKey(), entry.getValue(), true))));
+                    is.meta(meta -> {
+                        // support enchanted books
+                        Consumer<Map.Entry<Enchantment, Integer>> consumer = meta instanceof EnchantmentStorageMeta ?
+                                entry -> ((EnchantmentStorageMeta) meta).addStoredEnchant(entry.getKey(), entry.getValue(), true) :
+                                entry -> meta.addEnchant(entry.getKey(), entry.getValue(), true);
+
+                        enchants.getPrimitiveMap().entrySet().stream()
+                                .map(entry -> {
+                                    String ench = entry.getKey();
+                                    int level = ((Number) entry.getValue()).intValue();
+                                    Enchantment enchType = Enchantment.getByKey(NamespacedKey.minecraft(ench));
+                                    if (enchType == null)
+                                        throw new ConfigException(ench + " is not a valid enchant!", enchants);
+                                    return Maps.immutableEntry(enchType, level);
+                                })
+                                .forEach(consumer);
+                    })
+            );
 
             yaml.find("name", String.class).map(ConfigHelper::translateString).ifPresent(is::name);
 
@@ -251,11 +261,12 @@ public class StaticShopElement extends ShopElement {
         if (meta.hasCustomModelData()) {
             map.put("custom-model-data", meta.getCustomModelData());
         }
-        if (meta.hasEnchants()) {
+        if (meta.hasEnchants() || (meta instanceof EnchantmentStorageMeta && ((EnchantmentStorageMeta) meta).hasStoredEnchants())) {
             HashMap<String, Object> enchants = new HashMap<>();
-            meta.getEnchants().forEach((ench, level)->{
+            Map<Enchantment, Integer> realEnchants = meta instanceof EnchantmentStorageMeta ? ((EnchantmentStorageMeta) meta).getStoredEnchants() : meta.getEnchants();
+            realEnchants.forEach((ench, level)->{
                 // strip namespace if minecraft:
-                String key = ench.getKey().getNamespace().equals(NamespacedKey.MINECRAFT) ? ench.getKey().getKey() : ench.getKey().getNamespace();
+                String key = ench.getKey().getNamespace().equals(NamespacedKey.MINECRAFT) ? ench.getKey().getKey() : ench.getKey().toString();
                 enchants.put(key, level);
             });
             map.put("enchants", enchants);
@@ -451,5 +462,14 @@ public class StaticShopElement extends ShopElement {
             return false;
         StaticShopElement other = (StaticShopElement) obj;
         return other.rawStack.equals(rawStack) && Objects.equals(other.skullCache, skullCache) && other.async == async;
+    }
+
+    @Override
+    public StaticShopElement clone() {
+        StaticShopElement element = (StaticShopElement) super.clone();
+        element.rawStack = rawStack.clone();
+        if (asyncLoadingItem != null)
+            element.asyncLoadingItem = asyncLoadingItem.clone();
+        return element;
     }
 }

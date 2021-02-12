@@ -41,7 +41,7 @@ public class ShopReference {
     }
 
     public static ShopReference of(Shop shop) {
-        return REFERENCES.computeIfAbsent(shop.id, ignored->new ShopReference(shop.id, shop));
+        return shop == null ? EMPTY : REFERENCES.computeIfAbsent(shop.id, ignored->new ShopReference(shop.id, shop));
     }
 
     public Optional<Shop> find() {
@@ -51,7 +51,7 @@ public class ShopReference {
     }
 
     @NotNull
-    public Shop get() {
+    public Shop get() throws IllegalStateException {
         if (ref == null)
             ref = ShopManager.SHOPS.get(id);
         // if still null
