@@ -80,14 +80,15 @@ public class StaticShopElement extends ShopElement {
         ParseContext.pushContext(inst);
 
         inst.rawStack = parseItemStack(config);
-        inst.async = config.find("async", Boolean.class).orElse(false);
-        if (inst.async)
-            inst.asyncLoadingItem = config.find("async-loading-item", Config.class)
-                    .map(StaticShopElement::parseItemStack).orElse(null);
 
         // die if null
         if (ItemUtils.isEmpty(inst.rawStack) && !config.find("preserve-space", Boolean.class).orElse(false))
             return null;
+
+        inst.async = config.find("async", Boolean.class).orElse(false);
+        if (inst.async)
+            inst.asyncLoadingItem = config.find("async-loading-item", Config.class)
+                    .map(StaticShopElement::parseItemStack).orElse(null);
 
         // obtain the skull meta
         if (inst.rawStack.getType() == Material.PLAYER_HEAD) {
@@ -380,7 +381,7 @@ public class StaticShopElement extends ShopElement {
             if (asyncHackResult != null) {
                 return asyncHackResult;
             } else if (Bukkit.isPrimaryThread()) {
-                return (asyncLoadingItem != null ? asyncLoadingItem : ASYNC_PLACEHOLDER).clone();
+                return asyncLoadingItem != null ? replacePlaceholders(player, asyncLoadingItem) : ASYNC_PLACEHOLDER.clone();
             }
         }
 

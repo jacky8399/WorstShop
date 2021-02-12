@@ -8,6 +8,8 @@ import com.jacky8399.worstshop.helper.Config;
 import com.jacky8399.worstshop.helper.ItemBuilder;
 import com.jacky8399.worstshop.helper.PlayerPurchaseRecords;
 import com.jacky8399.worstshop.shops.*;
+import com.jacky8399.worstshop.shops.conditions.Condition;
+import com.jacky8399.worstshop.shops.elements.ConditionalShopElement;
 import com.jacky8399.worstshop.shops.elements.ShopElement;
 import com.jacky8399.worstshop.shops.elements.StaticShopElement;
 import com.jacky8399.worstshop.shops.wants.ShopWants;
@@ -25,7 +27,6 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 public class ActionItemShop extends Action {
-    boolean isStackDynamic = false;
     ShopElement parentElement;
     Shop parentShop;
     boolean canSellAll;
@@ -74,7 +75,7 @@ public class ActionItemShop extends Action {
         });
 
         // item matchers
-        yaml.findList("matches" /* not a typo */, String.class).ifPresent(list -> {
+        yaml.findList("matches", String.class).ifPresent(list -> {
             itemMatchers.clear();
             list.stream().map(s -> s.toLowerCase(Locale.ROOT).replace(' ', '_'))
                     .map(ShopWantsItem.ItemMatcher.ITEM_MATCHERS::get).forEach(itemMatchers::add);
@@ -155,11 +156,31 @@ public class ActionItemShop extends Action {
         if (parentShop == null || element == null)
             throw new IllegalStateException("Couldn't find parent shop / element! Not in parse context?");
         parentElement = element.clone();
-        isStackDynamic = parentElement.isDynamic();
 
-        if (parentElement instanceof StaticShopElement) {
-            getItemShops(((StaticShopElement) parentElement).rawStack.getType()).add(new ItemShop(this, parentElement.condition));
+        addToItemShop(parentElement);
+    }
+
+    private List<ItemShop> addToItemShop(ShopElement element) {
+        if (element instanceof StaticShopElement) {
+            ItemShop shop = new ItemShop(this, element.condition);
+            getItemShops(((StaticShopElement) element).rawStack.getType()).add(shop);
+            return Collections.singletonList(shop);
+        } else if (element instanceof ConditionalShopElement) {
+            ConditionalShopElement conditional = (ConditionalShopElement) element;
+
+            List<ItemShop> shopsTrue = addToItemShop(conditional.elementTrue);
+            shopsTrue.forEach(shop -> shop.condition = conditional.condition.and(shop.condition));
+            if (conditional.elementFalse != null) {
+                Condition negatedCondition = conditional.condition.negate();
+
+                List<ItemShop> shopsFalse = addToItemShop(conditional.elementFalse);
+                shopsFalse.forEach(shop -> shop.condition = negatedCondition.and(shop.condition));
+
+                shopsTrue.addAll(shopsFalse);
+            }
+            return shopsTrue;
         }
+        return Collections.emptyList();
     }
 
     private double getDiscount(Player player) {
@@ -168,7 +189,7 @@ public class ActionItemShop extends Action {
     }
 
     public ItemStack getTargetItemStack(Player player) {
-        return isStackDynamic ? parentElement.createStack(player) : ((StaticShopElement) parentElement).createPlaceholderStack(player);
+        return parentElement instanceof StaticShopElement ? ((StaticShopElement) parentElement).createPlaceholderStack(player) : parentElement.createStack(player);
     }
 
     public ActionShop buildBuyShop(Player player) {

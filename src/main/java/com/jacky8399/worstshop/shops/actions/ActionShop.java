@@ -67,6 +67,19 @@ public class ActionShop extends Action {
         });
     }
 
+    private static ShopWants findParent() {
+        StaticShopElement element = ParseContext.findLatest(StaticShopElement.class);
+        return element != null ? new ShopWantsItem(element.rawStack.clone()) : null;
+    }
+
+    public ActionShop(ShopWants cost, ShopWants reward, PlayerPurchaseRecords.RecordTemplate purchaseLimitTemplate, int purchaseLimit) {
+        super(null);
+        this.cost = cost;
+        this.reward = reward;
+        this.purchaseLimitTemplate = purchaseLimitTemplate;
+        this.purchaseLimit = purchaseLimit;
+    }
+
     @Override
     public Map<String, Object> toMap(Map<String, Object> map) {
         map.put("preset", "shop");
@@ -80,19 +93,6 @@ public class ActionShop extends Action {
             map.put("purchase-limit", limitMap);
         }
         return map;
-    }
-
-    private static ShopWants findParent() {
-        StaticShopElement element = ParseContext.findLatest(StaticShopElement.class);
-        return element != null ? new ShopWantsItem(element.rawStack.clone()) : null;
-    }
-
-    public ActionShop(ShopWants cost, ShopWants reward, PlayerPurchaseRecords.RecordTemplate purchaseLimitTemplate, int purchaseLimit) {
-        super(null);
-        this.cost = cost;
-        this.reward = reward;
-        this.purchaseLimitTemplate = purchaseLimitTemplate;
-        this.purchaseLimit = purchaseLimit;
     }
 
     public void doTransaction(Player player, double count) {

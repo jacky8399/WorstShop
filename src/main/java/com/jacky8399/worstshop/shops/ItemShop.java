@@ -6,17 +6,16 @@ import com.jacky8399.worstshop.shops.conditions.ConditionConstant;
 import com.jacky8399.worstshop.shops.wants.ShopWants;
 import com.jacky8399.worstshop.shops.wants.ShopWantsItem;
 import org.bukkit.entity.Player;
-import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 
 public class ItemShop {
-    Shop owningShop;
-    ActionItemShop shop;
-    Condition condition;
+    public final ShopReference owningShop;
+    public ActionItemShop shop;
+    public Condition condition;
     public ItemShop(ActionItemShop orig, Condition condition) {
         this.shop = orig;
         this.condition = condition != null ? condition : ConditionConstant.TRUE;
-        this.owningShop = ParseContext.findLatest(Shop.class);
+        this.owningShop = ShopReference.of(ParseContext.findLatest(Shop.class));
     }
 
     private ShopWantsItem getSellCost(Player player) {
@@ -27,13 +26,14 @@ public class ItemShop {
         return shop.buildSellShop(player).reward;
     }
 
+    private ShopWants getBuyCost(Player player) {
+        return shop.buildBuyShop(player).cost;
+    }
+
     private ShopWantsItem getBuyReward(Player player) {
         return ((ShopWantsItem) shop.buildBuyShop(player).reward);
     }
 
-    private ShopWants getBuyCost(Player player) {
-        return shop.buildBuyShop(player).cost;
-    }
 
     public boolean acceptsSelling() {
         return shop.sellPrice > 0;
@@ -43,29 +43,19 @@ public class ItemShop {
     }
 
     public boolean isAvailableTo(Player player) {
-        return owningShop.canPlayerView(player) && (condition == null || condition.test(player));
+        return (owningShop.find().map(shop -> shop.canPlayerView(player)).orElse(true)) &&
+                (condition == null || condition.test(player));
     }
 
     public boolean isSellable(ItemStack stack, Player player) {
         return acceptsSelling() && getSellAmount(player, stack) > 0;
     }
 
-    public boolean isSellable(Inventory inventory, Player player) {
-        return acceptsSelling() && getSellAmount(player, inventory) > 0;
-    }
-
-    public int getSellAmount(Player player, Inventory inventory) {
-        return Math.min(shop.buildSellShop(player).getPlayerMaxPurchase(player), getSellCost(player).getMaximumMultiplier(inventory));
-    }
     public int getSellAmount(Player player, ItemStack stack) {
         return Math.min(shop.buildSellShop(player).getPlayerMaxPurchase(player), getSellCost(player).getMaximumMultiplier(stack));
     }
 
     public void sell(ItemStack stack, Player player) {
         shop.doSellTransaction(player, stack, getSellAmount(player, stack));
-    }
-
-    public void sellAll(Inventory inventory, Player player) {
-        shop.doSellTransaction(player, inventory, getSellAmount(player, inventory));
     }
 }
