@@ -36,16 +36,23 @@ public class ConditionalShopElement extends ShopElement {
     }
 
     public static ShopElement fromYaml(Config config) {
+        @SuppressWarnings("ConstantConditions")
+        ConditionalShopElement ret = new ConditionalShopElement(null, null, null);
+
+        ParseContext.pushContext(ret);
+
         Config ifSection = config.get("if", Config.class);
-        Condition condition = Condition.fromMap(ifSection);
+        ret.condition = Condition.fromMap(ifSection);
+
         Config thenSection = config.get("then", Config.class);
         ShopElement element = ShopElement.fromConfig(thenSection);
         if (element == null)
             throw new ConfigException("'then' must not be empty", config, "then");
-        ShopElement elementFalse = config.find("else", Config.class).map(ShopElement::fromConfig).orElse(null);
+        ret.elementTrue = element;
+
+        ret.elementFalse = config.find("else", Config.class).map(ShopElement::fromConfig).orElse(null);
 
         ShopReference owner = ShopReference.of(ParseContext.findLatest(Shop.class));
-        ConditionalShopElement ret = new ConditionalShopElement(condition, element, elementFalse);
         ret.owner = owner;
         return ret;
     }

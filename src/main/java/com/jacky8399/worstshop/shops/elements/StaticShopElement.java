@@ -381,7 +381,10 @@ public class StaticShopElement extends ShopElement {
             if (asyncHackResult != null) {
                 return asyncHackResult;
             } else if (Bukkit.isPrimaryThread()) {
-                return asyncLoadingItem != null ? replacePlaceholders(player, asyncLoadingItem) : ASYNC_PLACEHOLDER.clone();
+                ItemStack toReturn = asyncLoadingItem != null ? replacePlaceholders(player, asyncLoadingItem) : ASYNC_PLACEHOLDER.clone();
+                ItemMeta meta = toReturn.getItemMeta();
+                meta.getPersistentDataContainer().set(SAFETY_KEY, PersistentDataType.BYTE, (byte) 1);
+                toReturn.setItemMeta(meta);
             }
         }
 

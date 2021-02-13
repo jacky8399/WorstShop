@@ -1,6 +1,7 @@
 package com.jacky8399.worstshop.shops.conditions;
 
 import org.bukkit.entity.Player;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.Map;
 
@@ -20,6 +21,21 @@ public class ConditionConstant extends Condition {
     @Override
     public boolean test(Player player) {
         return value;
+    }
+
+    @Override
+    public @NotNull Condition and(@NotNull Condition condition) {
+        return value ? condition : FALSE;
+    }
+
+    @Override
+    public @NotNull Condition negate() {
+        return value ? FALSE : TRUE;
+    }
+
+    @Override
+    public @NotNull Condition or(@NotNull Condition condition) {
+        return value ? TRUE : condition;
     }
 
     @Override
