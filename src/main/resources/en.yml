@@ -49,6 +49,7 @@ worstshop:
           meta: '&fMeta {0}'
           prefix: '&fPrefix {0}'
           suffix: '&fSuffix {0}'
+          duration: '&7for {0}'
 
       buy-for: '&aBuy for {0} &b(Left click)'
       sell-for: '&aSell for {0} &b(Right click)'
@@ -59,6 +60,7 @@ worstshop:
         decrease-by: '&c-{0}'
         change-result: '&e={0}'
         total: '&ax{0}'
+        total-result: '&7={0}'
 
       buttons:
         confirm: '&aOK'

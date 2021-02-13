@@ -16,8 +16,8 @@ import fr.minuskube.inv.ClickableItem;
 import fr.minuskube.inv.SmartInventory;
 import fr.minuskube.inv.content.InventoryContents;
 import fr.minuskube.inv.content.InventoryProvider;
-import org.bukkit.Bukkit;
 import net.md_5.bungee.api.ChatColor;
+import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.InventoryClickEvent;
@@ -154,7 +154,7 @@ public class ActionShop extends Action {
 
     @Override
     public void onClick(InventoryClickEvent e) {
-        Player player = (Player)e.getWhoClicked();
+        Player player = (Player) e.getWhoClicked();
         Optional<InventoryContents> parentContentsOptional = WorstShop.get().inventories.getContents(player);
         if (parentContentsOptional.isPresent()) {
             InventoryContents parentContents = parentContentsOptional.get();
@@ -312,10 +312,12 @@ public class ActionShop extends Action {
                 PlayerPurchaseRecords.RecordStorage records = PlayerPurchaseRecords.getCopy(player).applyTemplate(shop.purchaseLimitTemplate);
 
                 LocalDateTime now = LocalDateTime.now();
-                records.getEntries().stream().map(entry ->
-                        I18n.translate(I18n.Keys.MESSAGES_KEY + "shops.buttons.purchase-limit.previous-purchase-entry",
-                                entry.getValue(), DateTimeUtils.formatTime(Duration.between(entry.getKey(), now)))
-                ).forEach(lore::add);
+                records.getEntries().stream()
+                        .map(entry ->
+                                I18n.translate(I18n.Keys.MESSAGES_KEY + "shops.buttons.purchase-limit.previous-purchase-entry",
+                                        entry.getValue(), DateTimeUtils.formatTime(Duration.between(entry.getKey(), now)))
+                        )
+                        .forEach(lore::add);
                 contents.set(5, 0, ClickableItem.empty(
                         ItemBuilder.of(Material.CLOCK)
                                 .name(I18n.translate(I18n.Keys.MESSAGES_KEY + "shops.buttons.purchase-limit.name"))
@@ -327,7 +329,8 @@ public class ActionShop extends Action {
                 contents.set(5, 8, ClickableItem.of(
                         ItemBuilder.of(Material.HOPPER)
                             .name(I18n.translate(I18n.Keys.MESSAGES_KEY + "shops.buttons.maximize-purchase"))
-                            .build(), e-> buyCount = Math.min(cost.getMaximumMultiplier(player), shop.getPlayerMaxPurchase(player))
+                            .build(),
+                        e-> buyCount = Math.min(cost.getMaximumMultiplier(player), shop.getPlayerMaxPurchase(player))
                 ));
         }
 
@@ -406,9 +409,14 @@ public class ActionShop extends Action {
         }
 
         private void updateItemCount(Player player, InventoryContents contents) {
+            List<String> lore = reward.canMultiply() ?
+                    Collections.singletonList(I18n.translate("worstshop.messages.shops.buy-counts.total-result", reward.multiply(buyCount).getPlayerResult(player, ShopWants.TransactionType.REWARD))) :
+                    Collections.emptyList();
             contents.set(4, 4, ClickableItem.empty(
                     ItemBuilder.of(Material.END_CRYSTAL)
-                    .name(I18n.translate("worstshop.messages.shops.buy-counts.total", buyCount)).build()
+                            .name(I18n.translate("worstshop.messages.shops.buy-counts.total", buyCount))
+                            .lore(lore)
+                            .build()
             ));
         }
 
