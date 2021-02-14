@@ -3,7 +3,8 @@ package com.jacky8399.worstshop.helper;
 import com.jacky8399.worstshop.WorstShop;
 
 import java.time.LocalDateTime;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.UUID;
 
 public class Exceptions {
@@ -20,7 +21,12 @@ public class Exceptions {
         }
     }
 
-    public static final HashMap<String, ExceptionLog> exceptions = new HashMap<>();
+    public static final LinkedHashMap<String, ExceptionLog> exceptions = new LinkedHashMap<String, ExceptionLog>(26) {
+        @Override
+        protected boolean removeEldestEntry(Map.Entry<String, ExceptionLog> eldest) {
+            return size() > 25;
+        }
+    };
     public static String logException(Exception e) {
         ExceptionLog log = new ExceptionLog(e);
         String id = UUID.randomUUID().toString().substring(0, 8);

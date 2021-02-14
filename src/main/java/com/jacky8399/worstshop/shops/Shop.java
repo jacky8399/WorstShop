@@ -218,7 +218,7 @@ public class Shop implements InventoryProvider, ParseContext.NamedContext {
                 ShopElement fakeElement = StaticShopElement.fromStack(ItemUtils.getErrorItem(wrapped));
                 // copy renderer
                 fakeElement.fill = element.fill;
-                fakeElement.itemPositions = new ArrayList<>(element.itemPositions);
+                fakeElement.itemPositions = element.itemPositions != null ? new ArrayList<>(element.itemPositions) : null;
                 fakeElement.populateItems(player, contents, helper);
             }
         }

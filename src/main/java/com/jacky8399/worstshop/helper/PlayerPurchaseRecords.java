@@ -120,6 +120,7 @@ public class PlayerPurchaseRecords {
         public List<Map.Entry<LocalDateTime, Integer>> getEntries() {
             LocalDateTime now = LocalDateTime.now();
             return records.stream().filter(record -> !record.shouldBeDeletedAt(now))
+                    .sorted(Comparator.comparing(record -> Duration.between(record.timeOfPurchase, now)))
                     .map(record -> Maps.immutableEntry(record.timeOfPurchase, record.amount))
                     .collect(Collectors.toList());
         }
