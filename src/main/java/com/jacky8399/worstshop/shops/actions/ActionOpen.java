@@ -21,7 +21,7 @@ public class ActionOpen extends Action {
     // shortcut
     public ActionOpen(String input) {
         super(null);
-        shop = ShopReference.of(input.trim());
+        shop = ShopReference.of(input);
         skipPermission = true;
     }
 

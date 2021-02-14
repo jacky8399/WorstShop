@@ -45,6 +45,7 @@ public class ActionItemShop extends Action {
         this.parentElement = parentElement;
         this.buyPrice = buyPrice;
         this.sellPrice = sellPrice;
+        checkPrices();
         canSellAll = sellPrice != 0;
     }
 
@@ -52,8 +53,11 @@ public class ActionItemShop extends Action {
     public ActionItemShop(String input) {
         super(null);
         String[] prices = input.split("\\s|,");
+        if (prices.length != 2)
+            throw new IllegalArgumentException(input + " is not in the correct format!");
         buyPrice = Double.parseDouble(prices[0].trim());
         sellPrice = Double.parseDouble(prices[1].trim());
+        checkPrices();
         canSellAll = sellPrice != 0;
         usedStringShorthand = true;
 
@@ -73,6 +77,8 @@ public class ActionItemShop extends Action {
             sellPrice = Double.parseDouble(prices[1].trim());
             usedPriceShortcut = true;
         });
+        checkPrices();
+        canSellAll = sellPrice != 0 && yaml.find("allow-sell-all", Boolean.class).orElse(true);
 
         // item matchers
         yaml.findList("matches", String.class).ifPresent(list -> {
@@ -100,9 +106,15 @@ public class ActionItemShop extends Action {
             }
         });
 
-        canSellAll = sellPrice != 0 && yaml.find("allow-sell-all", Boolean.class).orElse(true);
 
         readParent();
+    }
+
+    public void checkPrices() throws IllegalArgumentException {
+        if (!Double.isFinite(buyPrice) || buyPrice < 0)
+            throw new IllegalArgumentException(buyPrice + " is not a valid buy price!");
+        if (!Double.isFinite(sellPrice) || sellPrice < 0)
+            throw new IllegalArgumentException(sellPrice + " is not a valid sell price!");
     }
 
     @Override

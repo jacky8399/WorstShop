@@ -1,16 +1,24 @@
 package com.jacky8399.worstshop.shops.actions;
 
 import com.jacky8399.worstshop.helper.Config;
+import com.jacky8399.worstshop.helper.ConfigException;
 import com.jacky8399.worstshop.helper.ConfigHelper;
+import com.jacky8399.worstshop.shops.conditions.Condition;
+import com.jacky8399.worstshop.shops.conditions.ConditionConstant;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.ClickType;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.ItemStack;
 
-import java.util.*;
+import java.util.Collections;
+import java.util.EnumSet;
+import java.util.Map;
+import java.util.Optional;
 
 public abstract class Action implements Cloneable {
     EnumSet<ClickType> triggerOnClick = EnumSet.allOf(ClickType.class);
+    Condition condition = ConditionConstant.TRUE;
+
     public Action(Config yaml) {
         if (yaml == null) {
             return;
@@ -33,7 +41,7 @@ public abstract class Action implements Cloneable {
     }
 
 
-    public static Action fromShorthand(String input) {
+    public static Action fromShorthand(String input) throws IllegalArgumentException {
         String classSpecifier = input.substring(0, input.indexOf("!"))
                 .replace(' ', '_').toLowerCase();
         String classArgument = input.substring(input.indexOf("!") + 1).trim();
@@ -53,10 +61,14 @@ public abstract class Action implements Cloneable {
 
     public static Action fromConfig(Config yaml) {
         Optional<String> presetOptional = yaml.find("preset", String.class);
-        return presetOptional.map(preset -> {
+        Action action = presetOptional.map(preset -> {
             // ULTIMATE SHORTCUT
             if (preset.contains("!")) {
-                return fromShorthand(preset);
+                try {
+                    return fromShorthand(preset);
+                } catch (IllegalArgumentException e) {
+                    throw new ConfigException(e.getMessage(), yaml, "preset");
+                }
             }
             switch (preset.replace(' ', '_').toLowerCase()) {
                 case "shop":
@@ -82,14 +94,18 @@ public abstract class Action implements Cloneable {
                 case "book":
                     return new ActionBook(yaml);
                 default:
-                    throw new IllegalArgumentException(preset + " is not a valid preset!");
+                    throw new ConfigException(preset + " is not a valid preset!", yaml, "preset");
             }
         }).orElseGet(() -> new ActionCustom(yaml));
+        yaml.find("condition", Config.class)
+                .map(Condition::fromMap)
+                .ifPresent(cond -> action.condition = cond);
+        return action;
     }
 
 
     public boolean shouldTrigger(InventoryClickEvent e) {
-        return triggerOnClick.contains(e.getClick());
+        return triggerOnClick.contains(e.getClick()) && condition.test((Player) e.getWhoClicked());
     }
 
     public void influenceItem(Player player, final ItemStack readonlyStack, ItemStack stack) {
