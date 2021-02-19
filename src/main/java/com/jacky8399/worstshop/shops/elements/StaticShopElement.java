@@ -385,6 +385,7 @@ public class StaticShopElement extends ShopElement {
                 ItemMeta meta = toReturn.getItemMeta();
                 meta.getPersistentDataContainer().set(SAFETY_KEY, PersistentDataType.BYTE, (byte) 1);
                 toReturn.setItemMeta(meta);
+                return toReturn;
             }
         }
 
