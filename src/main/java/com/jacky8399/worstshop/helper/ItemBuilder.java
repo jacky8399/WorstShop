@@ -30,6 +30,7 @@ public class ItemBuilder {
     }
 
     public ItemStack build() {
+        stack.setItemMeta(meta);
         return stack;
     }
 
@@ -45,7 +46,7 @@ public class ItemBuilder {
     }
 
     public ItemBuilder meta(ItemMeta meta) {
-        stack.setItemMeta(meta);
+        this.meta = meta;
         return this;
     }
 
@@ -53,7 +54,6 @@ public class ItemBuilder {
         if (meta == null)
             loadMeta();
         metaConsumer.accept(meta);
-        stack.setItemMeta(meta);
         return this;
     }
 

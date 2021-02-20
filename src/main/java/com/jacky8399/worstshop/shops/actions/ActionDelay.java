@@ -3,10 +3,13 @@ package com.jacky8399.worstshop.shops.actions;
 import com.google.common.collect.ImmutableList;
 import com.jacky8399.worstshop.WorstShop;
 import com.jacky8399.worstshop.helper.Config;
+import com.jacky8399.worstshop.helper.ConfigException;
 import com.jacky8399.worstshop.helper.DateTimeUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.event.inventory.InventoryClickEvent;
 
+import java.time.Duration;
+import java.time.temporal.ChronoUnit;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -21,10 +24,11 @@ public class ActionDelay extends Action {
         if (delayInput instanceof Integer) {
             delay = (int) delayInput;
         } else {
-            delay = (int) (DateTimeUtils.parseTimeStr(delayInput.toString()).getSeconds() * 20);
+            Duration duration = DateTimeUtils.parseTimeStr(delayInput.toString());
+            delay = (int) (duration.getSeconds() * 20 + duration.getNano() / ChronoUnit.MILLIS.getDuration().getNano() / 50);
         }
         if (delay <= 0)
-            throw new IllegalArgumentException("delay cannot be less than 0");
+            throw new ConfigException("delay cannot be less than 0", yaml, "delay");
         //noinspection UnstableApiUsage
         actions = yaml.getList("actions", Config.class).stream()
                 .map(Action::fromConfig)
