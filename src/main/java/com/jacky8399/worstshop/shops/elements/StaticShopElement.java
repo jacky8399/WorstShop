@@ -195,9 +195,11 @@ public class StaticShopElement extends ShopElement {
                 }
             });
 
+            yaml.find("unbreakable", Boolean.class).ifPresent(bool -> is.meta(meta -> meta.setUnbreakable(bool)));
+
             yaml.findList("hide-flags", String.class).ifPresent(flags -> {
                 ItemFlag[] itemFlags = flags.stream()
-                        .map(flag -> !flag.startsWith("HIDE_") ? "HIDE_" + flag : flag)
+                        .map(flag -> !flag.startsWith("HIDE") ? "HIDE_" + flag : flag)
                         .map(flag -> ConfigHelper.parseEnum(flag, ItemFlag.class))
                         .toArray(ItemFlag[]::new);
                 is.meta(meta -> meta.addItemFlags(itemFlags));
