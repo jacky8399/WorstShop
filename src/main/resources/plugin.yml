@@ -8,6 +8,7 @@ softdepend:
   - PlayerPoints
   - PlaceholderAPI
   - LuckPerms
+  - QuickShop
 author: jacky8399
 description: The worst shop plugin.
 

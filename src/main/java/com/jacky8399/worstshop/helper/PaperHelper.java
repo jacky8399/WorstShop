@@ -8,9 +8,10 @@ import com.mojang.authlib.ProfileLookupCallback;
 import com.mojang.authlib.minecraft.MinecraftSessionService;
 import com.mojang.authlib.properties.Property;
 import com.mojang.authlib.properties.PropertyMap;
+import net.md_5.bungee.api.ChatMessageType;
 import net.md_5.bungee.api.chat.BaseComponent;
-import net.md_5.bungee.chat.ComponentSerializer;
 import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang.WordUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandMap;
@@ -38,8 +39,9 @@ public class PaperHelper {
             player.sendActionBar(components);
         } else {
             // lol
-            Bukkit.dispatchCommand(Bukkit.getConsoleSender(),
-                    "title actionbar " + player.getName() + " " + ComponentSerializer.toString(components));
+//            Bukkit.dispatchCommand(Bukkit.getConsoleSender(),
+//                    "title actionbar " + player.getName() + " " + ComponentSerializer.toString(components));
+            player.spigot().sendMessage(ChatMessageType.ACTION_BAR, components);
         }
     }
 
@@ -52,9 +54,7 @@ public class PaperHelper {
             return stack.getI18NDisplayName();
         } else {
             // return name from material type
-            return StringUtils.capitalize(
-                    stack.getType().toString().replace('_', ' ').toLowerCase()
-            );
+            return WordUtils.capitalize(stack.getType().toString().replace('_', ' ').toLowerCase());
         }
     }
 

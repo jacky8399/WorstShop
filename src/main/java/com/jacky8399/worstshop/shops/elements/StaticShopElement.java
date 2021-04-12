@@ -1,7 +1,6 @@
 package com.jacky8399.worstshop.shops.elements;
 
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Maps;
 import com.jacky8399.worstshop.I18n;
 import com.jacky8399.worstshop.WorstShop;
 import com.jacky8399.worstshop.helper.*;
@@ -32,7 +31,7 @@ import org.yaml.snakeyaml.Yaml;
 
 import java.nio.charset.StandardCharsets;
 import java.util.*;
-import java.util.function.Consumer;
+import java.util.function.BiConsumer;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -61,11 +60,12 @@ public class StaticShopElement extends ShopElement {
     }
 
     private static final Pattern VALID_MC_NAME = Pattern.compile("[A-Za-z0-9_]{1,16}");
+
     public static ShopElement fromYaml(Config config) {
         // static parsing
         StaticShopElement inst = new StaticShopElement();
 
-        inst.id = config.find("id", Object.class).map(Object::toString).orElseGet(()-> {
+        inst.id = config.find("id", Object.class).map(Object::toString).orElseGet(() -> {
             // try to assign random id
             Shop shop = ParseContext.findLatest(Shop.class);
             if (shop != null) {
@@ -124,6 +124,7 @@ public class StaticShopElement extends ShopElement {
 
     // values are from CraftMetaItem.SerializableMeta.classMap
     public static final Set<String> SUPPORTED_ITEM_META_TYPES = ImmutableSet.<String>builder().add("UNSPECIFIC", "SKULL", "ENCHANTED").build();
+
     public static boolean isItemMetaSupported(ItemMeta meta) {
         //noinspection SuspiciousMethodCalls
         return SUPPORTED_ITEM_META_TYPES.contains(meta.serialize().get("meta-type"));
@@ -139,7 +140,7 @@ public class StaticShopElement extends ShopElement {
                 return null; // skip air
             }
             ItemBuilder is = ItemBuilder.of(material);
-            int amount = yaml.find("count", Integer.class).orElseGet(()->yaml.find("amount", Integer.class).orElse(1));
+            int amount = yaml.find("count", Integer.class).orElseGet(() -> yaml.find("amount", Integer.class).orElse(1));
             is.amount(Math.min(Math.max(amount, 1), material.getMaxStackSize()));
 
             Optional<String> itemMetaString = yaml.find("item-meta", String.class);
@@ -163,20 +164,18 @@ public class StaticShopElement extends ShopElement {
             yaml.find("enchants", Config.class).ifPresent(enchants ->
                     is.meta(meta -> {
                         // support enchanted books
-                        Consumer<Map.Entry<Enchantment, Integer>> consumer = meta instanceof EnchantmentStorageMeta ?
-                                entry -> ((EnchantmentStorageMeta) meta).addStoredEnchant(entry.getKey(), entry.getValue(), true) :
-                                entry -> meta.addEnchant(entry.getKey(), entry.getValue(), true);
+                        BiConsumer<Enchantment, Integer> consumer = meta instanceof EnchantmentStorageMeta ?
+                                (e, i) -> ((EnchantmentStorageMeta) meta).addStoredEnchant(e, i, true) :
+                                (e, i) -> meta.addEnchant(e, i, true);
 
-                        enchants.getPrimitiveMap().entrySet().stream()
-                                .map(entry -> {
-                                    String ench = entry.getKey();
-                                    int level = ((Number) entry.getValue()).intValue();
-                                    Enchantment enchType = Enchantment.getByKey(NamespacedKey.minecraft(ench));
-                                    if (enchType == null)
-                                        throw new ConfigException(ench + " is not a valid enchant!", enchants);
-                                    return Maps.immutableEntry(enchType, level);
-                                })
-                                .forEach(consumer);
+                        enchants.getPrimitiveMap().forEach((ench, level) -> {
+                            Enchantment enchType = Enchantment.getByKey(NamespacedKey.minecraft(ench));
+                            if (enchType == null)
+                                throw new ConfigException(ench + " is not a valid enchant!", enchants);
+                            if (!(level instanceof Number))
+                                throw new ConfigException("Expected level to be a number", enchants, ench);
+                            consumer.accept(enchType, ((Number) level).intValue());
+                        });
                     })
             );
 
@@ -211,7 +210,8 @@ public class StaticShopElement extends ShopElement {
                 try {
                     uuid = UUID.fromString(uuidOrName);
                     uuidOrName = null; // make name null
-                } catch (IllegalArgumentException ignored) { }
+                } catch (IllegalArgumentException ignored) {
+                }
                 final UUID finalUuid = uuid;
                 final String finalName = uuidOrName;
                 is.meta(meta -> {
@@ -267,7 +267,7 @@ public class StaticShopElement extends ShopElement {
         if (meta.hasEnchants() || (meta instanceof EnchantmentStorageMeta && ((EnchantmentStorageMeta) meta).hasStoredEnchants())) {
             HashMap<String, Object> enchants = new HashMap<>();
             Map<Enchantment, Integer> realEnchants = meta instanceof EnchantmentStorageMeta ? ((EnchantmentStorageMeta) meta).getStoredEnchants() : meta.getEnchants();
-            realEnchants.forEach((ench, level)->{
+            realEnchants.forEach((ench, level) -> {
                 // strip namespace if minecraft:
                 String key = ench.getKey().getNamespace().equals(NamespacedKey.MINECRAFT) ? ench.getKey().getKey() : ench.getKey().toString();
                 enchants.put(key, level);
@@ -285,9 +285,9 @@ public class StaticShopElement extends ShopElement {
         }
         if (meta.getItemFlags().size() != 0) {
             map.put("hide-flags", meta.getItemFlags().stream().map(ItemFlag::name)
-                            .map(str -> str.substring("HIDE_".length())) // strip hide
-                            .map(str -> str.toLowerCase().replace('_', ' ')) // to lowercase
-                            .collect(Collectors.toList()));
+                    .map(str -> str.substring("HIDE_".length())) // strip hide
+                    .map(str -> str.toLowerCase().replace('_', ' ')) // to lowercase
+                    .collect(Collectors.toList()));
         }
         if (meta instanceof SkullMeta) {
             SkullMeta skullMeta = (SkullMeta) meta;
@@ -328,12 +328,12 @@ public class StaticShopElement extends ShopElement {
         super.populateItems(player, contents, pagination);
 
         if (async) {
-            Bukkit.getScheduler().runTaskAsynchronously(WorstShop.get(), ()->{
+            Bukkit.getScheduler().runTaskAsynchronously(WorstShop.get(), () -> {
                 try {
                     asyncHack.put(player, createStack(player));
                     if (!player.isOnline())
                         return;
-                    Bukkit.getScheduler().runTask(WorstShop.get(), ()->{
+                    Bukkit.getScheduler().runTask(WorstShop.get(), () -> {
                         try {
                             super.populateItems(player, contents, pagination);
                         } catch (Exception e) {
@@ -373,9 +373,10 @@ public class StaticShopElement extends ShopElement {
     }
 
     public static final ItemStack ASYNC_PLACEHOLDER = ItemBuilder.of(Material.BEDROCK)
-            .name(""+ChatColor.RED + ChatColor.BOLD + "...").build();
+            .name("" + ChatColor.RED + ChatColor.BOLD + "...").build();
     // use a map to prevent conflicts
     private static final WeakHashMap<Player, ItemStack> asyncHack = new WeakHashMap<>();
+
     @Override
     public ItemStack createStack(Player player) {
         if (async) {

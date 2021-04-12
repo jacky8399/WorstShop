@@ -12,6 +12,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.function.Consumer;
 
+@SuppressWarnings("deprecation")
 public class ItemBuilder {
     private final ItemStack stack;
     private ItemBuilder(Material mat) {
@@ -58,7 +59,7 @@ public class ItemBuilder {
     }
 
     public ItemBuilder name(String str) {
-        return meta(meta-> meta.setDisplayName(str));
+        return meta(meta -> meta.setDisplayName(str));
     }
 
     public ItemBuilder skullOwner(OfflinePlayer p) {
@@ -75,7 +76,7 @@ public class ItemBuilder {
     }
 
     public ItemBuilder lore(List<String> lore) {
-        return meta(meta-> meta.setLore(lore));
+        return meta(meta -> meta.setLore(lore));
     }
 
     public ItemBuilder addLores(String... lore) {
@@ -86,7 +87,7 @@ public class ItemBuilder {
 
     public ItemBuilder addLore(List<String> lore) {
         if (lore != null)
-            meta(meta-> {
+            meta(meta -> {
                List<String> oldLore = meta.hasLore() ? meta.getLore() : Lists.newArrayList();
                oldLore.addAll(lore);
                meta.setLore(oldLore);

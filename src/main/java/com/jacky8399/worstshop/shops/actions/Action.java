@@ -77,6 +77,8 @@ public abstract class Action implements Cloneable {
                     return new ActionTransaction(yaml);
                 case "item_shop":
                     return new ActionItemShop(yaml);
+                case "player_shop":
+                    return new ActionPlayerShop(yaml);
                 case "take":
                     return new ActionTake(yaml);
                 case "open":
