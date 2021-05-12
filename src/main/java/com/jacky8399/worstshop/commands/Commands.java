@@ -18,8 +18,14 @@ public class Commands {
         manager.enableUnstableAPI("help");
 
         // register commands
-        manager.registerCommand(new CommandShop(plugin, manager));
-        manager.registerCommand(new CommandSell(plugin, manager));
-        manager.registerCommand(new CommandBuy(plugin, manager));
+        try {
+            manager.registerCommand(new CommandShop());
+            manager.registerCommand(new CommandSell());
+            manager.registerCommand(new CommandBuy());
+            manager.registerCommand(new CommandLogs());
+        } catch (Exception e) {
+            plugin.logger.severe("Failed to register commands!");
+            e.printStackTrace();
+        }
     }
 }

@@ -1,11 +1,9 @@
 package com.jacky8399.worstshop.commands;
 
-import co.aikar.commands.PaperCommandManager;
 import co.aikar.commands.annotation.CommandAlias;
 import co.aikar.commands.annotation.CommandCompletion;
 import co.aikar.commands.annotation.CommandPermission;
 import co.aikar.commands.annotation.Subcommand;
-import com.jacky8399.worstshop.WorstShop;
 import com.jacky8399.worstshop.helper.ItemUtils;
 import com.jacky8399.worstshop.shops.ItemShop;
 import com.jacky8399.worstshop.shops.ShopManager;
@@ -32,9 +30,6 @@ import java.util.ListIterator;
 @CommandAlias("sell")
 @CommandPermission("worstshop.sell")
 public class CommandSell extends BaseCommand {
-    public CommandSell(WorstShop plugin, PaperCommandManager manager) {
-        super(plugin, manager);
-    }
 
     public static boolean sellStack(Player player, ItemStack stack, boolean promptIfFailed) {
         if (ItemUtils.isEmpty(stack))

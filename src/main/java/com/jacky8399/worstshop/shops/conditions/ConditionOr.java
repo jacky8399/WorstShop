@@ -14,8 +14,7 @@ public class ConditionOr extends Condition {
     }
 
     public ConditionOr(Collection<? extends Condition> conditions) {
-        this.conditions = Lists.newArrayList();
-        this.conditions.addAll(conditions);
+        this.conditions = new ArrayList<>(conditions);
     }
 
     public void addCondition(@NotNull Condition condition) {

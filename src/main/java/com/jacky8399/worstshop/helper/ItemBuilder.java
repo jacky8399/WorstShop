@@ -1,12 +1,12 @@
 package com.jacky8399.worstshop.helper;
 
-import com.google.common.collect.Lists;
 import org.bukkit.Material;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.SkullMeta;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -88,7 +88,7 @@ public class ItemBuilder {
     public ItemBuilder addLore(List<String> lore) {
         if (lore != null)
             meta(meta -> {
-               List<String> oldLore = meta.hasLore() ? meta.getLore() : Lists.newArrayList();
+               List<String> oldLore = meta.hasLore() ? new ArrayList<>(meta.getLore()) : new ArrayList<>();
                oldLore.addAll(lore);
                meta.setLore(oldLore);
             });

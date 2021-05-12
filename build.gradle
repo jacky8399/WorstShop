@@ -104,7 +104,7 @@ shadowJar {
 }
 
 test {
-    useJUnitPlatform()
+//    useJUnitPlatform()
 }
 
 build.dependsOn shadowJar

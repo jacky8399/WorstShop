@@ -3,7 +3,6 @@ package com.jacky8399.worstshop.commands;
 import co.aikar.commands.CommandHelp;
 import co.aikar.commands.CommandIssuer;
 import co.aikar.commands.InvalidCommandArgument;
-import co.aikar.commands.PaperCommandManager;
 import co.aikar.commands.annotation.*;
 import co.aikar.commands.bukkit.contexts.OnlinePlayer;
 import com.jacky8399.worstshop.I18n;
@@ -45,8 +44,7 @@ import static com.jacky8399.worstshop.I18n.translate;
 @CommandAlias("worstshop|shop")
 @CommandPermission("worstshop.shop")
 public class CommandShop extends BaseCommand {
-    public CommandShop(WorstShop plugin, PaperCommandManager manager) {
-        super(plugin, manager);
+    public CommandShop() {
         // register shops autocompletion
         manager.getCommandContexts().registerContext(Shop.class, ctx->{
             String arg = ctx.getFirstArg();
