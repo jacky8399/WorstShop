@@ -122,12 +122,12 @@ public class ShopWantsMultiple extends ShopWants {
 
     @Override
     public String getPlayerTrait(Player player) {
-        return wants.stream().map(want->want.getPlayerTrait(player)).collect(Collectors.joining("\n"));
+        return wants.stream().map(want->want.getPlayerTrait(player)).collect(Collectors.joining(", "));
     }
 
     @Override
     public String getPlayerResult(Player player, TransactionType position) {
-        return wants.stream().map(want->want.getPlayerResult(player, position)).collect(Collectors.joining("\n"));
+        return wants.stream().map(want->want.getPlayerResult(player, position)).collect(Collectors.joining(", "));
     }
 
     @Override

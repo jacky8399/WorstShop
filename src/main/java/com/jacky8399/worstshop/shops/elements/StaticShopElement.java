@@ -26,6 +26,8 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.SkullMeta;
 import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
+import org.jetbrains.annotations.Contract;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.yaml.snakeyaml.Yaml;
 
@@ -37,9 +39,14 @@ import java.util.stream.Collectors;
 
 public class StaticShopElement extends ShopElement {
 
+    public StaticShopElement() {
+
+    }
+
     public static NamespacedKey SAFETY_KEY = new NamespacedKey(WorstShop.get(), "shop_item");
 
-    public ItemStack rawStack;
+    @NotNull
+    public ItemStack rawStack = new ItemStack(Material.AIR);
 
     public boolean async = false;
     @Nullable
@@ -54,7 +61,8 @@ public class StaticShopElement extends ShopElement {
 
     public static StaticShopElement fromStack(ItemStack stack) {
         StaticShopElement inst = new StaticShopElement();
-        inst.rawStack = stack;
+        if (stack != null)
+            inst.rawStack = stack;
         inst.actions = Collections.emptyList();
         return inst;
     }
@@ -79,11 +87,14 @@ public class StaticShopElement extends ShopElement {
         // push context earlier for error-handling
         ParseContext.pushContext(inst);
 
-        inst.rawStack = parseItemStack(config);
+        ItemStack rawStack = parseItemStack(config);
 
         // die if null
-        if (ItemUtils.isEmpty(inst.rawStack) && !config.find("preserve-space", Boolean.class).orElse(false))
+        if (ItemUtils.isEmpty(rawStack) && !config.find("preserve-space", Boolean.class).orElse(false))
             return null;
+
+        if (rawStack != null)
+            inst.rawStack = rawStack;
 
         inst.async = config.find("async", Boolean.class).orElse(false);
         if (inst.async)
@@ -410,7 +421,9 @@ public class StaticShopElement extends ShopElement {
         return actualStack;
     }
 
-    public static ItemStack replacePlaceholders(Player player, ItemStack stack) {
+    @Nullable
+    @Contract("_, null -> null; _, !null -> !null")
+    public static ItemStack replacePlaceholders(Player player, @Nullable ItemStack stack) {
         if (stack == null || stack.getType() == Material.AIR)
             return stack;
 
