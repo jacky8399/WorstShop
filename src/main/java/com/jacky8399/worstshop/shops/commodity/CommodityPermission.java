@@ -1,4 +1,4 @@
-package com.jacky8399.worstshop.shops.wants;
+package com.jacky8399.worstshop.shops.commodity;
 
 import com.jacky8399.worstshop.I18n;
 import com.jacky8399.worstshop.WorstShop;
@@ -23,7 +23,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
-public class ShopWantsPermission extends ShopWants {
+public class CommodityPermission extends Commodity {
 
     public static final LuckPerms PERMS;
 
@@ -56,7 +56,7 @@ public class ShopWantsPermission extends ShopWants {
     PermissionType permType;
     boolean revokePermission;
 
-    public ShopWantsPermission(Config config) {
+    public CommodityPermission(Config config) {
         super();
         if (PERMS == null)
             throw new IllegalStateException();
@@ -132,7 +132,7 @@ public class ShopWantsPermission extends ShopWants {
         permissionNode = builder.build();
     }
 
-    public ShopWantsPermission(ShopWantsPermission old, double multiplier) {
+    public CommodityPermission(CommodityPermission old, double multiplier) {
         permissionNode = old.permissionNode;
         permType = old.permType;
         durationInSeconds = old.durationInSeconds;
@@ -148,8 +148,8 @@ public class ShopWantsPermission extends ShopWants {
     }
 
     @Override
-    public ShopWants multiply(double multiplier) {
-        return new ShopWantsPermission(this, multiplier);
+    public Commodity multiply(double multiplier) {
+        return new CommodityPermission(this, multiplier);
     }
 
     @Override
@@ -257,9 +257,9 @@ public class ShopWantsPermission extends ShopWants {
 
     @Override
     public boolean equals(Object obj) {
-        if (!(obj instanceof ShopWantsPermission))
+        if (!(obj instanceof CommodityPermission))
             return false;
-        ShopWantsPermission other = (ShopWantsPermission) obj;
+        CommodityPermission other = (CommodityPermission) obj;
         return other.permissionNode.equals(permissionNode) && other.durationInSeconds == durationInSeconds &&
                 other.durationShouldAppend == durationShouldAppend && other.revokePermission == revokePermission;
     }

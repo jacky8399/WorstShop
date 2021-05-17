@@ -1,4 +1,4 @@
-package com.jacky8399.worstshop.shops.wants;
+package com.jacky8399.worstshop.shops.commodity;
 
 import com.jacky8399.worstshop.I18n;
 import com.jacky8399.worstshop.helper.Config;
@@ -12,27 +12,27 @@ import org.jetbrains.annotations.Nullable;
 import java.util.Map;
 import java.util.Objects;
 
-public class ShopWantsExp extends ShopWants {
-    public ShopWantsExp(Config config) {
+public class CommodityExp extends Commodity {
+    public CommodityExp(Config config) {
         this(config.find("levels", Integer.class).orElse(0),
                 config.find("points", Integer.class).orElse(0));
     }
 
     int levels, points;
     transient double multiplier;
-    public ShopWantsExp(int levels, int points) {
+    public CommodityExp(int levels, int points) {
         this(levels, points, 1);
     }
 
-    public ShopWantsExp(int levels, int points, double multiplier) {
+    public CommodityExp(int levels, int points, double multiplier) {
         this.levels = levels;
         this.points = points;
         this.multiplier = multiplier;
     }
 
     @Override
-    public ShopWants multiply(double multiplier) {
-        return new ShopWantsExp(levels, points, multiplier);
+    public Commodity multiply(double multiplier) {
+        return new CommodityExp(levels, points, multiplier);
     }
 
     @Override
@@ -95,9 +95,9 @@ public class ShopWantsExp extends ShopWants {
 
     @Override
     public boolean equals(Object obj) {
-        if (!(obj instanceof ShopWantsExp))
+        if (!(obj instanceof CommodityExp))
             return false;
-        ShopWantsExp other = (ShopWantsExp) obj;
+        CommodityExp other = (CommodityExp) obj;
         return other.multiplier == multiplier && other.levels == levels && other.points == points;
     }
 

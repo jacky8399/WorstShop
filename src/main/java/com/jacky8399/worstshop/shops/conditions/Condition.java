@@ -38,10 +38,10 @@ public abstract class Condition implements Predicate<Player> {
         }
         Optional<Object> preset = yaml.find("preset", String.class, Boolean.class);
         if (!preset.isPresent()) {
-            // compatibility with ShopWants
+            // compatibility with Commodity
             WorstShop.get().logger.warning("Using cost & rewards as conditions is deprecated. Please add 'preset: commodity' before it.");
             WorstShop.get().logger.warning("Offending condition is in " + ParseContext.getHierarchy());
-            return new ConditionShopWants(yaml);
+            return new ConditionCommodity(yaml);
         }
         // thanks YAML
         if (preset.get() instanceof Boolean) {
@@ -50,7 +50,7 @@ public abstract class Condition implements Predicate<Player> {
 
         switch ((String) preset.get()) {
             case "commodity":
-                return new ConditionShopWants(yaml);
+                return new ConditionCommodity(yaml);
             case "placeholder":
                 return new ConditionPlaceholder(yaml);
             case "permission":

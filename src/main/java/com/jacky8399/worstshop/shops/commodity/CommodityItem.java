@@ -1,4 +1,4 @@
-package com.jacky8399.worstshop.shops.wants;
+package com.jacky8399.worstshop.shops.commodity;
 
 import com.google.common.collect.Sets;
 import com.jacky8399.worstshop.I18n;
@@ -20,14 +20,14 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
-public class ShopWantsItem extends ShopWants implements IFlexibleShopWants {
+public class CommodityItem extends Commodity implements IFlexibleCommodity {
 
     ItemStack stack;
     // never modify the stack directly
     public final double multiplier;
     public HashSet<ItemMatcher> itemMatchers = Sets.newHashSet(ItemMatcher.SIMILAR);
 
-    public ShopWantsItem(Config config) {
+    public CommodityItem(Config config) {
         // parse itemstack
         this(StaticShopElement.parseItemStack(config), 1);
         config.findList("matches", String.class).ifPresent(matchers -> {
@@ -37,26 +37,26 @@ public class ShopWantsItem extends ShopWants implements IFlexibleShopWants {
         });
     }
 
-    public ShopWantsItem(ItemStack stack) {
+    public CommodityItem(ItemStack stack) {
         this(stack, 1);
     }
 
-    public ShopWantsItem(ItemStack stack, double multiplier) {
+    public CommodityItem(ItemStack stack, double multiplier) {
         this.stack = stack;
         this.multiplier = multiplier;
     }
 
-    public ShopWantsItem(ShopWantsItem other) {
+    public CommodityItem(CommodityItem other) {
         this(other, 1);
     }
 
-    public ShopWantsItem(ShopWantsItem other, double multiplier) {
+    public CommodityItem(CommodityItem other, double multiplier) {
         this.stack = other.stack.clone();
         this.multiplier = other.multiplier * multiplier;
         setItemMatchers(other.itemMatchers);
     }
 
-    public ShopWantsItem setItemMatchers(Collection<ItemMatcher> matchers) {
+    public CommodityItem setItemMatchers(Collection<ItemMatcher> matchers) {
         itemMatchers.clear();
         itemMatchers.addAll(matchers);
         return this;
@@ -72,15 +72,15 @@ public class ShopWantsItem extends ShopWants implements IFlexibleShopWants {
     }
 
     @Override
-    public ShopWants adjustForPlayer(Player player) {
+    public Commodity adjustForPlayer(Player player) {
         // parse placeholders
-        return new ShopWantsItem(StaticShopElement.replacePlaceholders(player, stack), multiplier)
+        return new CommodityItem(StaticShopElement.replacePlaceholders(player, stack), multiplier)
                 .setItemMatchers(itemMatchers);
     }
 
     @Override
-    public ShopWants multiply(double multiplier) {
-        return new ShopWantsItem(this, this.multiplier * multiplier);
+    public Commodity multiply(double multiplier) {
+        return new CommodityItem(this, this.multiplier * multiplier);
     }
 
     @Override
@@ -222,9 +222,9 @@ public class ShopWantsItem extends ShopWants implements IFlexibleShopWants {
 
     @Override
     public boolean equals(Object obj) {
-        if (!(obj instanceof ShopWantsItem))
+        if (!(obj instanceof CommodityItem))
             return false;
-        ShopWantsItem other = (ShopWantsItem) obj;
+        CommodityItem other = (CommodityItem) obj;
         return other.multiplier == multiplier && other.stack.equals(stack) && other.itemMatchers.equals(itemMatchers);
     }
 

@@ -1,4 +1,4 @@
-package com.jacky8399.worstshop.shops.wants;
+package com.jacky8399.worstshop.shops.commodity;
 
 import com.google.common.collect.Lists;
 import com.jacky8399.worstshop.helper.Config;
@@ -19,30 +19,30 @@ import java.util.Objects;
 /**
  * Special commodity to let users specify the display themselves
  */
-public final class ShopWantsCustomizable extends ShopWants implements IFlexibleShopWants {
+public final class CommodityCustomizable extends Commodity implements IFlexibleCommodity {
     @NotNull
-    public final ShopWants base;
+    public final Commodity base;
     @NotNull
     private final ShopElement element;
     transient boolean copyFromParent;
-    public ShopWantsCustomizable(@NotNull ShopWantsCustomizable carryOver) {
+    public CommodityCustomizable(@NotNull CommodityCustomizable carryOver) {
         this(carryOver.base, carryOver.element, carryOver.copyFromParent);
     }
 
-    public ShopWantsCustomizable(@NotNull ShopWants base, @NotNull ShopElement element) {
+    public CommodityCustomizable(@NotNull Commodity base, @NotNull ShopElement element) {
         this(base, element, false);
     }
 
-    public ShopWantsCustomizable(@NotNull ShopWants base, @NotNull ShopElement element, boolean copyFromParent) {
+    public CommodityCustomizable(@NotNull Commodity base, @NotNull ShopElement element, boolean copyFromParent) {
         this.base = base;
         this.element = element;
         this.copyFromParent = copyFromParent;
     }
 
-    public ShopWantsCustomizable(@NotNull ShopWants base, @NotNull Config config) {
+    public CommodityCustomizable(@NotNull Commodity base, @NotNull Config config) {
         this.base = base;
         ShopElement element = fromYaml(config.get("display", Config.class));
-        this.element = element != null ? element : StaticShopElement.fromStack(ShopWants.UNDEFINED);
+        this.element = element != null ? element : StaticShopElement.fromStack(Commodity.UNDEFINED);
     }
 
     public ShopElement fromYaml(Config config) {
@@ -64,8 +64,8 @@ public final class ShopWantsCustomizable extends ShopWants implements IFlexibleS
     }
 
     @Override
-    public ShopWants multiply(double multiplier) {
-        return new ShopWantsCustomizable(base.multiply(multiplier), element, copyFromParent);
+    public Commodity multiply(double multiplier) {
+        return new CommodityCustomizable(base.multiply(multiplier), element, copyFromParent);
     }
 
     @Override
@@ -99,9 +99,9 @@ public final class ShopWantsCustomizable extends ShopWants implements IFlexibleS
     }
 
     @Override
-    public ShopWants adjustForPlayer(Player player) {
-        return base instanceof IFlexibleShopWants ?
-                new ShopWantsCustomizable(((IFlexibleShopWants) base).adjustForPlayer(player), element, copyFromParent) :
+    public Commodity adjustForPlayer(Player player) {
+        return base instanceof IFlexibleCommodity ?
+                new CommodityCustomizable(((IFlexibleCommodity) base).adjustForPlayer(player), element, copyFromParent) :
                 this;
     }
 
@@ -137,9 +137,9 @@ public final class ShopWantsCustomizable extends ShopWants implements IFlexibleS
 
     @Override
     public boolean equals(Object obj) {
-        if (!(obj instanceof ShopWantsCustomizable))
+        if (!(obj instanceof CommodityCustomizable))
             return false;
-        ShopWantsCustomizable other = (ShopWantsCustomizable) obj;
+        CommodityCustomizable other = (CommodityCustomizable) obj;
         return other.base.equals(base) && other.element.equals(element);
     }
 

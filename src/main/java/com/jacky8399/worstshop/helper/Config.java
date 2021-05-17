@@ -5,7 +5,6 @@ import com.jacky8399.worstshop.WorstShop;
 import javax.annotation.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
 import java.util.*;
-import java.util.function.Supplier;
 import java.util.logging.Logger;
 
 /**
@@ -171,7 +170,7 @@ public final class Config {
      */
     @SafeVarargs
     public final <T> T get(String key, Class<? extends T> clazz1, Class<? extends T>... classes) throws ConfigException {
-        return find(key, clazz1, classes).orElseThrow(throwFor(key, stringifyTypes(getClasses(clazz1, classes))));
+        return find(key, clazz1, classes).orElseThrow(()->throwFor(key, stringifyTypes(getClasses(clazz1, classes))));
     }
 
     @SafeVarargs
@@ -203,10 +202,10 @@ public final class Config {
 
     @SafeVarargs
     public final <T> List<? extends T> getList(String key, Class<? extends T> listType1, Class<? extends T>... listTypes) throws ConfigException {
-        return findList(key, listType1, listTypes).orElseThrow(throwFor(key, stringifyListTypes(getClasses(listType1, listTypes))));
+        return findList(key, listType1, listTypes).orElseThrow(()->throwFor(key, stringifyListTypes(getClasses(listType1, listTypes))));
     }
 
-    private Supplier<? extends ConfigException> throwFor(String key, String type) {
-        return ()->new ConfigException("Expected " + type + " at " + key + ", found nothing", this);
+    private ConfigException throwFor(String key, String type) {
+        return new ConfigException("Expected " + type + " at " + key + ", found nothing", this);
     }
 }

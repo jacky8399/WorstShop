@@ -2,7 +2,7 @@ package com.jacky8399.worstshop.shops.actions;
 
 import com.jacky8399.worstshop.helper.Config;
 import com.jacky8399.worstshop.helper.PlayerPurchaseRecords;
-import com.jacky8399.worstshop.shops.wants.ShopWants;
+import com.jacky8399.worstshop.shops.commodity.Commodity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.InventoryClickEvent;
 
@@ -13,7 +13,7 @@ public class ActionTransaction extends ActionShop {
         super(yaml);
     }
 
-    public ActionTransaction(ShopWants cost, ShopWants reward, PlayerPurchaseRecords.RecordTemplate template, int purchaseLimit) {
+    public ActionTransaction(Commodity cost, Commodity reward, PlayerPurchaseRecords.RecordTemplate template, int purchaseLimit) {
         super(cost, reward, template, purchaseLimit);
     }
 

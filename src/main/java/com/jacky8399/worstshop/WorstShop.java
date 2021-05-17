@@ -10,7 +10,9 @@ import fr.minuskube.inv.InventoryManager;
 import fr.minuskube.inv.SmartInventory;
 import net.luckperms.api.LuckPerms;
 import net.luckperms.api.LuckPermsProvider;
+import net.milkbowl.vault.chat.Chat;
 import net.milkbowl.vault.economy.Economy;
+import net.milkbowl.vault.permission.Permission;
 import org.black_ixx.playerpoints.PlayerPoints;
 import org.bukkit.Bukkit;
 import net.md_5.bungee.api.ChatColor;
@@ -23,8 +25,10 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.ClickType;
 import org.bukkit.event.inventory.InventoryAction;
 import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.RegisteredServiceProvider;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.jetbrains.annotations.Nullable;
 
 import java.lang.reflect.Field;
 import java.util.logging.Level;
@@ -35,10 +39,16 @@ public final class WorstShop extends JavaPlugin {
     public Logger logger;
     public InventoryManager inventories;
     public PaperCommandManager commands;
+    @Nullable
     public RegisteredServiceProvider<Economy> economy;
+    @Nullable
     public PlayerPoints playerPoints;
     public boolean placeholderAPI = false;
+    @Nullable
     public LuckPerms permissions;
+    @Nullable
+    public RegisteredServiceProvider<Permission> vaultPermissions;
+    public RegisteredServiceProvider<Chat> vaultChat;
 
     public FileConfiguration config;
 
@@ -55,19 +65,21 @@ public final class WorstShop extends JavaPlugin {
 
         logger.setLevel(Level.FINEST);
 
-        logger.info(ChatColor.GOLD + "Enabling WorstShop");
-
         // check is Paper
         PaperHelper.checkIsPaper();
         if (!PaperHelper.isPaper) {
             logger.info(ChatColor.YELLOW + "Not using Paper. Using alternative methods.");
         }
 
+        PluginManager manager = Bukkit.getPluginManager();
+
         // setup vault dependencies
-        economy = getServer().getServicesManager().getRegistration(Economy.class);
+        if (manager.isPluginEnabled("Vault")) {
+            economy = Bukkit.getServicesManager().getRegistration(Economy.class);
+        }
 
         // setup LuckPerms dependency
-        if (getServer().getPluginManager().isPluginEnabled("LuckPerms")) {
+        if (manager.isPluginEnabled("LuckPerms")) {
             try {
                 permissions = LuckPermsProvider.get();
             } catch (NoClassDefFoundError ex) {
@@ -75,6 +87,10 @@ public final class WorstShop extends JavaPlugin {
                 logger.severe(ex.toString());
                 permissions = null;
             }
+        } else if (manager.isPluginEnabled("Vault")) {
+            vaultPermissions = Bukkit.getServicesManager().getRegistration(Permission.class);
+            vaultChat = Bukkit.getServicesManager().getRegistration(Chat.class);
+            logger.warning("LuckPerms not found, using Vault as fallback");
         }
 
         // setup playerpoints dependency

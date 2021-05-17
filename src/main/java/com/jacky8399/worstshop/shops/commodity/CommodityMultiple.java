@@ -1,4 +1,4 @@
-package com.jacky8399.worstshop.shops.wants;
+package com.jacky8399.worstshop.shops.commodity;
 
 import com.google.common.collect.Lists;
 import com.jacky8399.worstshop.shops.ElementPopulationContext;
@@ -12,25 +12,25 @@ import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-public class ShopWantsMultiple extends ShopWants {
-    public List<ShopWants> wants;
+public class CommodityMultiple extends Commodity {
+    public List<Commodity> wants;
 
     int wrapIndexOffset(int orig, int idx) {
         return (wants.size() + orig + idx) % wants.size();
     }
 
-    public ShopWantsMultiple(List<ShopWants> wants) {
+    public CommodityMultiple(List<Commodity> wants) {
         this.wants = Lists.newArrayList();
-        for (ShopWants commodity : wants) {
-            if (commodity instanceof ShopWantsMultiple)
-                throw new IllegalArgumentException("Cannot embed ShopWantsMultiple!");
+        for (Commodity commodity : wants) {
+            if (commodity instanceof CommodityMultiple)
+                throw new IllegalArgumentException("Cannot embed CommodityMultiple!");
             this.wants.add(commodity);
         }
     }
 
     @Override
     public boolean canMultiply() {
-        return wants.stream().allMatch(ShopWants::canMultiply);
+        return wants.stream().allMatch(Commodity::canMultiply);
     }
 
     @Override
@@ -39,8 +39,8 @@ public class ShopWantsMultiple extends ShopWants {
     }
 
     @Override
-    public ShopWants multiply(double multiplier) {
-        return new ShopWantsMultiple(wants.stream().map(want->want.multiply(multiplier)).collect(Collectors.toList()));
+    public Commodity multiply(double multiplier) {
+        return new CommodityMultiple(wants.stream().map(want->want.multiply(multiplier)).collect(Collectors.toList()));
     }
 
     @Override
@@ -56,10 +56,10 @@ public class ShopWantsMultiple extends ShopWants {
     @Override
     public double grantOrRefund(Player player) {
         // need to refund other commodities ourselves
-        Map<ShopWants, Double> result = wants.stream()
+        Map<Commodity, Double> result = wants.stream()
                 .collect(Collectors.toMap(Function.identity(), want -> want.grantOrRefund(player)));
 
-        Map.Entry<ShopWants, Double> maxRefund = Collections.max(result.entrySet(), Comparator.comparingDouble(Map.Entry::getValue));
+        Map.Entry<Commodity, Double> maxRefund = Collections.max(result.entrySet(), Comparator.comparingDouble(Map.Entry::getValue));
         if (maxRefund != null && maxRefund.getValue() != 0) {
             result.forEach((want, refund)->{
                 if (want != maxRefund.getKey()) {
@@ -132,7 +132,7 @@ public class ShopWantsMultiple extends ShopWants {
 
     @Override
     public Map<String, Object> toMap(Map<String, Object> map) {
-        // handled by ShopWants.class
+        // handled by Commodity.class
         throw new UnsupportedOperationException();
     }
 
@@ -148,11 +148,11 @@ public class ShopWantsMultiple extends ShopWants {
 
     @Override
     public boolean equals(Object obj) {
-        return obj instanceof ShopWantsMultiple && ((ShopWantsMultiple) obj).wants.equals(wants);
+        return obj instanceof CommodityMultiple && ((CommodityMultiple) obj).wants.equals(wants);
     }
 
     @Override
     public String toString() {
-        return wants.stream().map(ShopWants::toString).collect(Collectors.joining(",", "{", "}"));
+        return wants.stream().map(Commodity::toString).collect(Collectors.joining(",", "{", "}"));
     }
 }

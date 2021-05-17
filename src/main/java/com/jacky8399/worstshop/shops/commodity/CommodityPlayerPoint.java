@@ -1,4 +1,4 @@
-package com.jacky8399.worstshop.shops.wants;
+package com.jacky8399.worstshop.shops.commodity;
 
 import com.jacky8399.worstshop.I18n;
 import com.jacky8399.worstshop.WorstShop;
@@ -13,7 +13,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.Map;
 
-public class ShopWantsPlayerPoint extends ShopWants {
+public class CommodityPlayerPoint extends Commodity {
 
     public static final PlayerPointsAPI POINTS;
 
@@ -28,23 +28,23 @@ public class ShopWantsPlayerPoint extends ShopWants {
     double multiplier;
     transient int realPoints;
 
-    public ShopWantsPlayerPoint(Config config) {
+    public CommodityPlayerPoint(Config config) {
         this(config.get("points", Integer.class));
     }
 
-    public ShopWantsPlayerPoint(int points) {
+    public CommodityPlayerPoint(int points) {
         this(points, 1);
     }
 
-    public ShopWantsPlayerPoint(int points, double multiplier) {
+    public CommodityPlayerPoint(int points, double multiplier) {
         this.points = Math.abs(points);
         this.multiplier = multiplier;
         this.realPoints = (int) (points * multiplier);
     }
 
     @Override
-    public ShopWants multiply(double multiplier) {
-        return new ShopWantsPlayerPoint(points, this.multiplier * multiplier);
+    public Commodity multiply(double multiplier) {
+        return new CommodityPlayerPoint(points, this.multiplier * multiplier);
     }
 
     @Override
@@ -96,7 +96,7 @@ public class ShopWantsPlayerPoint extends ShopWants {
 
     @Override
     public boolean equals(Object obj) {
-        return obj instanceof ShopWantsPlayerPoint && ((ShopWantsPlayerPoint) obj).realPoints == realPoints;
+        return obj instanceof CommodityPlayerPoint && ((CommodityPlayerPoint) obj).realPoints == realPoints;
     }
 
     @Override

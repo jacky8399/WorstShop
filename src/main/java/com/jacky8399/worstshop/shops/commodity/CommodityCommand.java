@@ -1,4 +1,4 @@
-package com.jacky8399.worstshop.shops.wants;
+package com.jacky8399.worstshop.shops.commodity;
 
 import com.jacky8399.worstshop.helper.Config;
 import com.jacky8399.worstshop.helper.ItemBuilder;
@@ -13,7 +13,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 
-public class ShopWantsCommand extends ShopWants implements INeverAffordableShopWants {
+public class CommodityCommand extends Commodity implements IUnaffordableCommodity {
 
     public enum CommandInvocationMethod {
         PLAYER, PLAYER_OP, CONSOLE
@@ -23,13 +23,13 @@ public class ShopWantsCommand extends ShopWants implements INeverAffordableShopW
     CommandInvocationMethod method;
     int multiplier;
 
-    public ShopWantsCommand(Config config) {
+    public CommodityCommand(Config config) {
         command = config.get("command", String.class);
         method = config.find("method", CommandInvocationMethod.class).orElse(CommandInvocationMethod.PLAYER);
         multiplier = config.find("multiplier", Integer.class).orElse(1);
     }
 
-    public ShopWantsCommand(String command, CommandInvocationMethod method, int multiplier) {
+    public CommodityCommand(String command, CommandInvocationMethod method, int multiplier) {
         this.command = command;
         this.method = method;
         this.multiplier = multiplier;
@@ -52,6 +52,11 @@ public class ShopWantsCommand extends ShopWants implements INeverAffordableShopW
             doCommandOnce(player, actualCommand);
         }
         return 0;
+    }
+
+    @Override
+    public void deduct(Player player) {
+        // no-op
     }
 
     public void doCommandOnce(Player player, String command) {
@@ -80,8 +85,8 @@ public class ShopWantsCommand extends ShopWants implements INeverAffordableShopW
     }
 
     @Override
-    public ShopWants multiply(double multiplier) {
-        return new ShopWantsCommand(command, method, (int) (this.multiplier * multiplier));
+    public Commodity multiply(double multiplier) {
+        return new CommodityCommand(command, method, (int) (this.multiplier * multiplier));
     }
 
     @Override
@@ -101,9 +106,9 @@ public class ShopWantsCommand extends ShopWants implements INeverAffordableShopW
 
     @Override
     public boolean equals(Object obj) {
-        if (!(obj instanceof ShopWantsCommand))
+        if (!(obj instanceof CommodityCommand))
             return false;
-        ShopWantsCommand other = (ShopWantsCommand) obj;
+        CommodityCommand other = (CommodityCommand) obj;
         return other.multiplier == multiplier && other.command.equals(command) && other.method == method;
     }
 

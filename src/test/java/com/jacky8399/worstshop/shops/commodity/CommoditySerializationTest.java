@@ -1,4 +1,4 @@
-package com.jacky8399.worstshop.shops.wants;
+package com.jacky8399.worstshop.shops.commodity;
 
 import com.jacky8399.worstshop.WorstShop;
 import com.jacky8399.worstshop.helper.Config;
@@ -57,18 +57,18 @@ public class CommoditySerializationTest {
     @SuppressWarnings({"unchecked", "ConstantConditions"})
     @Test
     public void testDeserialization() {
-        List<ShopWants> expected = Arrays.asList(
-                new ShopWantsCommand("/icanhasbukkit", ShopWantsCommand.CommandInvocationMethod.CONSOLE, 1),
-                new ShopWantsExp(123, 456),
-                ShopWantsFree.INSTANCE,
-                new ShopWantsItem(ItemBuilder.of(Material.TNT).name("boom").amount(10).build())
-                        .setItemMatchers(Arrays.asList(ShopWantsItem.ItemMatcher.MATERIAL, ShopWantsItem.ItemMatcher.NAME)),
-                new ShopWantsMoney(101.23),
-                new ShopWantsMoney(101.24),
+        List<Commodity> expected = Arrays.asList(
+                new CommodityCommand("/icanhasbukkit", CommodityCommand.CommandInvocationMethod.CONSOLE, 1),
+                new CommodityExp(123, 456),
+                CommodityFree.INSTANCE,
+                new CommodityItem(ItemBuilder.of(Material.TNT).name("boom").amount(10).build())
+                        .setItemMatchers(Arrays.asList(CommodityItem.ItemMatcher.MATERIAL, CommodityItem.ItemMatcher.NAME)),
+                new CommodityMoney(101.23),
+                new CommodityMoney(101.24),
                 // idk how to test for that
-                // new ShopWantsPermission()
-                new ShopWantsPlayerPoint(13),
-                new ShopWantsCustomizable(ShopWantsFree.INSTANCE, StaticShopElement.fromStack(new ItemStack(Material.STRUCTURE_VOID)))
+                // new CommodityPermission()
+                new CommodityPlayerPoint(13),
+                new CommodityCustomizable(CommodityFree.INSTANCE, StaticShopElement.fromStack(new ItemStack(Material.STRUCTURE_VOID)))
         );
         File file = new File(getClass().getClassLoader().getResource("shop/commodity_parsing.yml").getFile());
         List<?> yaml;
@@ -80,7 +80,7 @@ public class CommoditySerializationTest {
         }
         int idx = 0;
         for (Object obj : yaml) {
-            ShopWants shopWants = ShopWants.fromObject(obj instanceof Map<?, ?> ? new Config((Map<String, Object>) obj, null, "[" + idx + "]") : obj);
+            Commodity shopWants = Commodity.fromObject(obj instanceof Map<?, ?> ? new Config((Map<String, Object>) obj, null, "[" + idx + "]") : obj);
             Assertions.assertEquals(expected.get(idx++), shopWants);
         }
     }

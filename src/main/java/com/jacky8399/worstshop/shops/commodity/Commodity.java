@@ -1,11 +1,10 @@
-package com.jacky8399.worstshop.shops.wants;
+package com.jacky8399.worstshop.shops.commodity;
 
-import com.google.common.collect.Lists;
 import com.jacky8399.worstshop.helper.Config;
 import com.jacky8399.worstshop.helper.ItemBuilder;
 import com.jacky8399.worstshop.shops.conditions.Condition;
+import com.jacky8399.worstshop.shops.conditions.ConditionCommodity;
 import com.jacky8399.worstshop.shops.conditions.ConditionConstant;
-import com.jacky8399.worstshop.shops.conditions.ConditionShopWants;
 import com.jacky8399.worstshop.shops.elements.ShopElement;
 import com.jacky8399.worstshop.shops.elements.StaticShopElement;
 import fr.minuskube.inv.content.SlotPos;
@@ -18,35 +17,38 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-public abstract class ShopWants {
-    public static ShopWants fromMap(Config config) {
+public abstract class Commodity {
+    public static Commodity fromMap(Config config) {
         String type = config.get("type", String.class);
-        ShopWants commodity;
+        Commodity commodity;
         switch (type) {
             case "money":
-                commodity = new ShopWantsMoney(config);
+                commodity = new CommodityMoney(config);
                 break;
             case "item":
-                commodity = new ShopWantsItem(config);
+                commodity = new CommodityItem(config);
                 break;
             case "command":
-                commodity = new ShopWantsCommand(config);
+                commodity = new CommodityCommand(config);
                 break;
             case "points":
-                commodity = new ShopWantsPlayerPoint(config);
+                commodity = new CommodityPlayerPoint(config);
                 break;
             case "exp":
-                commodity = new ShopWantsExp(config);
+                commodity = new CommodityExp(config);
                 break;
             case "perm":
-                commodity = new ShopWantsPermission(config);
+                try {
+                    commodity = new CommodityPermission(config);
+                } catch (IllegalStateException e) {
+                    commodity = new CommodityPermissionVault(config);
+                }
                 break;
             case "free":
-                commodity = ShopWantsFree.INSTANCE;
+                commodity = CommodityFree.INSTANCE;
                 break;
             default:
                 throw new IllegalArgumentException("Invalid commodity type " + type);
@@ -54,12 +56,12 @@ public abstract class ShopWants {
 
         // special case
         if (config.has("display")) {
-            commodity = new ShopWantsCustomizable(commodity, config);
+            commodity = new CommodityCustomizable(commodity, config);
         }
         return commodity;
     }
 
-    public static ShopWants fromObject(Object yaml) {
+    public static Commodity fromObject(Object yaml) {
         // read type
         if (yaml instanceof String) { // one string
             return fromString((String) yaml);
@@ -69,12 +71,12 @@ public abstract class ShopWants {
         throw new IllegalStateException("Invalid object type " + yaml.getClass().getSimpleName());
     }
 
-    public static ShopWants fromString(@NotNull String str) {
+    public static Commodity fromString(@NotNull String str) {
         if (str.startsWith("$")) {
             // money
             String number = str.substring(1);
             try {
-                return new ShopWantsMoney(Double.parseDouble(number), 1, true);
+                return new CommodityMoney(Double.parseDouble(number), 1, true);
             } catch (NumberFormatException ex) {
                 throw new IllegalArgumentException("Invalid commodity shorthand value: " + number + " is not a valid number");
             }
@@ -82,7 +84,7 @@ public abstract class ShopWants {
         throw new IllegalArgumentException("Invalid commodity shorthand '" + str + "'");
     }
 
-    public ShopWants() {}
+    public Commodity() {}
 
     /**
      * Denotes whether the commodity can be multiplied with {@link #multiply(double)}
@@ -97,7 +99,7 @@ public abstract class ShopWants {
      * @param multiplier the multiplier
      * @return a new commodity with the applied multiplier
      */
-    public ShopWants multiply(double multiplier) {
+    public Commodity multiply(double multiplier) {
         return this;
     }
 
@@ -157,21 +159,6 @@ public abstract class ShopWants {
         return canAfford;
     }
 
-    private static List<ShopWants> mergeWants(ShopWants orig, ShopWants other) {
-        List<ShopWants> wants = Lists.newArrayList();
-        if (other instanceof ShopWantsMultiple) {
-            wants.addAll(((ShopWantsMultiple) other).wants);
-        } else {
-            wants.add(other);
-        }
-        if (orig instanceof ShopWantsMultiple) {
-            wants.addAll(((ShopWantsMultiple) orig).wants);
-        } else {
-            wants.add(orig);
-        }
-        return wants;
-    }
-
     /**
      * Denotes the type of transaction
      */
@@ -218,7 +205,7 @@ public abstract class ShopWants {
 
     /**
      * Denotes whether the ShopElement created in {@link #createElement(TransactionType)} is dynamic. <br>
-     * A dynamic element means that the ShopElement will repopulate its items every tick.
+     * A dynamic element means that the ShopElement will repopulate its items occasionally.
      * @return whether the ShopElement is dynamic
      */
     public boolean isElementDynamic() {
@@ -236,14 +223,14 @@ public abstract class ShopWants {
      * Attempts to serialize the commodity with respect to whether it was created via a shorthand.
      */
     public final Object toSerializable(Map<String, Object> map) {
-        if (this instanceof ShopWantsMoney && ((ShopWantsMoney) this).fromShorthand)
-            return "$" + ((ShopWantsMoney) this).money;
-        else if (this instanceof ShopWantsMultiple)
-            return ((ShopWantsMultiple) this).wants.stream().map(want -> want.toSerializable(new HashMap<>())).collect(Collectors.toList());
+        if (this instanceof CommodityMoney && ((CommodityMoney) this).fromShorthand)
+            return "$" + ((CommodityMoney) this).money;
+        else if (this instanceof CommodityMultiple)
+            return ((CommodityMultiple) this).wants.stream().map(want -> want.toSerializable(new HashMap<>())).collect(Collectors.toList());
         return toMap(map);
     }
 
     public Condition toCondition() {
-        return this instanceof INeverAffordableShopWants ? ConditionConstant.FALSE : new ConditionShopWants(this);
+        return this instanceof IUnaffordableCommodity ? ConditionConstant.FALSE : new ConditionCommodity(this);
     }
 }

@@ -1,4 +1,4 @@
-package com.jacky8399.worstshop.shops.wants;
+package com.jacky8399.worstshop.shops.commodity;
 
 import com.jacky8399.worstshop.WorstShop;
 import com.jacky8399.worstshop.helper.Config;
@@ -12,7 +12,7 @@ import org.bukkit.entity.Player;
 
 import java.util.Map;
 
-public class ShopWantsMoney extends ShopWants {
+public class CommodityMoney extends Commodity {
 
     public static final Economy ECONOMY;
 
@@ -25,21 +25,21 @@ public class ShopWantsMoney extends ShopWants {
     public double money;
     public transient double realMoney;
     public transient double multiplier;
-    public ShopWantsMoney(Config config) {
+    public CommodityMoney(Config config) {
         this(config.get("money", Double.class));
     }
 
     // to maintain serialization accuracy
     public final boolean fromShorthand;
-    public ShopWantsMoney(double money) {
+    public CommodityMoney(double money) {
         this(money, 1, false);
     }
 
-    public ShopWantsMoney(double money, double multiplier) {
+    public CommodityMoney(double money, double multiplier) {
         this(money, multiplier, false);
     }
 
-    public ShopWantsMoney(double money, double multiplier, boolean shorthand) {
+    public CommodityMoney(double money, double multiplier, boolean shorthand) {
         this.multiplier = multiplier;
         this.money = Math.abs(money); // ensure not negative
         this.realMoney = money * multiplier;
@@ -52,8 +52,8 @@ public class ShopWantsMoney extends ShopWants {
     }
 
     @Override
-    public ShopWants multiply(double multiplier) {
-        return new ShopWantsMoney(money, this.multiplier * multiplier);
+    public Commodity multiply(double multiplier) {
+        return new CommodityMoney(money, this.multiplier * multiplier);
     }
 
     @Override
@@ -105,7 +105,7 @@ public class ShopWantsMoney extends ShopWants {
 
     @Override
     public boolean equals(Object obj) {
-        return obj instanceof ShopWantsMoney && ((ShopWantsMoney) obj).realMoney == realMoney;
+        return obj instanceof CommodityMoney && ((CommodityMoney) obj).realMoney == realMoney;
     }
 
     @Override

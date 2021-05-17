@@ -1,4 +1,4 @@
-package com.jacky8399.worstshop.shops.wants;
+package com.jacky8399.worstshop.shops.commodity;
 
 import com.jacky8399.worstshop.I18n;
 import com.jacky8399.worstshop.helper.ItemBuilder;
@@ -10,13 +10,13 @@ import org.bukkit.entity.Player;
 
 import java.util.Map;
 
-public class ShopWantsFree extends ShopWants {
+public class CommodityFree extends Commodity {
     @Deprecated
-    public ShopWantsFree() {
+    public CommodityFree() {
         super();
     }
 
-    public static final ShopWantsFree INSTANCE = new ShopWantsFree();
+    public static final CommodityFree INSTANCE = new CommodityFree();
 
     @Override
     public boolean canAfford(Player player) {

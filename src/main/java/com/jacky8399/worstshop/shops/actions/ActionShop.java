@@ -6,12 +6,12 @@ import com.jacky8399.worstshop.WorstShop;
 import com.jacky8399.worstshop.helper.*;
 import com.jacky8399.worstshop.shops.ParseContext;
 import com.jacky8399.worstshop.shops.Shop;
+import com.jacky8399.worstshop.shops.commodity.Commodity;
 import com.jacky8399.worstshop.shops.elements.ShopElement;
 import com.jacky8399.worstshop.shops.elements.StaticShopElement;
-import com.jacky8399.worstshop.shops.wants.IFlexibleShopWants;
-import com.jacky8399.worstshop.shops.wants.ShopWants;
-import com.jacky8399.worstshop.shops.wants.ShopWantsItem;
-import com.jacky8399.worstshop.shops.wants.ShopWantsMultiple;
+import com.jacky8399.worstshop.shops.commodity.IFlexibleCommodity;
+import com.jacky8399.worstshop.shops.commodity.CommodityItem;
+import com.jacky8399.worstshop.shops.commodity.CommodityMultiple;
 import fr.minuskube.inv.ClickableItem;
 import fr.minuskube.inv.SmartInventory;
 import fr.minuskube.inv.content.InventoryContents;
@@ -32,32 +32,32 @@ import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 public class ActionShop extends Action {
-    public ShopWants cost, reward;
+    public Commodity cost, reward;
     public PlayerPurchaseRecords.RecordTemplate purchaseLimitTemplate;
     public int purchaseLimit;
     public ActionShop(Config yaml) {
         super(yaml);
         this.cost = yaml.tryFind("cost", String.class, Config.class)
-                .map(ShopWants::fromObject)
+                .map(Commodity::fromObject)
                 // check types even in lists
                 // the previous implementation might have allowed lists within lists
                 .orElseGet(()->yaml.findList("cost", String.class, Config.class)
-                        .map(list -> (ShopWants) // cast to ensure return type is ShopWants
+                        .map(list -> (Commodity) // cast to ensure return type is Commodity
                                 list.stream()
-                                        .map(ShopWants::fromObject)
-                                        .collect(Collectors.collectingAndThen(Collectors.toList(), ShopWantsMultiple::new))
+                                        .map(Commodity::fromObject)
+                                        .collect(Collectors.collectingAndThen(Collectors.toList(), CommodityMultiple::new))
                         ).orElseGet(ActionShop::findParent)
                 );
 
         this.reward = yaml.tryFind("reward", String.class, Config.class)
-                .map(ShopWants::fromObject)
+                .map(Commodity::fromObject)
                 // check types even in lists
                 // the previous implementation might have allowed lists within lists
                 .orElseGet(()->yaml.findList("reward", String.class, Config.class)
-                        .map(list -> (ShopWants) // cast to ensure return type is ShopWants
+                        .map(list -> (Commodity) // cast to ensure return type is Commodity
                                 list.stream()
-                                        .map(ShopWants::fromObject)
-                                        .collect(Collectors.collectingAndThen(Collectors.toList(), ShopWantsMultiple::new))
+                                        .map(Commodity::fromObject)
+                                        .collect(Collectors.collectingAndThen(Collectors.toList(), CommodityMultiple::new))
                         ).orElseGet(ActionShop::findParent)
                 );
 
@@ -67,12 +67,12 @@ public class ActionShop extends Action {
         });
     }
 
-    private static ShopWants findParent() {
+    private static Commodity findParent() {
         StaticShopElement element = ParseContext.findLatest(StaticShopElement.class);
-        return element != null ? new ShopWantsItem(element.rawStack.clone()) : null;
+        return element != null ? new CommodityItem(element.rawStack.clone()) : null;
     }
 
-    public ActionShop(ShopWants cost, ShopWants reward, PlayerPurchaseRecords.RecordTemplate purchaseLimitTemplate, int purchaseLimit) {
+    public ActionShop(Commodity cost, Commodity reward, PlayerPurchaseRecords.RecordTemplate purchaseLimitTemplate, int purchaseLimit) {
         super(null);
         this.cost = cost;
         this.reward = reward;
@@ -101,7 +101,7 @@ public class ActionShop extends Action {
             return;
         }
         ActionShop adjusted = adjustForPlayer(player);
-        ShopWants multipliedCost = adjusted.cost.multiply(count);
+        Commodity multipliedCost = adjusted.cost.multiply(count);
         int playerMaxPurchases = getPlayerMaxPurchase(player);
         if (count > playerMaxPurchases) {
             player.sendMessage(formatPurchaseLimitMessage(player));
@@ -135,10 +135,10 @@ public class ActionShop extends Action {
 
     public ActionShop adjustForPlayer(Player player) {
         return new ActionShop(
-                cost instanceof IFlexibleShopWants ?
-                        ((IFlexibleShopWants) cost).adjustForPlayer(player) : cost,
-                reward instanceof IFlexibleShopWants ?
-                        ((IFlexibleShopWants) reward).adjustForPlayer(player) : reward,
+                cost instanceof IFlexibleCommodity ?
+                        ((IFlexibleCommodity) cost).adjustForPlayer(player) : cost,
+                reward instanceof IFlexibleCommodity ?
+                        ((IFlexibleCommodity) reward).adjustForPlayer(player) : reward,
                 purchaseLimitTemplate, purchaseLimit);
     }
 
@@ -186,8 +186,8 @@ public class ActionShop extends Action {
         ActionShop adjusted = adjustForPlayer(player);
         return I18n.translate("worstshop.messages.shops.transaction-message",
                 buyCount,
-                adjusted.cost.multiply(buyCount).getPlayerResult(player, ShopWants.TransactionType.COST),
-                adjusted.reward.multiply(buyCount).getPlayerResult(player, ShopWants.TransactionType.REWARD)
+                adjusted.cost.multiply(buyCount).getPlayerResult(player, Commodity.TransactionType.COST),
+                adjusted.reward.multiply(buyCount).getPlayerResult(player, Commodity.TransactionType.REWARD)
         );
     }
 
@@ -215,7 +215,7 @@ public class ActionShop extends Action {
             ActionShop adjusted = adjustForPlayer(player);
             return I18n.translate("worstshop.messages.shops.transaction-refund",
                     refundAmount,
-                    adjusted.cost.multiply(refundAmount).getPlayerResult(player, ShopWants.TransactionType.REWARD)
+                    adjusted.cost.multiply(refundAmount).getPlayerResult(player, Commodity.TransactionType.REWARD)
             );
         }
         return "";
@@ -224,8 +224,8 @@ public class ActionShop extends Action {
     public static class ShopGui implements InventoryProvider {
         private boolean firstClick = true;
         private final ActionShop shop;
-        private final ShopWants cost;
-        private final ShopWants reward;
+        private final Commodity cost;
+        private final Commodity reward;
         private ShopElement costElem, rewardElem;
         private ShopGui(ActionShop shop) {
             this.shop = shop;
@@ -261,9 +261,9 @@ public class ActionShop extends Action {
             contents.fill(FILLER);
 
             try {
-                costElem = cost.createElement(ShopWants.TransactionType.COST).clone();
+                costElem = cost.createElement(Commodity.TransactionType.COST).clone();
                 costElem.populateItems(player, contents, null);
-                rewardElem = reward.createElement(ShopWants.TransactionType.REWARD).clone();
+                rewardElem = reward.createElement(Commodity.TransactionType.REWARD).clone();
                 rewardElem.populateItems(player, contents, null);
             } catch (Exception ex) {
                 // guess parent
@@ -410,7 +410,7 @@ public class ActionShop extends Action {
 
         private void updateItemCount(Player player, InventoryContents contents) {
             List<String> lore = reward.canMultiply() ?
-                    Collections.singletonList(I18n.translate("worstshop.messages.shops.buy-counts.total-result", reward.multiply(buyCount).getPlayerResult(player, ShopWants.TransactionType.REWARD))) :
+                    Collections.singletonList(I18n.translate("worstshop.messages.shops.buy-counts.total-result", reward.multiply(buyCount).getPlayerResult(player, Commodity.TransactionType.REWARD))) :
                     Collections.emptyList();
             contents.set(4, 4, ClickableItem.empty(
                     ItemBuilder.of(Material.END_CRYSTAL)

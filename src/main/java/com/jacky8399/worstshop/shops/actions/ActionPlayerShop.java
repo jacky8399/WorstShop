@@ -23,10 +23,10 @@ import java.util.Map;
 public class ActionPlayerShop extends Action {
     static {
         try {
-            ShopAPI api = QuickShopAPI.getShopAPI();
+            shopAPI = QuickShopAPI.getShopAPI();
             cache = new ShopCache();
         } catch (Throwable e) {
-            throw new IllegalStateException("QuickShop is not loaded!");
+            throw new IllegalStateException("QuickShop is not loaded!", e);
         }
     }
 
@@ -45,6 +45,7 @@ public class ActionPlayerShop extends Action {
         return map;
     }
 
+    private static ShopAPI shopAPI;
     private static ShopCache cache;
     private static class ShopCache implements Listener {
         ShopCache() {

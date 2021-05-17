@@ -3,23 +3,23 @@ package com.jacky8399.worstshop.shops.conditions;
 import com.jacky8399.worstshop.WorstShop;
 import com.jacky8399.worstshop.helper.Config;
 import com.jacky8399.worstshop.shops.ParseContext;
-import com.jacky8399.worstshop.shops.wants.INeverAffordableShopWants;
-import com.jacky8399.worstshop.shops.wants.ShopWants;
+import com.jacky8399.worstshop.shops.commodity.Commodity;
+import com.jacky8399.worstshop.shops.commodity.IUnaffordableCommodity;
 import org.bukkit.entity.Player;
 
 import java.util.Map;
 
-public class ConditionShopWants extends Condition {
-    public final ShopWants want;
-    public ConditionShopWants(Config config) {
-        this(ShopWants.fromMap(config));
-        if (want instanceof INeverAffordableShopWants) {
+public class ConditionCommodity extends Condition {
+    public final Commodity want;
+    public ConditionCommodity(Config config) {
+        this(Commodity.fromMap(config));
+        if (want instanceof IUnaffordableCommodity) {
             WorstShop.get().logger.warning("Using " + want.getClass().getSimpleName() + " makes the condition always fail!");
             WorstShop.get().logger.warning("Offending condition: " + ParseContext.getHierarchy());
         }
     }
 
-    public ConditionShopWants(ShopWants want) {
+    public ConditionCommodity(Commodity want) {
         this.want = want;
     }
 
@@ -30,7 +30,7 @@ public class ConditionShopWants extends Condition {
 
     @Override
     public String toString() {
-        return want.getPlayerResult(null, ShopWants.TransactionType.COST);
+        return want.getPlayerResult(null, Commodity.TransactionType.COST);
     }
 
     @Override
@@ -47,6 +47,6 @@ public class ConditionShopWants extends Condition {
 
     @Override
     public boolean equals(Object obj) {
-        return obj instanceof ConditionShopWants && ((ConditionShopWants) obj).want.equals(want);
+        return obj instanceof ConditionCommodity && ((ConditionCommodity) obj).want.equals(want);
     }
 }

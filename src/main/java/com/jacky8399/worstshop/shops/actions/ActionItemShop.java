@@ -8,13 +8,13 @@ import com.jacky8399.worstshop.helper.Config;
 import com.jacky8399.worstshop.helper.ItemBuilder;
 import com.jacky8399.worstshop.helper.PlayerPurchaseRecords;
 import com.jacky8399.worstshop.shops.*;
+import com.jacky8399.worstshop.shops.commodity.CommodityItem;
+import com.jacky8399.worstshop.shops.commodity.CommodityMoney;
 import com.jacky8399.worstshop.shops.conditions.Condition;
 import com.jacky8399.worstshop.shops.elements.ConditionalShopElement;
 import com.jacky8399.worstshop.shops.elements.ShopElement;
 import com.jacky8399.worstshop.shops.elements.StaticShopElement;
-import com.jacky8399.worstshop.shops.wants.ShopWants;
-import com.jacky8399.worstshop.shops.wants.ShopWantsItem;
-import com.jacky8399.worstshop.shops.wants.ShopWantsMoney;
+import com.jacky8399.worstshop.shops.commodity.Commodity;
 import net.md_5.bungee.api.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
@@ -34,7 +34,7 @@ public class ActionItemShop extends Action {
     @Nullable
     public PlayerPurchaseRecords.RecordTemplate buyLimitTemplate, sellLimitTemplate;
     public int buyLimit, sellLimit;
-    public HashSet<ShopWantsItem.ItemMatcher> itemMatchers = Sets.newHashSet(ShopWantsItem.ItemMatcher.SIMILAR);
+    public HashSet<CommodityItem.ItemMatcher> itemMatchers = Sets.newHashSet(CommodityItem.ItemMatcher.SIMILAR);
 
     // for serialization purposes
     public transient boolean usedStringShorthand = false, usedPriceShortcut = false, usedLimitShortcut = false;
@@ -84,7 +84,7 @@ public class ActionItemShop extends Action {
         yaml.findList("matches", String.class).ifPresent(list -> {
             itemMatchers.clear();
             list.stream().map(s -> s.toLowerCase(Locale.ROOT).replace(' ', '_'))
-                    .map(ShopWantsItem.ItemMatcher.ITEM_MATCHERS::get).forEach(itemMatchers::add);
+                    .map(CommodityItem.ItemMatcher.ITEM_MATCHERS::get).forEach(itemMatchers::add);
         });
 
         // purchase limits
@@ -129,7 +129,7 @@ public class ActionItemShop extends Action {
                 map.put("sell-price", sellPrice);
         }
         // item matcher isn't default
-        if (!(itemMatchers.size() == 1 && itemMatchers.contains(ShopWantsItem.ItemMatcher.SIMILAR)))
+        if (!(itemMatchers.size() == 1 && itemMatchers.contains(CommodityItem.ItemMatcher.SIMILAR)))
             map.put("matches", itemMatchers.stream()
                     .map(matcher -> matcher.name.toLowerCase(Locale.ROOT).replace('_', ' '))
                     .collect(Collectors.toList()));
@@ -208,8 +208,8 @@ public class ActionItemShop extends Action {
         double discount = getDiscount(player);
         return buyPrice > 0 ?
                 new ActionShop(
-                        new ShopWantsMoney(buyPrice * discount),
-                        new ShopWantsItem(getTargetItemStack(player)).setItemMatchers(itemMatchers),
+                        new CommodityMoney(buyPrice * discount),
+                        new CommodityItem(getTargetItemStack(player)).setItemMatchers(itemMatchers),
                         buyLimitTemplate, buyLimit
                 ) : null;
     }
@@ -218,17 +218,17 @@ public class ActionItemShop extends Action {
         double discount = getDiscount(player);
         return sellPrice > 0 ?
                 new ActionShop(
-                        new ShopWantsItem(getTargetItemStack(player)).setItemMatchers(itemMatchers),
-                        new ShopWantsMoney(sellPrice * discount),
+                        new CommodityItem(getTargetItemStack(player)).setItemMatchers(itemMatchers),
+                        new CommodityMoney(sellPrice * discount),
                         sellLimitTemplate, sellLimit
                 ) : null;
     }
 
-    public static ShopWantsItem rerouteWantToInventory(ShopWantsItem item, Inventory inventory) {
-        return new ShopWantsItem(item) {
+    public static CommodityItem rerouteWantToInventory(CommodityItem item, Inventory inventory) {
+        return new CommodityItem(item) {
             @Override
-            public ShopWants multiply(double multiplier) {
-                return rerouteWantToInventory((ShopWantsItem) super.multiply(multiplier), inventory);
+            public Commodity multiply(double multiplier) {
+                return rerouteWantToInventory((CommodityItem) super.multiply(multiplier), inventory);
             }
 
             @Override
@@ -253,17 +253,17 @@ public class ActionItemShop extends Action {
             }
 
             @Override
-            public ShopWants adjustForPlayer(Player player) {
-                return rerouteWantToInventory((ShopWantsItem) super.adjustForPlayer(player), inventory);
+            public Commodity adjustForPlayer(Player player) {
+                return rerouteWantToInventory((CommodityItem) super.adjustForPlayer(player), inventory);
             }
         };
     }
 
-    public static ShopWantsItem rerouteWantToStack(ShopWantsItem item, ItemStack stack) {
-        return new ShopWantsItem(item) {
+    public static CommodityItem rerouteWantToStack(CommodityItem item, ItemStack stack) {
+        return new CommodityItem(item) {
             @Override
-            public ShopWants multiply(double multiplier) {
-                return rerouteWantToStack((ShopWantsItem) super.multiply(multiplier), stack);
+            public Commodity multiply(double multiplier) {
+                return rerouteWantToStack((CommodityItem) super.multiply(multiplier), stack);
             }
 
             @Override
@@ -282,8 +282,8 @@ public class ActionItemShop extends Action {
             }
 
             @Override
-            public ShopWants adjustForPlayer(Player player) {
-                return rerouteWantToStack((ShopWantsItem) super.adjustForPlayer(player), stack);
+            public Commodity adjustForPlayer(Player player) {
+                return rerouteWantToStack((CommodityItem) super.adjustForPlayer(player), stack);
             }
         };
     }
@@ -304,7 +304,7 @@ public class ActionItemShop extends Action {
         }
         ActionShop shop = buildSellShop(player);
         // HACK: reroute shop cost
-        shop.cost = rerouteWantToInventory((ShopWantsItem) shop.cost, inventory);
+        shop.cost = rerouteWantToInventory((CommodityItem) shop.cost, inventory);
         shop.doTransaction(player, count);
     }
 
@@ -315,7 +315,7 @@ public class ActionItemShop extends Action {
         }
         ActionShop shop = buildSellShop(player);
         // HACK: reroute shop cost
-        shop.cost = rerouteWantToStack((ShopWantsItem) shop.cost, stack);
+        shop.cost = rerouteWantToStack((CommodityItem) shop.cost, stack);
         shop.doTransaction(player, count);
     }
 
