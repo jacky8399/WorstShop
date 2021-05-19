@@ -1,7 +1,9 @@
 package com.jacky8399.worstshop.helper;
 
+import fr.minuskube.inv.ClickableItem;
 import org.bukkit.Material;
 import org.bukkit.OfflinePlayer;
+import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.SkullMeta;
@@ -33,6 +35,14 @@ public class ItemBuilder {
     public ItemStack build() {
         stack.setItemMeta(meta);
         return stack;
+    }
+
+    public ClickableItem toEmptyClickable() {
+        return ClickableItem.empty(build());
+    }
+
+    public ClickableItem toClickable(Consumer<InventoryClickEvent> consumer) {
+        return ClickableItem.of(build(), consumer);
     }
 
     public ItemBuilder amount(int amount) {

@@ -10,14 +10,13 @@ import fr.minuskube.inv.InventoryManager;
 import fr.minuskube.inv.SmartInventory;
 import net.luckperms.api.LuckPerms;
 import net.luckperms.api.LuckPermsProvider;
+import net.md_5.bungee.api.ChatColor;
 import net.milkbowl.vault.chat.Chat;
 import net.milkbowl.vault.economy.Economy;
 import net.milkbowl.vault.permission.Permission;
 import org.black_ixx.playerpoints.PlayerPoints;
 import org.bukkit.Bukkit;
-import net.md_5.bungee.api.ChatColor;
 import org.bukkit.GameMode;
-import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -31,7 +30,6 @@ import org.bukkit.plugin.java.JavaPlugin;
 import org.jetbrains.annotations.Nullable;
 
 import java.lang.reflect.Field;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public final class WorstShop extends JavaPlugin {
@@ -50,10 +48,14 @@ public final class WorstShop extends JavaPlugin {
     public RegisteredServiceProvider<Permission> vaultPermissions;
     public RegisteredServiceProvider<Chat> vaultChat;
 
-    public FileConfiguration config;
-
     public static SmartInventory.Builder buildGui(String id) {
         return SmartInventory.builder().manager(plugin.inventories).id(id).listener(new InventoryCloseListener());
+    }
+
+    @Override
+    public void reloadConfig() {
+        super.reloadConfig();
+        PluginConfig.reload();
     }
 
     @Override
@@ -63,7 +65,8 @@ public final class WorstShop extends JavaPlugin {
 
         logger = getLogger();
 
-        logger.setLevel(Level.FINEST);
+        saveDefaultConfig();
+        reloadConfig();
 
         // check is Paper
         PaperHelper.checkIsPaper();
@@ -104,9 +107,6 @@ public final class WorstShop extends JavaPlugin {
             logger.info("Enabled PlaceholderAPI support");
         }
 
-        // load config
-        config = getConfig();
-
         // init invs
         inventories = new InventoryManager(this);
         inventories.init();
@@ -125,9 +125,6 @@ public final class WorstShop extends JavaPlugin {
 
     @Override
     public void onDisable() {
-        // Plugin shutdown logic
-        logger.info(ChatColor.GOLD + "Disabling WorstShop");
-
         // Unschedule all events
         Bukkit.getScheduler().cancelTasks(this);
 

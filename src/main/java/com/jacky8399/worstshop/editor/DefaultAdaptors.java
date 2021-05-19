@@ -10,6 +10,7 @@ import fr.minuskube.inv.ClickableItem;
 import fr.minuskube.inv.SmartInventory;
 import fr.minuskube.inv.content.InventoryContents;
 import fr.minuskube.inv.content.InventoryProvider;
+import fr.minuskube.inv.content.Pagination;
 import fr.minuskube.inv.content.SlotIterator;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
@@ -27,23 +28,31 @@ import org.jetbrains.annotations.Nullable;
 import java.lang.reflect.Field;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 public class DefaultAdaptors {
-    private DefaultAdaptors() {}
+    private DefaultAdaptors() {
+    }
 
     public static final String I18N_KEY = I18n.Keys.MESSAGES_KEY + "editor.property.";
+
+    private static String translate(String key, Object... args) {
+        return I18n.translate(I18N_KEY + key, args);
+    }
 
     public static final I18n.Translatable NAME_FORMAT = I18n.createTranslatable(I18N_KEY + "name-format");
     public static final I18n.Translatable VALUE_FORMAT = I18n.createTranslatable(I18N_KEY + "value-format");
 
     /**
      * Opens a interactive GUI allowing users to pick from a list of values when clicked.
+     *
      * @param <T> the adaptor type
      */
     public static abstract class GUIAdaptor<T> implements EditableAdaptor<T> {
         class Inventory implements InventoryProvider {
             private T value;
+
             SmartInventory getInventory(@Nullable SmartInventory parent, T val, @Nullable String fieldName) {
                 value = val;
                 // estimate container size
@@ -82,7 +91,8 @@ public class DefaultAdaptors {
             }
 
             @Override
-            public void update(Player player, InventoryContents contents) {}
+            public void update(Player player, InventoryContents contents) {
+            }
         }
 
         private CompletableFuture<T> future;
@@ -95,16 +105,19 @@ public class DefaultAdaptors {
             new Inventory().getInventory(parent, val, fieldName).open(player);
             return future;
         }
+
         public abstract Collection<? extends T> getValues();
     }
 
     public static class EnumAdaptor<T extends Enum<T>> extends GUIAdaptor<T> {
         private Class<T> clazz;
+
         public EnumAdaptor(Class<T> clazz) {
             values = EnumSet.allOf(clazz);
         }
 
         private final EnumSet<T> values;
+
         @Override
         public Collection<? extends T> getValues() {
             return values;
@@ -185,12 +198,17 @@ public class DefaultAdaptors {
         }
 
         public abstract T unmarshal(String input);
+
         public abstract String marshal(T val);
+
         public abstract String getType();
+
         public String format = null;
+
         public void setFormat(String format) {
             this.format = format;
         }
+
         public boolean validateInput(String input) {
             return format == null || input.matches(format);
         }
@@ -261,6 +279,7 @@ public class DefaultAdaptors {
         private final Class<T> clazz;
         private final String name;
         private final List<Field> properties;
+
         public EditableObjectAdaptor(Class<T> clazz) {
             this.clazz = clazz;
             name = clazz.getAnnotation(Editable.class).value();
@@ -277,6 +296,7 @@ public class DefaultAdaptors {
             SmartInventory parent = WorstShop.get().inventories.getInventory(player).orElse(null);
             class Inventory implements InventoryProvider {
                 boolean shouldRefresh = false;
+
                 // helper
                 @SuppressWarnings("unchecked")
                 private <TValue> ClickableItem createItemForField(Field field) {
@@ -315,6 +335,7 @@ public class DefaultAdaptors {
                             .toArray(ClickableItem[]::new);
                     contents.pagination().setItems(items).setItemsPerPage(45).addToIterator(contents.newIterator(SlotIterator.Type.HORIZONTAL, 1, 0).allowOverride(true));
                 }
+
                 @Override
                 public void init(Player player, InventoryContents contents) {
                     // header
@@ -339,13 +360,15 @@ public class DefaultAdaptors {
                     .provider(new Inventory()).size(rows, 9)
                     .parent(parent).title(getTitle()).build();
             InventoryCloseListener.openSafely(player, toOpen);
-            // editing an editable does not mutate its value
-            // therefore returning a completed future is ok
+            // doesn't change the object
             return CompletableFuture.completedFuture(val);
         }
 
-        public void init(Player player, InventoryContents contents) {}
-        public void update(Player player, InventoryContents contents, boolean isRefreshingProperties) {}
+        public void init(Player player, InventoryContents contents) {
+        }
+
+        public void update(Player player, InventoryContents contents, boolean isRefreshingProperties) {
+        }
 
         @Override
         public ItemStack getRepresentation(T val, @Nullable String parentName, @Nullable String fieldName) {
@@ -363,6 +386,7 @@ public class DefaultAdaptors {
     public static class CustomRepresentationAdaptor<T> implements EditableAdaptor<T> {
         public final EditableAdaptor<T> internal;
         public final Material material;
+
         public CustomRepresentationAdaptor(EditableAdaptor<T> original, Representation repr) {
             internal = original;
             material = repr.value();
@@ -380,6 +404,153 @@ public class DefaultAdaptors {
             ret.setAmount(stack.getAmount());
             ret.setItemMeta(Bukkit.getItemFactory().asMetaFor(stack.getItemMeta(), material));
             return ret;
+        }
+    }
+
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    public static class ListAdaptor<T extends Collection<?>> implements EditableAdaptor<T> {
+        private Supplier<@NotNull ?> supplier;
+
+        public ListAdaptor() {
+        }
+
+        public void setFactory(@Nullable Class<? extends Supplier<@NotNull ?>> clazz) {
+            if (clazz == null) {
+                supplier = null;
+            } else {
+                try {
+                    supplier = clazz.getConstructor().newInstance();
+                } catch (ReflectiveOperationException e) {
+                    supplier = null;
+                }
+            }
+        }
+
+        @Override
+        public CompletableFuture<T> onInteract(Player player, T val, @Nullable String fieldName) {
+            int rows = val.size() / 9 + 2;
+            boolean hasPages = rows > 6;
+
+            SmartInventory parent = WorstShop.get().inventories.getInventory(player).orElse(null);
+            class Inventory implements InventoryProvider {
+                boolean shouldRefresh = false;
+                boolean removalMode = false;
+
+                ClickableItem createItem(Object obj, int idx) {
+                    EditableAdaptor adaptor = EditorUtils.findAdaptorForClass((Class) obj.getClass(), obj);
+                    if (adaptor == null) // no adaptor; probably can't edit
+                        return ItemBuilder.of(Material.BARRIER).name(NAME_FORMAT.apply(fieldName)).toEmptyClickable();
+                    String name = idx != -1 ? fieldName + " item " + (idx + 1) : fieldName + " item";
+                    return ClickableItem.of(
+                            adaptor.getRepresentation(obj, fieldName, name),
+                            e -> adaptor.onInteract(player, obj, name)
+                                    .thenAccept(newValue -> {
+                                        if (val.equals(newValue))
+                                            return;
+                                        try {
+                                            if (idx != -1) {
+                                                ((List) val).set(idx, newValue);
+                                            } else {
+                                                val.remove(obj);
+                                                ((Collection) val).add(newValue);
+                                            }
+                                        } catch (Exception ex) {
+                                            RuntimeException wrapped = new RuntimeException("An error occurred while updating value for field " + fieldName, ex);
+                                            e.setCurrentItem(ItemUtils.getErrorItem(wrapped));
+                                        }
+                                        shouldRefresh = true;
+                                    })
+                    );
+                }
+
+                void refresh(InventoryContents contents) {
+                    // clear all
+                    contents.fill(null);
+                    // header
+                    contents.fillRow(0, ItemBuilder.of(Material.BLACK_STAINED_GLASS_PANE).name(ChatColor.BLACK.toString()).toEmptyClickable());
+                    Pagination pagination = contents.pagination();
+                    if (hasPages && !pagination.isFirst())
+                        contents.set(0, 0, ItemBuilder.of(Material.ARROW).name(translate("gui.prev-page"))
+                                .toClickable(e -> {
+                                    if (e.isRightClick())
+                                        pagination.first();
+                                    else
+                                        pagination.page(pagination.getPage() - 1);
+                                    shouldRefresh = true;
+                                })
+                        );
+                    if (hasPages && !pagination.isLast())
+                        contents.set(0, 8, ItemBuilder.of(Material.ARROW).name(translate("gui.next-page"))
+                                .toClickable(e -> {
+                                    if (e.isRightClick())
+                                        pagination.last();
+                                    else
+                                        pagination.page(pagination.getPage() + 1);
+                                    shouldRefresh = true;
+                                })
+                        );
+                    // append item
+                    boolean create = supplier != null;
+                    contents.set(0, 4, ItemBuilder.of(create ? Material.WRITABLE_BOOK : Material.BOOK)
+                            .name(translate(create ? "list.new" : "list.new-unsupported"))
+                            .toClickable(e -> {
+                                if (!create) return;
+                                boolean success = false;
+                                try {
+                                    success = ((Collection) val).add(supplier.get());
+                                } catch (Exception ignored) {
+                                }
+                                if (success) {
+                                    shouldRefresh = true;
+                                }
+                            })
+                    );
+                    // mark for removal
+                    contents.set(0, 5, ItemBuilder.of(removalMode ? Material.BARRIER : Material.STRUCTURE_VOID)
+                            .name(translate(removalMode ? "list.delete" : "list.delete-end"))
+                            .toClickable(e -> {
+                                removalMode = !removalMode;
+                                shouldRefresh = true;
+                            })
+                    );
+
+                    ClickableItem[] items;
+                    if (val instanceof List) {
+                        items = new ClickableItem[val.size()];
+                        for (ListIterator<?> iterator = ((List<?>) val).listIterator(); iterator.hasNext();) {
+                            int idx = iterator.nextIndex();
+                            Object next = iterator.next();
+                            items[idx] = createItem(next, idx);
+                        }
+                    } else {
+                        items = ((Collection<?>) val).stream().map(item -> createItem(item, -1)).toArray(ClickableItem[]::new);
+                    }
+                    SlotIterator iterator = contents.newIterator(SlotIterator.Type.HORIZONTAL, 1, 0);
+                    pagination.setItems(items).setItemsPerPage(45).addToIterator(iterator);
+                }
+
+                @Override
+                public void init(Player player, InventoryContents contents) {
+                    refresh(contents);
+                }
+
+                @Override
+                public void update(Player player, InventoryContents contents) {
+                    if (shouldRefresh)
+                        refresh(contents);
+                }
+            }
+
+            SmartInventory toOpen = WorstShop.buildGui("worstshop:editor_editable_adaptor")
+                    .provider(new Inventory()).size(6, 9)
+                    .parent(parent).title(fieldName).build();
+            InventoryCloseListener.openSafely(player, toOpen);
+            return CompletableFuture.completedFuture(val);
+        }
+
+        @Override
+        public ItemStack getRepresentation(T val, @Nullable String parentName, @Nullable String fieldName) {
+            return null;
         }
     }
 }

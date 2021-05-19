@@ -25,6 +25,14 @@ worstshop:
           current: '&aCurrent value!'
           set: '&6Click to set!'
           edit: '&6Click to edit!'
+          prev-page: '&ePrevious page (Right click to jump to first)'
+          next-page: '&eNext page (Right click to jump to last)'
+        list:
+          name: ''
+          new: '&aAdd new item'
+          new-unsupported: '&4Can''t add new item'
+          delete: '&cMark items for removal (WARNING: Irreversible operation)'
+          delete-end: '&cStop marking items for removal'
         name-format: '&e{0}'
         value-format: '&bCurrent value: {0}'
         boolean:

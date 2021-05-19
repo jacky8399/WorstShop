@@ -1,5 +1,6 @@
 package com.jacky8399.worstshop.events;
 
+import com.jacky8399.worstshop.PluginConfig;
 import com.jacky8399.worstshop.shops.elements.StaticShopElement;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -12,6 +13,8 @@ public class IllegalShopItemListener implements Listener {
 
     @EventHandler
     public void onClick(InventoryClickEvent e) {
+        if (!PluginConfig.advancedProtection)
+            return;
         if (e.getClickedInventory() instanceof PlayerInventory) {
             Player player = ((Player) e.getWhoClicked());
             if (e.getCurrentItem() != null && StaticShopElement.isShopItem(e.getCurrentItem())) {
@@ -27,6 +30,8 @@ public class IllegalShopItemListener implements Listener {
 
     @EventHandler
     public void onMoveItem(InventoryMoveItemEvent e) {
+        if (!PluginConfig.advancedProtection)
+            return;
         if (e.getInitiator() instanceof PlayerInventory) {
             PlayerInventory inv = (PlayerInventory) e.getInitiator();
             if (StaticShopElement.isShopItem(e.getItem()) && inv.getHolder() != null) {

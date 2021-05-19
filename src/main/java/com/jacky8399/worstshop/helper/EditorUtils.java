@@ -10,6 +10,7 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Modifier;
+import java.util.Collection;
 
 public class EditorUtils {
     @SuppressWarnings({"unchecked", "rawtypes"})
@@ -42,6 +43,10 @@ public class EditorUtils {
                 ((TextAdaptor<?>) ((CustomRepresentationAdaptor<?>) adaptor).internal).setFormat(format.value());
             }
         }
+        if (adaptor instanceof ListAdaptor && field.isAnnotationPresent(Factory.class)) {
+            Factory factory = field.getAnnotation(Factory.class);
+            ((ListAdaptor<?>) adaptor).setFactory(factory.value());
+        }
         if (field.isAnnotationPresent(Representation.class)) {
             Representation repr = field.getAnnotation(Representation.class);
             adaptor = new CustomRepresentationAdaptor<>(adaptor, repr);
@@ -73,6 +78,8 @@ public class EditorUtils {
                 adaptor = (EditableAdaptor<T>) new StringAdaptor();
             } else if (clazz.isEnum()) {
                 adaptor = (EditableAdaptor<T>) new EnumAdaptor<>((Class)clazz);
+            } else if (Collection.class.isAssignableFrom(clazz)) {
+                adaptor = (EditableAdaptor<T>) new ListAdaptor<>();
             }
             // TODO finish all primitives
         }

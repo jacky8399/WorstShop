@@ -38,11 +38,6 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 public class StaticShopElement extends ShopElement {
-
-    public StaticShopElement() {
-
-    }
-
     public static NamespacedKey SAFETY_KEY = new NamespacedKey(WorstShop.get(), "shop_item");
 
     @NotNull
@@ -371,7 +366,8 @@ public class StaticShopElement extends ShopElement {
         ItemStack stack = replacePlaceholders(player, this.rawStack);
         long end = System.currentTimeMillis();
         if (!async && !hasRemindedAsync && end - start > 500) {
-            WorstShop.get().logger.warning("Placeholders took " + (end - start) + "ms. Consider making this item async. (" + id + "@" + owner.id + ")");
+            WorstShop.get().logger.warning("Placeholders took " + (end - start) + "ms. Consider making this element async. (" + id + "@" + owner.id + ")\n" +
+                    "Note that some placeholders may stop working when used async.");
             hasRemindedAsync = true;
         }
         // try to apply cache
