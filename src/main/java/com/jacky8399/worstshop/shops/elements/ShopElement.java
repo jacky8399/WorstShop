@@ -15,9 +15,11 @@ import com.jacky8399.worstshop.shops.conditions.ConditionPermission;
 import fr.minuskube.inv.ClickableItem;
 import fr.minuskube.inv.content.InventoryContents;
 import fr.minuskube.inv.content.SlotPos;
+import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -84,7 +86,7 @@ public abstract class ShopElement implements Cloneable, ParseContext.NamedContex
         boolean dynamic = config.find("dynamic", Boolean.class).orElse(false);
 
         ShopElement element;
-        if (config.find("dynamic", Boolean.class).orElse(false)) {
+        if (dynamic) {
             element = DynamicShopElement.fromYaml(config);
         } else if (config.has("if")) {
             element = ConditionalShopElement.fromYaml(config);
@@ -176,23 +178,32 @@ public abstract class ShopElement implements Cloneable, ParseContext.NamedContex
     }
 
     public void populateItems(Player player, InventoryContents contents, ElementPopulationContext pagination) {
+        ShopReference owningShop = ShopReference.of((Shop) contents.inventory().getProvider());
         ItemStack stack;
         try {
             stack = createStack(player);
             if (ItemUtils.isEmpty(stack))
                 return;
+
+            // debug
+            if (contents.property("debug", false)) {
+                // modify lore
+                ItemMeta meta = stack.getItemMeta();
+                List<String> lore = meta.hasLore() ? new ArrayList<>(meta.getLore()) : new ArrayList<>();
+                if (lore.size() != 0)
+                    lore.add("");
+                lore.add(ChatColor.YELLOW + id + "@" + owningShop.id);
+            }
         } catch (Exception ex) {
             // something has gone horribly wrong
-            Shop owningShop = (Shop) contents.inventory().getProvider();
-            RuntimeException wrapped = new RuntimeException("An error occurred while populating item for " + player.getName() + " (" + id + "@" + owningShop.id + ")", ex);
+            RuntimeException wrapped = new RuntimeException("Populating item for " + player.getName() + " (" + id + "@" + owningShop.id + ")", ex);
             stack = ItemUtils.getErrorItem(wrapped);
         }
         ClickableItem item = ClickableItem.of(stack, e -> {
             try {
                 onClick(e);
             } catch (Exception ex) {
-                Shop owningShop = (Shop) contents.inventory().getProvider();
-                RuntimeException wrapped = new RuntimeException("An error occurred while processing item click for " + e.getWhoClicked().getName() + " (" + id + "@" + owningShop.id + ")", ex);
+                RuntimeException wrapped = new RuntimeException("Processing item click for " + e.getWhoClicked().getName() + " (" + id + "@" + owningShop.id + ")", ex);
                 ItemStack err = ItemUtils.getErrorItem(wrapped);
                 e.setCurrentItem(err);
             }

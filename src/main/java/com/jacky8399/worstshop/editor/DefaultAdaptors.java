@@ -310,7 +310,7 @@ public class DefaultAdaptors {
                     try {
                         value = (TValue) field.get(val);
                     } catch (IllegalAccessException e) {
-                        RuntimeException wrapped = new RuntimeException("An error occurred while obtaining value for field " + fieldName, e);
+                        RuntimeException wrapped = new RuntimeException("Failed to obtain value for field " + fieldName, e);
                         // error item
                         return ClickableItem.empty(ItemUtils.getErrorItem(wrapped));
                     }
@@ -321,7 +321,7 @@ public class DefaultAdaptors {
                                         try {
                                             field.set(val, newValue);
                                         } catch (IllegalAccessException ex) {
-                                            RuntimeException wrapped = new RuntimeException("An error occurred while updating value for field " + fieldName, ex);
+                                            RuntimeException wrapped = new RuntimeException("Failed to update value for field " + fieldName, ex);
                                             e.setCurrentItem(ItemUtils.getErrorItem(wrapped));
                                         }
                                         shouldRefresh = true;
@@ -373,7 +373,7 @@ public class DefaultAdaptors {
         @Override
         public ItemStack getRepresentation(T val, @Nullable String parentName, @Nullable String fieldName) {
             return ItemBuilder.of(Material.WRITABLE_BOOK).name(NAME_FORMAT.apply(fieldName))
-                    .lores(I18n.translate(I18N_KEY + "gui.edit"))
+                    .lores(translate("gui.edit"))
                     .addLores(EditorUtils.getDesc(parentName, fieldName))
                     .build();
         }
@@ -455,7 +455,7 @@ public class DefaultAdaptors {
                                                 ((Collection) val).add(newValue);
                                             }
                                         } catch (Exception ex) {
-                                            RuntimeException wrapped = new RuntimeException("An error occurred while updating value for field " + fieldName, ex);
+                                            RuntimeException wrapped = new RuntimeException("Failed to update value for field " + fieldName, ex);
                                             e.setCurrentItem(ItemUtils.getErrorItem(wrapped));
                                         }
                                         shouldRefresh = true;
@@ -498,7 +498,9 @@ public class DefaultAdaptors {
                                 boolean success = false;
                                 try {
                                     success = ((Collection) val).add(supplier.get());
-                                } catch (Exception ignored) {
+                                } catch (Exception ex) {
+                                    RuntimeException wrapped = new RuntimeException("Failed to add to collection", ex);
+                                    e.setCurrentItem(ItemUtils.getErrorItem(wrapped));
                                 }
                                 if (success) {
                                     shouldRefresh = true;
@@ -541,7 +543,7 @@ public class DefaultAdaptors {
                 }
             }
 
-            SmartInventory toOpen = WorstShop.buildGui("worstshop:editor_editable_adaptor")
+            SmartInventory toOpen = WorstShop.buildGui("worstshop:editor_list_adaptor")
                     .provider(new Inventory()).size(6, 9)
                     .parent(parent).title(fieldName).build();
             InventoryCloseListener.openSafely(player, toOpen);
@@ -550,7 +552,10 @@ public class DefaultAdaptors {
 
         @Override
         public ItemStack getRepresentation(T val, @Nullable String parentName, @Nullable String fieldName) {
-            return null;
+            return ItemBuilder.of(Material.CHEST).name(NAME_FORMAT.apply(fieldName))
+                    .lores(translate("list.size", val.size()), translate("gui.edit"))
+                    .addLores(EditorUtils.getDesc(parentName, fieldName))
+                    .build();
         }
     }
 }

@@ -29,6 +29,7 @@ worstshop:
           next-page: '&eNext page (Right click to jump to last)'
         list:
           name: ''
+          size: '&e{0} items in list'
           new: '&aAdd new item'
           new-unsupported: '&4Can''t add new item'
           delete: '&cMark items for removal (WARNING: Irreversible operation)'

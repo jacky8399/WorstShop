@@ -1,6 +1,5 @@
 package com.jacky8399.worstshop.shops;
 
-import com.google.common.collect.Lists;
 import com.google.common.collect.Streams;
 import com.jacky8399.worstshop.WorstShop;
 import com.jacky8399.worstshop.editor.*;
@@ -39,9 +38,9 @@ public class Shop implements InventoryProvider, ParseContext.NamedContext {
     public static final String SHOP_ID_PREFIX = "worstshop:shop/";
 
     @Property
-    public List<ShopElement> staticElements = Lists.newArrayList();
+    public List<ShopElement> staticElements = new ArrayList<>();
     @Property
-    public List<ShopElement> dynamicElements = Lists.newArrayList();
+    public List<ShopElement> dynamicElements = new ArrayList<>();
 
     public Shop() { }
 

@@ -470,7 +470,7 @@ public class StaticShopElement extends ShopElement {
 
     @Override
     public int hashCode() {
-        return super.hashCode();
+        return rawStack.hashCode();
     }
 
     @Override
