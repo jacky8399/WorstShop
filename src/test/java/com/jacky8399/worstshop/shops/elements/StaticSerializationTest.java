@@ -2,10 +2,12 @@ package com.jacky8399.worstshop.shops.elements;
 
 import com.jacky8399.worstshop.WorstShop;
 import com.jacky8399.worstshop.helper.Config;
-import com.jacky8399.worstshop.mock.FakeServer;
 import org.bukkit.Bukkit;
+import org.bukkit.Server;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.configuration.serialization.ConfigurationSerialization;
+import org.bukkit.craftbukkit.v1_16_R3.inventory.CraftItemFactory;
+import org.bukkit.craftbukkit.v1_16_R3.util.CraftMagicNumbers;
 import org.bukkit.inventory.ItemStack;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
@@ -28,7 +30,15 @@ public class StaticSerializationTest {
     @SuppressWarnings("ConstantConditions")
     public static void setupServer() {
         if (Bukkit.getServer() == null) {
-            Bukkit.setServer(new FakeServer());
+            Server server = mock(Server.class);
+            when(server.getName()).thenReturn("FakeServer");
+            when(server.getVersion()).thenReturn("1.0");
+            when(server.getBukkitVersion()).thenReturn("1.0");
+            when(server.getMinecraftVersion()).thenReturn("1.0");
+            when(server.getLogger()).thenReturn(logger);
+            when(server.getItemFactory()).thenReturn(CraftItemFactory.instance());
+            when(server.getUnsafe()).thenReturn(CraftMagicNumbers.INSTANCE);
+            Bukkit.setServer(server);
         }
     }
 

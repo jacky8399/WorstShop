@@ -3,6 +3,8 @@ package com.jacky8399.worstshop.shops.elements;
 import com.google.common.collect.ImmutableSet;
 import com.jacky8399.worstshop.I18n;
 import com.jacky8399.worstshop.WorstShop;
+import com.jacky8399.worstshop.editor.Editable;
+import com.jacky8399.worstshop.editor.Property;
 import com.jacky8399.worstshop.helper.*;
 import com.jacky8399.worstshop.shops.ElementPopulationContext;
 import com.jacky8399.worstshop.shops.ParseContext;
@@ -37,14 +39,18 @@ import java.util.function.BiConsumer;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+@Editable
 public class StaticShopElement extends ShopElement {
     public static NamespacedKey SAFETY_KEY = new NamespacedKey(WorstShop.get(), "shop_item");
 
     @NotNull
+    @Property
     public ItemStack rawStack = new ItemStack(Material.AIR);
 
+    @Property
     public boolean async = false;
     @Nullable
+    @Property
     public ItemStack asyncLoadingItem = null;
     public transient boolean hasRemindedAsync = false;
 
@@ -466,6 +472,11 @@ public class StaticShopElement extends ShopElement {
             return false;
         PersistentDataContainer container = stack.getItemMeta().getPersistentDataContainer();
         return container.has(SAFETY_KEY, PersistentDataType.BYTE);
+    }
+
+    @Override
+    public String toString() {
+        return id + "@" + owner.id;
     }
 
     @Override

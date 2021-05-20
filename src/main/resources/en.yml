@@ -44,6 +44,8 @@ worstshop:
           editing: '&eCurrently editing {0} (type: {1})'
           current: '&aCurrent value: {0} &c(enter this value to quit editing)'
           invalid: '&4The input you provided was invalid!'
+        item-stack:
+          confirm: '&eDrop an item above to set value. Click here to confirm.'
 
     shops:
       wants:

@@ -3,7 +3,8 @@ package com.jacky8399.worstshop.helper;
 import com.jacky8399.worstshop.I18n;
 import com.jacky8399.worstshop.WorstShop;
 import com.jacky8399.worstshop.editor.*;
-import com.jacky8399.worstshop.editor.DefaultAdaptors.*;
+import com.jacky8399.worstshop.editor.adaptors.*;
+import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.Nullable;
 
 import java.lang.reflect.Constructor;
@@ -13,6 +14,10 @@ import java.lang.reflect.Modifier;
 import java.util.Collection;
 
 public class EditorUtils {
+    public static final String I18N_KEY = I18n.Keys.MESSAGES_KEY + "editor.property.";
+    public static final I18n.Translatable VALUE_FORMAT = I18n.createTranslatable(I18N_KEY + "value-format");
+    public static final I18n.Translatable NAME_FORMAT = I18n.createTranslatable(I18N_KEY + "name-format");
+
     @SuppressWarnings({"unchecked", "rawtypes"})
     public static <T> EditableAdaptor<T> findAdaptorForField(Object parent, Field field) {
         EditableAdaptor<?> adaptor;
@@ -79,7 +84,9 @@ public class EditorUtils {
             } else if (clazz.isEnum()) {
                 adaptor = (EditableAdaptor<T>) new EnumAdaptor<>((Class)clazz);
             } else if (Collection.class.isAssignableFrom(clazz)) {
-                adaptor = (EditableAdaptor<T>) new ListAdaptor<>();
+                adaptor = new ListAdaptor();
+            } else if (clazz == ItemStack.class) {
+                adaptor = (EditableAdaptor<T>) new ItemStackAdaptor();
             }
             // TODO finish all primitives
         }
@@ -126,5 +133,9 @@ public class EditorUtils {
 
     public static String[] getDesc(@Nullable String parentName, @Nullable String fieldName) {
         return parentName != null && fieldName != null ? I18n.translate("worstshop.editor.property." + parentName + "." + fieldName + ".desc").split("\n") : null;
+    }
+
+    public static String translate(String key, Object... args) {
+        return I18n.translate(I18N_KEY + key, args);
     }
 }

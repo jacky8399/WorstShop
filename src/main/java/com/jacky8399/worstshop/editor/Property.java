@@ -15,4 +15,5 @@ public @interface Property {
      * @return the translation key of this the description of this item
      */
     String value() default "";
+    boolean nullable() default false;
 }

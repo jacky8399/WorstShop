@@ -1,8 +1,8 @@
 package com.jacky8399.worstshop.shops;
 
 import com.jacky8399.worstshop.editor.Adaptor;
-import com.jacky8399.worstshop.editor.DefaultAdaptors;
 import com.jacky8399.worstshop.editor.Editable;
+import com.jacky8399.worstshop.editor.adaptors.GUIAdaptor;
 import com.jacky8399.worstshop.helper.EditorUtils;
 import com.jacky8399.worstshop.helper.ItemBuilder;
 import org.bukkit.ChatColor;
@@ -15,6 +15,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Editable
 @Adaptor(ShopReference.Adaptor.class)
@@ -102,13 +103,12 @@ public class ShopReference {
         }
     }
 
-    static class Adaptor extends DefaultAdaptors.GUIAdaptor<ShopReference> {
+    static class Adaptor extends GUIAdaptor<ShopReference> {
         public Adaptor() {}
 
         @Override
         public Collection<? extends ShopReference> getValues() {
-            return ShopManager.SHOPS.keySet().stream()
-                    .map(ShopReference::of)
+            return Stream.concat(ShopManager.SHOPS.keySet().stream().map(ShopReference::of), Stream.of(EMPTY))
                     .collect(Collectors.toList());
         }
 
@@ -116,8 +116,8 @@ public class ShopReference {
         public ItemStack getRepresentation(ShopReference val, @Nullable String parentName, @Nullable String fieldName) {
             if (fieldName != null)
                 return ItemBuilder.of(Material.EMERALD_BLOCK)
-                        .name(DefaultAdaptors.NAME_FORMAT.apply(fieldName))
-                        .lores(DefaultAdaptors.VALUE_FORMAT.apply(val == EMPTY ? "?" : val.id))
+                        .name(EditorUtils.NAME_FORMAT.apply(fieldName))
+                        .lores(EditorUtils.VALUE_FORMAT.apply(val == EMPTY ? "?" : val.id))
                         .addLores(EditorUtils.getDesc(parentName, fieldName))
                         .build();
             return ItemBuilder.of(Material.EMERALD_BLOCK).name(ChatColor.GREEN + val.id).build();

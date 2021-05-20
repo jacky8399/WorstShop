@@ -3,6 +3,8 @@ package com.jacky8399.worstshop.shops;
 import com.google.common.collect.Streams;
 import com.jacky8399.worstshop.WorstShop;
 import com.jacky8399.worstshop.editor.*;
+import com.jacky8399.worstshop.editor.adaptors.EditableObjectAdaptor;
+import com.jacky8399.worstshop.editor.adaptors.StringAdaptor;
 import com.jacky8399.worstshop.helper.*;
 import com.jacky8399.worstshop.shops.conditions.Condition;
 import com.jacky8399.worstshop.shops.conditions.ConditionConstant;
@@ -290,7 +292,7 @@ public class Shop implements InventoryProvider, ParseContext.NamedContext {
         }
     }
 
-    public class Adaptor extends DefaultAdaptors.EditableObjectAdaptor<Shop> {
+    public class Adaptor extends EditableObjectAdaptor<Shop> {
         private static final String I18N_KEY = "worstshop.messages.editor.property.shop.";
         public Adaptor() {
             super(Shop.class);
@@ -312,7 +314,7 @@ public class Shop implements InventoryProvider, ParseContext.NamedContext {
             contents.set(0, 4, ClickableItem.of(
                     ItemBuilder.of(Material.NAME_TAG).name(ChatColor.YELLOW + "id: " + ChatColor.GREEN + id)
                             .lores(translate(I18N_KEY + "id")).build(),
-                    e -> new DefaultAdaptors.StringAdaptor().onInteract(player, id, "id")
+                    e -> new StringAdaptor().onInteract(player, id, "id")
                             .thenAccept(newId -> {
                                 ShopManager.renameShop(Shop.this, newId);
                                 // reopen GUI
