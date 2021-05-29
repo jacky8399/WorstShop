@@ -88,7 +88,6 @@ public class EditorUtils {
             } else if (clazz == ItemStack.class) {
                 adaptor = (EditableAdaptor<T>) new ItemStackAdaptor();
             }
-            // TODO finish all primitives
         }
         // check for annotations
         if (adaptor instanceof TextAdaptor<?> && clazz.isAnnotationPresent(Format.class)) {

@@ -241,6 +241,8 @@ public class Shop implements InventoryProvider, ParseContext.NamedContext {
 
     @Override
     public void init(Player player, InventoryContents contents) {
+        // TODO find a better solution to fix page turning
+        refreshItems(player, contents, false);
         refreshItems(player, contents, true);
     }
 

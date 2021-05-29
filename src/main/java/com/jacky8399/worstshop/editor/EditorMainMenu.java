@@ -24,13 +24,13 @@ public class EditorMainMenu implements InventoryProvider {
 
     @Override
     public void init(Player player, InventoryContents contents) {
+        // TODO
         contents.fill(ClickableItem.empty(ItemBuilder.of(Material.BLACK_STAINED_GLASS_PANE).name(ChatColor.BLACK.toString()).build()));
         // check for permissions
         if (player.hasPermission("worstshop.editor.create")) {
             contents.set(1, 3, ClickableItem.of(
                     ItemBuilder.of(Material.WRITABLE_BOOK).name(I18N_KEY + "create").build(),
                     e -> {
-                        // TODO
                     }
             ));
         }
@@ -38,7 +38,6 @@ public class EditorMainMenu implements InventoryProvider {
             contents.set(1, 5, ClickableItem.of(
                     ItemBuilder.of(Material.KNOWLEDGE_BOOK).name(I18N_KEY + "modify").build(),
                     e -> {
-                        // TODO
                     }
             ));
         }

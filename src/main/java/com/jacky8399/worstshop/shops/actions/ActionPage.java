@@ -2,6 +2,8 @@ package com.jacky8399.worstshop.shops.actions;
 
 import com.jacky8399.worstshop.WorstShop;
 import com.jacky8399.worstshop.helper.Config;
+import com.jacky8399.worstshop.helper.PaginationHelper;
+import com.jacky8399.worstshop.shops.Shop;
 import fr.minuskube.inv.content.InventoryContents;
 import fr.minuskube.inv.content.Pagination;
 import org.bukkit.entity.Player;
@@ -31,20 +33,22 @@ public class ActionPage extends Action {
     public void onClick(InventoryClickEvent e) {
         Player player = (Player) e.getWhoClicked();
         Optional<InventoryContents> contents = WorstShop.get().inventories.getContents(player);
-        contents.ifPresent(c-> {
+        contents.ifPresent(c -> {
             Pagination pagination = c.pagination();
             int currentPage = pagination.getPage();
             if (pageOffset < 0 && currentPage + pageOffset < 0) {
                 return;
             } else if (pageOffset > 0) {
-                // HACK: make SmartInv figure out last page for us
-                int lastPage = pagination.last().getPage();
-                // set the correct page
-                pagination.page(currentPage);
-                if (currentPage + pageOffset >= lastPage - 1)
+                int lastPage = PaginationHelper.getLastPage(pagination);
+                if (currentPage + pageOffset > lastPage - 1)
                     return;
             }
-            c.inventory().open(player, c.pagination().getPage() + pageOffset);
+            pagination.page(currentPage + pageOffset);
+            ((Shop) c.inventory().getProvider()).refreshItems(player, c, true);
+//            Bukkit.getScheduler().runTask(WorstShop.get(), () -> {
+//                InventoryCloseListener.closeTemporarilyWithoutParent(player);
+//                c.inventory().open(player, currentPage + pageOffset);
+//            });
         });
     }
 

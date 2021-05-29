@@ -6,7 +6,10 @@ import co.aikar.commands.Locales;
 import co.aikar.locales.LanguageTable;
 import co.aikar.locales.LocaleManager;
 import com.jacky8399.worstshop.helper.ConfigHelper;
+import com.jacky8399.worstshop.helper.PaginationHelper;
 import com.jacky8399.worstshop.helper.PaperHelper;
+import fr.minuskube.inv.content.InventoryContents;
+import fr.minuskube.inv.content.Pagination;
 import me.clip.placeholderapi.PlaceholderAPI;
 import net.md_5.bungee.api.ChatColor;
 import org.bukkit.configuration.InvalidConfigurationException;
@@ -25,6 +28,7 @@ import java.text.MessageFormat;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.Function;
 
 public class I18n {
@@ -178,8 +182,16 @@ public class I18n {
     }
 
     public static String doPlaceholders(@NotNull Player player, String input) {
-        return (plugin.placeholderAPI ? PlaceholderAPI.setPlaceholders(player, input) : input)
+        String ret = (plugin.placeholderAPI ? PlaceholderAPI.setPlaceholders(player, input) : input)
                 .replace("{player}", player.getName());
+        Optional<InventoryContents> inv = WorstShop.get().inventories.getContents(player);
+        if (inv.isPresent() && ret.contains("page}")) {
+            Pagination pagination = inv.get().pagination();
+            int page = pagination.getPage() + 1;
+            int maxPage = PaginationHelper.getLastPage(pagination);
+            ret = ret.replace("{page}", Integer.toString(page)).replace("{max_page}", Integer.toString(maxPage));
+        }
+        return ret;
     }
 
     private static final Field FIELD_LANGUAGE_TABLES;

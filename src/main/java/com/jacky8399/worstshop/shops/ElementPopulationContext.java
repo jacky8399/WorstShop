@@ -1,6 +1,5 @@
 package com.jacky8399.worstshop.shops;
 
-import com.google.common.collect.Lists;
 import fr.minuskube.inv.ClickableItem;
 import fr.minuskube.inv.content.InventoryContents;
 import fr.minuskube.inv.content.Pagination;
@@ -24,7 +23,7 @@ public class ElementPopulationContext {
         this.contents = contents;
         slotIterator = contents.newIterator(SlotIterator.Type.HORIZONTAL, 0, 0).allowOverride(false);
         pagination = contents.pagination();
-        paginationItems = Lists.newArrayList();
+        paginationItems = new ArrayList<>();
     }
 
     public void add(ClickableItem item) {
@@ -56,7 +55,9 @@ public class ElementPopulationContext {
                     emptySlots++;
             }
         }
-        pagination.setItemsPerPage(emptySlots);
+//        WorstShop.get().logger.info("Empty slots: " + emptySlots + ", items: " + paginationItems.size());
+        if (emptySlots != 0)
+            pagination.setItemsPerPage(emptySlots);
         pagination.addToIterator(slotIterator);
     }
 }
