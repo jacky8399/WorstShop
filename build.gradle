@@ -12,7 +12,6 @@ targetCompatibility = JavaVersion.VERSION_1_8
 
 repositories {
     mavenCentral()
-    jcenter()
     maven {
         name = 'papermc'
         url = 'https://papermc.io/repo/repository/maven-public/'
@@ -74,9 +73,11 @@ dependencies {
     // Placeholders
     compileOnly 'me.clip:placeholderapi:2.10.3'
     // QuickShop
-    compileOnly('org.maxgamer:QuickShop:4.0.7.3') {
+    compileOnly('org.maxgamer:QuickShop:4.0.8.0-SNAPSHOT') {
         transitive = false
     }
+    // PaperLib
+    api "io.papermc:paperlib:1.0.6"
     // Annotations
     compileOnly 'org.jetbrains:annotations:16.0.2'
 
@@ -101,10 +102,11 @@ shadowJar {
     //relocate 'co.aikar.minecraft-timings', 'com.jacky8399.worstshop.acf.minecraft-timings'
     relocate 'co.aikar.util', 'com.jacky8399.worstshop.acf.util'
     relocate 'net.jodah.expiringmap', 'com.jacky8399.worstshop.acf.expiringmap'
+    relocate "io.papermc.lib", "com.jacky8399.worstshop.paperlib"
 }
 
-test {
+//test {
 //    useJUnitPlatform()
-}
+//}
 
 build.dependsOn shadowJar

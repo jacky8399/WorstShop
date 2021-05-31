@@ -38,7 +38,7 @@ public class I18n {
     }
 
     public static class Translatable implements Function<String[], String> {
-        Translatable(String path) {
+        public Translatable(String path) {
             this.path = path.toLowerCase(Locale.ROOT);
             update();
         }
@@ -62,7 +62,6 @@ public class I18n {
         private String pattern;
         public void update() {
             pattern = ConfigHelper.translateString(lang.getString(path, path));
-            // noinspection ConstantConditions
             format = new MessageFormat(pattern);
         }
     }

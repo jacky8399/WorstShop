@@ -209,37 +209,35 @@ public class ActionShop extends Action {
     }
 
     public static class ShopGui implements InventoryProvider {
-        private boolean firstClick = true;
-        private final ActionShop shop;
-        private final Commodity cost;
-        private final Commodity reward;
-        private ShopElement costElem, rewardElem;
-        private ShopGui(ActionShop shop) {
+        protected boolean firstClick = true;
+        protected final ActionShop shop;
+        protected final Commodity cost;
+        protected final Commodity reward;
+        protected ShopElement costElem, rewardElem;
+        protected ShopGui(ActionShop shop) {
             this.shop = shop;
             this.cost = shop.cost;
             this.reward = shop.reward;
         }
 
         public static SmartInventory getInventory(Player player, ActionShop shop, SmartInventory parent) {
-            return SmartInventory.builder()
-                    .title(
-                            I18n.translate("worstshop.messages.shops.shop", player)
-                    ).manager(WorstShop.get().inventories)
+            return WorstShop.buildGui("worstshop:shop_gui")
+                    .title(I18n.translate("worstshop.messages.shops.shop", player))
                     .type(InventoryType.CHEST).size(6, 9)
                     .provider(new ShopGui(shop)).parent(parent)
-                    .listener(new InventoryCloseListener()).build();
+                    .build();
         }
 
-        private static final ClickableItem FILLER = ClickableItem
+        protected static final ClickableItem FILLER = ClickableItem
                 .empty(ItemBuilder.of(Material.BLACK_STAINED_GLASS_PANE)
                         .amount(1).name(ChatColor.BLACK.toString()).build());
-        private static final ClickableItem ARROW = ClickableItem
+        protected static final ClickableItem ARROW = ClickableItem
                 .empty(ItemBuilder.of(Material.YELLOW_STAINED_GLASS_PANE)
                         .amount(1).name(ChatColor.BLACK.toString()).build());
-        private static final ClickableItem GREEN = ClickableItem
+        protected static final ClickableItem GREEN = ClickableItem
                 .empty(ItemBuilder.of(Material.LIME_STAINED_GLASS_PANE)
                         .amount(1).name(ChatColor.BLACK.toString()).build());
-        private static final ClickableItem RED = ClickableItem
+        protected static final ClickableItem RED = ClickableItem
                 .empty(ItemBuilder.of(Material.RED_STAINED_GLASS_PANE)
                         .amount(1).name(ChatColor.BLACK.toString()).build());
 
@@ -325,10 +323,10 @@ public class ActionShop extends Action {
         }
 
         // animation
-        int tickCounter = 0;
-        int animationSequence = 0;
-        int buyCount = 1;
-        int lastBuyCount = buyCount;
+        protected int tickCounter = 0;
+        protected int animationSequence = 0;
+        protected int buyCount = 1;
+        protected int lastBuyCount = buyCount;
 
         int calculateItemColumn() {
             return (animationSequence == 4 ? 2 : animationSequence + 3);
@@ -348,7 +346,7 @@ public class ActionShop extends Action {
             };
         }
 
-        private void doTransaction(InventoryClickEvent e) {
+        protected void doTransaction(InventoryClickEvent e) {
             Player player = (Player) e.getWhoClicked();
             Bukkit.getScheduler().runTask(WorstShop.get(), ()->{
                 player.closeInventory();
@@ -357,7 +355,7 @@ public class ActionShop extends Action {
         }
 
         private static final List<Integer> BUTTON_SIZE = Lists.newArrayList(1, 4, 16, 64);
-        private void populateBuyCountChangeButtons(Player player, InventoryContents contents) {
+        protected void populateBuyCountChangeButtons(Player player, InventoryContents contents) {
             ListIterator<Integer> iterator = BUTTON_SIZE.listIterator();
             int correctedBuyCount = buyCount - (firstClick ? 1 : 0);
             while (iterator.hasNext()) {
@@ -398,19 +396,20 @@ public class ActionShop extends Action {
             updateAnimation(player, contents);
         }
 
-        private void updateItemCount(Player player, InventoryContents contents) {
+        protected void updateItemCount(Player player, InventoryContents contents) {
             List<String> lore = reward.canMultiply() ?
                     Collections.singletonList(I18n.translate("worstshop.messages.shops.buy-counts.total-result", reward.multiply(buyCount).getPlayerResult(player, Commodity.TransactionType.REWARD))) :
                     Collections.emptyList();
             contents.set(4, 4, ClickableItem.empty(
                     ItemBuilder.of(Material.END_CRYSTAL)
                             .name(I18n.translate("worstshop.messages.shops.buy-counts.total", buyCount))
+                            .amount(Math.min(buyCount, 64))
                             .lore(lore)
                             .build()
             ));
         }
 
-        private void updateCanAfford(Player player, InventoryContents contents) {
+        protected void updateCanAfford(Player player, InventoryContents contents) {
             if (shop.cost.multiply(buyCount).canAfford(player) && buyCount <= shop.getPlayerMaxPurchase(player)) {
                 // green
                 contents.fillRow(3, GREEN);
@@ -420,7 +419,7 @@ public class ActionShop extends Action {
             }
         }
 
-        private void updateAnimation(Player player, InventoryContents contents) {
+        protected void updateAnimation(Player player, InventoryContents contents) {
             if (++tickCounter > 5) {
                 animationSequence = animationSequence == 4 ? 0 : animationSequence + 1;
                 tickCounter = 0;

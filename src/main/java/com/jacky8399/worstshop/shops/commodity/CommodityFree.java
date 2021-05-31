@@ -25,9 +25,13 @@ public class CommodityFree extends Commodity {
 
     @Override
     public ShopElement createElement(TransactionType position) {
-        return position.createElement(
-                ItemBuilder.of(Material.BARRIER).name(I18n.translate("worstshop.messages.shops.wants.free")).build()
-        );
+        return position.createElement(ItemBuilder.of(Material.BARRIER)
+                .name(I18n.translate("worstshop.messages.shops.wants.free")).build());
+    }
+
+    @Override
+    public int getMaximumMultiplier(Player player) {
+        return Integer.MAX_VALUE;
     }
 
     @Override
