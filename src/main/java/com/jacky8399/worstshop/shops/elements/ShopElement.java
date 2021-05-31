@@ -14,6 +14,7 @@ import com.jacky8399.worstshop.shops.conditions.ConditionConstant;
 import com.jacky8399.worstshop.shops.conditions.ConditionPermission;
 import fr.minuskube.inv.ClickableItem;
 import fr.minuskube.inv.content.InventoryContents;
+import fr.minuskube.inv.content.InventoryProvider;
 import fr.minuskube.inv.content.SlotPos;
 import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
@@ -178,7 +179,8 @@ public abstract class ShopElement implements Cloneable, ParseContext.NamedContex
     }
 
     public void populateItems(Player player, InventoryContents contents, ElementPopulationContext pagination) {
-        ShopReference owningShop = ShopReference.of((Shop) contents.inventory().getProvider());
+        InventoryProvider provider = contents.inventory().getProvider();
+        String owner = provider instanceof Shop ? ((Shop) provider).id : provider.toString();
         ItemStack stack;
         try {
             stack = createStack(player);
@@ -192,44 +194,23 @@ public abstract class ShopElement implements Cloneable, ParseContext.NamedContex
                 List<String> lore = meta.hasLore() ? new ArrayList<>(meta.getLore()) : new ArrayList<>();
                 if (lore.size() != 0)
                     lore.add("");
-                lore.add(ChatColor.YELLOW + id + "@" + owningShop.id);
+                lore.add(ChatColor.YELLOW + id + "@" + owner);
             }
         } catch (Exception ex) {
             // something has gone horribly wrong
-            RuntimeException wrapped = new RuntimeException("Populating item for " + player.getName() + " (" + id + "@" + owningShop.id + ")", ex);
+            RuntimeException wrapped = new RuntimeException("Populating item for " + player.getName() + " (" + id + "@" + owner + ")", ex);
             stack = ItemUtils.getErrorItem(wrapped);
         }
         ClickableItem item = ClickableItem.of(stack, e -> {
             try {
                 onClick(e);
             } catch (Exception ex) {
-                RuntimeException wrapped = new RuntimeException("Processing item click for " + e.getWhoClicked().getName() + " (" + id + "@" + owningShop.id + ")", ex);
+                RuntimeException wrapped = new RuntimeException("Processing item click for " + e.getWhoClicked().getName() + " (" + id + "@" + owner + ")", ex);
                 ItemStack err = ItemUtils.getErrorItem(wrapped);
                 e.setCurrentItem(err);
             }
         });
         fill.getFiller().fill(this, item, contents, pagination);
-//        switch (fill) {
-//            case ALL:
-//                contents.fill(item);
-//                break;
-//            case BORDER_1:
-//                contents.fillBorders(item);
-//                break;
-//            case REMAINING:
-//                pagination.forEachRemaining((row, col)->item);
-//                break;
-//            case NONE:
-//                if (itemPositions != null) {
-//                    for (SlotPos pos : itemPositions) {
-//                        contents.set(pos, item);
-//                    }
-//                } else {
-//                    // pagination
-//                    pagination.add(item);
-//                }
-//                break;
-//        }
     }
 
     public ShopElement clone() {

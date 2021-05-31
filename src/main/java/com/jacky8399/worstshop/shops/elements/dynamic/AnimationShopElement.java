@@ -21,11 +21,21 @@ public class AnimationShopElement extends DynamicShopElement {
     ArrayList<ShopElement> elements;
     public AnimationShopElement(Config config) {
         intervalInTicks = config.find("interval", Integer.class).orElse(1);
-        elements = Lists.newArrayList();
+        elements = new ArrayList<>();
         ParseContext.pushContext(this);
         config.getList("elements", Config.class).stream().map(ShopElement::fromConfig).forEach(elements::add);
         ParseContext.popContext();
         Validate.notEmpty(elements, "Elements cannot be empty!");
+    }
+
+    public AnimationShopElement(int interval, ShopElement... elements) {
+        intervalInTicks = interval;
+        this.elements = Lists.newArrayList(elements);
+    }
+
+    public AnimationShopElement(int interval, Collection<? extends ShopElement> elements) {
+        intervalInTicks = interval;
+        this.elements = new ArrayList<>(elements);
     }
 
     @Override
@@ -53,8 +63,13 @@ public class AnimationShopElement extends DynamicShopElement {
         }
         // clone the element to add our actions
         ShopElement current = elements.get(animationSequence).clone();
+        // if this element has a more specific pos, use that
+        if (fill != FillType.NONE || itemPositions != null) {
+            current.fill = fill;
+            current.itemPositions = itemPositions != null ? new ArrayList<>(itemPositions) : null;
+        }
         // override the list as the cloned element still has the same ref to list of action
-        List<Action> newAction = Lists.newArrayList(actions);
+        List<Action> newAction = new ArrayList<>(actions);
         newAction.addAll(current.actions);
         current.actions = newAction;
         current.populateItems(player, contents, pagination);

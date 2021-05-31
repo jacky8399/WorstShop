@@ -1,6 +1,5 @@
 package com.jacky8399.worstshop.shops.commodity;
 
-import com.google.common.collect.Lists;
 import com.jacky8399.worstshop.shops.ElementPopulationContext;
 import com.jacky8399.worstshop.shops.elements.ShopElement;
 import com.jacky8399.worstshop.shops.elements.StaticShopElement;
@@ -12,7 +11,7 @@ import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-public class CommodityMultiple extends Commodity {
+public class CommodityMultiple extends Commodity implements IFlexibleCommodity {
     public List<Commodity> wants;
 
     int wrapIndexOffset(int orig, int idx) {
@@ -20,12 +19,23 @@ public class CommodityMultiple extends Commodity {
     }
 
     public CommodityMultiple(List<Commodity> wants) {
-        this.wants = Lists.newArrayList();
+        this.wants = new ArrayList<>();
         for (Commodity commodity : wants) {
             if (commodity instanceof CommodityMultiple)
                 throw new IllegalArgumentException("Cannot embed CommodityMultiple!");
             this.wants.add(commodity);
         }
+    }
+
+    @Override
+    public Commodity adjustForPlayer(Player player) {
+        return new CommodityMultiple(wants.stream()
+                .map(commodity -> commodity instanceof IFlexibleCommodity ?
+                        ((IFlexibleCommodity) commodity).adjustForPlayer(player) :
+                        commodity
+                )
+                .collect(Collectors.toList())
+        );
     }
 
     @Override

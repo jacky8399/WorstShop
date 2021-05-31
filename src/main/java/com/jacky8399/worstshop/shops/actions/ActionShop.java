@@ -7,11 +7,11 @@ import com.jacky8399.worstshop.helper.*;
 import com.jacky8399.worstshop.shops.ParseContext;
 import com.jacky8399.worstshop.shops.Shop;
 import com.jacky8399.worstshop.shops.commodity.Commodity;
-import com.jacky8399.worstshop.shops.elements.ShopElement;
-import com.jacky8399.worstshop.shops.elements.StaticShopElement;
-import com.jacky8399.worstshop.shops.commodity.IFlexibleCommodity;
 import com.jacky8399.worstshop.shops.commodity.CommodityItem;
 import com.jacky8399.worstshop.shops.commodity.CommodityMultiple;
+import com.jacky8399.worstshop.shops.commodity.IFlexibleCommodity;
+import com.jacky8399.worstshop.shops.elements.ShopElement;
+import com.jacky8399.worstshop.shops.elements.StaticShopElement;
 import fr.minuskube.inv.ClickableItem;
 import fr.minuskube.inv.SmartInventory;
 import fr.minuskube.inv.content.InventoryContents;
@@ -23,7 +23,6 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.scheduler.BukkitRunnable;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
@@ -158,20 +157,8 @@ public class ActionShop extends Action {
         Optional<InventoryContents> parentContentsOptional = WorstShop.get().inventories.getContents(player);
         if (parentContentsOptional.isPresent()) {
             InventoryContents parentContents = parentContentsOptional.get();
-            // skip close event once
-            parentContents.setProperty("skipOnce", true);
-            // open a shop 1 tick later
-            final ActionShop self = this.adjustForPlayer(player);
-            (new BukkitRunnable() {
-                @Override
-                public void run() {
-                    ShopGui.getInventory(player, self, parentContents.inventory())
-                            .open(player);
-
-                    // undo skip close event in case there is none
-                    parentContents.setProperty("skipOnce", false);
-                }
-            }).runTask(WorstShop.get());
+            SmartInventory inv = ShopGui.getInventory(player, this.adjustForPlayer(player), parentContents.inventory());
+            InventoryCloseListener.openSafely(player, inv);
         }
     }
 
@@ -260,9 +247,11 @@ public class ActionShop extends Action {
         public void init(Player player, InventoryContents contents) {
             contents.fill(FILLER);
 
+            String stage = "cost";
             try {
                 costElem = cost.createElement(Commodity.TransactionType.COST).clone();
                 costElem.populateItems(player, contents, null);
+                stage = "reward";
                 rewardElem = reward.createElement(Commodity.TransactionType.REWARD).clone();
                 rewardElem.populateItems(player, contents, null);
             } catch (Exception ex) {
@@ -272,7 +261,7 @@ public class ActionShop extends Action {
                 if (parent.isPresent() && parent.get().getProvider() instanceof Shop) {
                     parentShop = ((Shop) parent.get().getProvider()).id;
                 }
-                RuntimeException wrapped = new RuntimeException("An error occurred while opening ActionShop for " + player.getName() + " (@" + parentShop + ")", ex);
+                RuntimeException wrapped = new RuntimeException("Rendering " + stage + " element for " + player.getName() + " (@" + parentShop + ")", ex);
                 ItemStack err = ItemUtils.getErrorItem(wrapped);
                 // spam the player
                 contents.fill(ClickableItem.empty(err));
@@ -283,6 +272,7 @@ public class ActionShop extends Action {
             if (cost.canMultiply() && reward.canMultiply())
                 populateBuyCountChangeButtons(player, contents);
             updateCanAfford(player, contents);
+            updateAnimation(player, contents);
 
             // player balance etc
             contents.set(5, 4, ClickableItem.empty(

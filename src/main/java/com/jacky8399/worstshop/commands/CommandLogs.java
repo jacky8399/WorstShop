@@ -73,7 +73,9 @@ public class CommandLogs extends BaseCommand {
                                 .append("/worstshop log error show " + hash + " full").color(ChatColor.YELLOW).create();
                 BaseComponent[] stackTraceComponent = showFull ?
                         new ComponentBuilder("  Stack trace:\n").color(ChatColor.GREEN)
-                                .append(stackTrace).color(ChatColor.DARK_RED).create() :
+                                .append(stackTrace.replace("Caused by:", ChatColor.RED + "Caused by:"))
+                                .color(ChatColor.DARK_RED)
+                                .create() :
                         showStackTraceComponent;
                 // show cause of throwable
                 BaseComponent[] causeComponent = log.exception.getCause() != null ?

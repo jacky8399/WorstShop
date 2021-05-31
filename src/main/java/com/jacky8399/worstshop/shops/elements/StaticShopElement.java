@@ -144,15 +144,14 @@ public class StaticShopElement extends ShopElement {
 
     public static ItemStack parseItemStack(Config yaml) {
         try {
-            Material material = Material.getMaterial(yaml.get("item", String.class).toUpperCase(Locale.US).replace(' ', '_'));
+            Material material = Material.getMaterial(yaml.get("item", String.class).toUpperCase(Locale.ROOT).replace(' ', '_'));
             if (material == null) {
                 throw new IllegalStateException("Illegal material " + yaml.get("item", String.class));
-            }
-            if (material == Material.AIR || material == Material.CAVE_AIR || material == Material.VOID_AIR) {
+            } else if (material == Material.AIR || material == Material.CAVE_AIR || material == Material.VOID_AIR) {
                 return null; // skip air
             }
             ItemBuilder is = ItemBuilder.of(material);
-            int amount = yaml.find("count", Integer.class).orElseGet(() -> yaml.find("amount", Integer.class).orElse(1));
+            int amount = yaml.find("amount", Integer.class).orElseGet(()->yaml.find("count", Integer.class).orElse(1));
             is.amount(Math.min(Math.max(amount, 1), material.getMaxStackSize()));
 
             Optional<String> itemMetaString = yaml.find("item-meta", String.class);
@@ -265,7 +264,7 @@ public class StaticShopElement extends ShopElement {
     public static Map<String, Object> serializeItemStack(ItemStack stack, Map<String, Object> map) {
         map.put("item", stack.getType().name().toLowerCase(Locale.ROOT).replace('_', ' '));
         if (stack.getAmount() != 1)
-            map.put("count", stack.getAmount());
+            map.put("amount", stack.getAmount());
         ItemMeta meta = stack.getItemMeta();
         if (meta instanceof Damageable) {
             Damageable damageable = (Damageable) meta;
