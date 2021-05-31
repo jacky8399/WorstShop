@@ -64,8 +64,8 @@ public class AnimationShopElement extends DynamicShopElement {
         // clone the element to add our actions
         ShopElement current = elements.get(animationSequence).clone();
         // if this element has a more specific pos, use that
-        if (fill != FillType.NONE || itemPositions != null) {
-            current.fill = fill;
+        if (filler != DefaultSlotFiller.NONE || itemPositions != null) {
+            current.filler = filler;
             current.itemPositions = itemPositions != null ? new ArrayList<>(itemPositions) : null;
         }
         // override the list as the cloned element still has the same ref to list of action

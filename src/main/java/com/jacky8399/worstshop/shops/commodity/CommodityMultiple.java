@@ -91,7 +91,7 @@ public class CommodityMultiple extends Commodity implements IFlexibleCommodity {
             SlotPos pos1 = SlotPos.of(position.pos.getRow() - 1, position.pos.getColumn()),
                     pos2 = SlotPos.of(position.pos.getRow() + 1, position.pos.getColumn());
             // sanitize elements
-            elem1.fill = elem2.fill = ShopElement.FillType.NONE;
+            elem1.filler = elem2.filler = ShopElement.DefaultSlotFiller.NONE;
             elem1.itemPositions = Collections.singletonList(pos1);
             elem2.itemPositions = Collections.singletonList(pos2);
             return new StaticShopElement() {
@@ -117,7 +117,7 @@ public class CommodityMultiple extends Commodity implements IFlexibleCommodity {
                             elem2 = wants.get(itemSequence).createElement(position),
                             elem3 = wants.get(nextItemSequence).createElement(position);
                     // sanitize
-                    elem1.fill = elem2.fill = elem3.fill = ShopElement.FillType.NONE;
+                    elem1.filler = elem2.filler = elem3.filler = ShopElement.DefaultSlotFiller.NONE;
                     elem1.itemPositions = Collections.singletonList(pos1);
                     elem2.itemPositions = Collections.singletonList(position.pos);
                     elem3.itemPositions = Collections.singletonList(pos3);

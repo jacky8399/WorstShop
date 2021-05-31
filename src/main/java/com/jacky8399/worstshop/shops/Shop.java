@@ -218,7 +218,7 @@ public class Shop implements InventoryProvider, ParseContext.NamedContext {
                 RuntimeException wrapped = new RuntimeException("Error while populating element [" + index + "] in " + id, ex);
                 ShopElement fakeElement = StaticShopElement.fromStack(ItemUtils.getErrorItem(wrapped));
                 // copy renderer
-                fakeElement.fill = element.fill;
+                fakeElement.filler = element.filler;
                 fakeElement.itemPositions = element.itemPositions != null ? new ArrayList<>(element.itemPositions) : null;
                 fakeElement.populateItems(player, contents, helper);
             }

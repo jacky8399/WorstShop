@@ -185,7 +185,7 @@ public abstract class Commodity {
         @NotNull
         public ShopElement createElement(ShopElement element) {
             ShopElement clone = element == null ? StaticShopElement.fromStack(UNDEFINED) : element.clone();
-            clone.fill = ShopElement.FillType.NONE;
+            clone.filler = ShopElement.DefaultSlotFiller.NONE;
             clone.itemPositions = Collections.singletonList(pos);
             return clone;
         }

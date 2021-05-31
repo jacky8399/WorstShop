@@ -109,7 +109,7 @@ public final class CommodityCustomizable extends Commodity implements IFlexibleC
     public ShopElement createElement(TransactionType position) {
         // sanitize element
         ShopElement element = this.element.clone();
-        element.fill = ShopElement.FillType.NONE;
+        element.filler = ShopElement.DefaultSlotFiller.NONE;
         element.itemPositions = Collections.singletonList(position.pos);
         element.actions = Lists.newArrayList();
         return element;
