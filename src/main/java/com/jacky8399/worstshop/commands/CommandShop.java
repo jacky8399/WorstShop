@@ -18,7 +18,6 @@ import com.jacky8399.worstshop.shops.ShopReference;
 import com.jacky8399.worstshop.shops.conditions.Condition;
 import com.jacky8399.worstshop.shops.conditions.ConditionPermission;
 import com.jacky8399.worstshop.shops.elements.StaticShopElement;
-import net.md_5.bungee.api.ChatColor;
 import net.md_5.bungee.api.chat.*;
 import net.md_5.bungee.api.chat.hover.content.Text;
 import org.apache.commons.lang.StringUtils;
@@ -39,6 +38,7 @@ import java.util.HashMap;
 import java.util.stream.Collectors;
 
 import static com.jacky8399.worstshop.I18n.translate;
+import static net.md_5.bungee.api.ChatColor.*;
 
 @SuppressWarnings("unused")
 @CommandAlias("worstshop|shop")
@@ -47,7 +47,7 @@ public class CommandShop extends BaseCommand {
     public CommandShop() {
         // register shops autocompletion
         manager.getCommandContexts().registerContext(Shop.class, ctx->{
-            String arg = ctx.getFirstArg();
+            String arg = ctx.popFirstArg();
             Shop shop = ShopManager.SHOPS.get(arg);
             if (shop != null && shop.checkPlayerPerms(ctx.getIssuer().getIssuer())) {
                 return shop;
@@ -55,7 +55,7 @@ public class CommandShop extends BaseCommand {
             throw new InvalidCommandArgument(translate("worstshop.errors.invalid-shop", arg));
         });
 
-        manager.getCommandCompletions().registerCompletion("shops", ctx-> ShopManager.SHOPS.keySet().stream()
+        manager.getCommandCompletions().registerCompletion("shops", ctx -> ShopManager.SHOPS.keySet().stream()
                 .filter(shop->shop.startsWith(ctx.getInput())) // filter once to prevent unnecessary perm checks
                 .filter(shop->ShopManager.checkPermsOnly(ctx.getIssuer().getIssuer(), shop))
                 .collect(Collectors.toList()));
@@ -82,10 +82,10 @@ public class CommandShop extends BaseCommand {
     @Subcommand("version|ver|info")
     @CommandPermission("worstshop.version")
     public void showVersion(CommandSender sender) {
-        sender.sendMessage(ChatColor.GREEN + "You are running WorstShop " + WorstShop.get().getDescription().getVersion());
+        sender.sendMessage(GREEN + "You are running WorstShop " + WorstShop.get().getDescription().getVersion());
         // Statistics
-        sender.sendMessage(ChatColor.GREEN + "Shops loaded: " + ChatColor.YELLOW + ShopManager.SHOPS.size());
-        sender.sendMessage(ChatColor.GREEN + "Total shop elements: " + ChatColor.YELLOW + ShopManager.SHOPS.values()
+        sender.sendMessage(GREEN + "Shops loaded: " + YELLOW + ShopManager.SHOPS.size());
+        sender.sendMessage(GREEN + "Total shop elements: " + YELLOW + ShopManager.SHOPS.values()
                 .stream().mapToInt(shop -> shop.staticElements.size() + shop.dynamicElements.size()).sum());
     }
 
@@ -127,18 +127,18 @@ public class CommandShop extends BaseCommand {
 
         private BaseComponent[] stringifyDiscount(ShopDiscount.Entry discount, boolean putDetailsInHover) {
             boolean expires = discount.expiry != null;
-            ComponentBuilder detailBuilder = new ComponentBuilder("Discount ID: ").color(ChatColor.GREEN)
-                    .append(discount.name).color(ChatColor.YELLOW)
-                    .append("\nExpiry: ").color(ChatColor.GREEN)
+            ComponentBuilder detailBuilder = new ComponentBuilder("Discount ID: ").color(GREEN)
+                    .append(discount.name).color(YELLOW)
+                    .append("\nExpiry: ").color(GREEN)
                     .append(!expires ? "never" :
                             discount.expiry.atOffset(OffsetDateTime.now().getOffset())
                                     .format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))
-                    ).color(expires ? ChatColor.YELLOW : ChatColor.BLUE);
+                    ).color(expires ? YELLOW : BLUE);
             if (expires)
-                detailBuilder.append(" (expires in ").color(ChatColor.GOLD)
-                        .append(DateTimeUtils.formatTime(Duration.between(LocalDateTime.now(), discount.expiry))).color(ChatColor.GOLD)
-                        .append(")").color(ChatColor.GOLD);
-            detailBuilder.append("\nApplicable to:").color(ChatColor.GREEN);
+                detailBuilder.append(" (expires in ").color(GOLD)
+                        .append(DateTimeUtils.formatTime(Duration.between(LocalDateTime.now(), discount.expiry))).color(GOLD)
+                        .append(")").color(GOLD);
+            detailBuilder.append("\nApplicable to:").color(GREEN);
             boolean hasCriteria = false;
             if (discount.shop != null) {
                 detailBuilder.append("\nShop: ").append(discount.shop.id);
@@ -159,8 +159,8 @@ public class CommandShop extends BaseCommand {
             if (!hasCriteria) {
                 detailBuilder.append("\nEveryone");
             }
-            ComponentBuilder actualComponent = new ComponentBuilder((1 - discount.percentage) * 100 + "% discount ").color(ChatColor.YELLOW)
-                    .append("(" + discount.name + ")").color(ChatColor.AQUA);
+            ComponentBuilder actualComponent = new ComponentBuilder((1 - discount.percentage) * 100 + "% discount ").color(YELLOW)
+                    .append("(" + discount.name + ")").color(AQUA);
             if (putDetailsInHover)
                 actualComponent.event(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new Text(detailBuilder.create())));
             else
@@ -210,7 +210,7 @@ public class CommandShop extends BaseCommand {
             }
             ShopDiscount.addDiscountEntry(entry);
             sender.spigot().sendMessage(
-                    new ComponentBuilder("Added new ").color(ChatColor.GREEN)
+                    new ComponentBuilder("Added new ").color(GREEN)
                             .append(stringifyDiscount(entry, sender instanceof Player)).create()
             );
         }
@@ -219,15 +219,15 @@ public class CommandShop extends BaseCommand {
         @CommandPermission("worstshop.discount.list")
         public void listDiscounts(CommandSender sender) {
             boolean shouldPutDetailsInHover = sender instanceof Player;
-            sender.sendMessage(ChatColor.GREEN + "Discounts:");
+            sender.sendMessage(GREEN + "Discounts:");
             ShopDiscount.ALL_DISCOUNTS.values().stream().filter(entry -> !entry.hasExpired())
                     .map(entry -> {
                         BaseComponent[] components = stringifyDiscount(entry, shouldPutDetailsInHover);
-                        return new ComponentBuilder("A ").color(ChatColor.YELLOW)
+                        return new ComponentBuilder("A ").color(YELLOW)
                                 .append(components)
                                 .append(" ")
-                                .append("[Delete]").color(ChatColor.RED).bold(true)
-                                .event(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new Text(TextComponent.fromLegacyText(ChatColor.YELLOW + "Click here to delete the discount"))))
+                                .append("[Delete]").color(RED).bold(true)
+                                .event(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new Text(TextComponent.fromLegacyText(YELLOW + "Click here to delete the discount"))))
                                 .event(new ClickEvent(ClickEvent.Action.SUGGEST_COMMAND, "/worstshop discount delete " + entry.name))
                                 .create();
                     }).forEach(sender.spigot()::sendMessage);
@@ -241,7 +241,7 @@ public class CommandShop extends BaseCommand {
             if (realEntry != null) {
                 ShopDiscount.removeDiscountEntry(realEntry);
                 sender.spigot().sendMessage(
-                        new ComponentBuilder("Successfully removed ").color(ChatColor.GREEN)
+                        new ComponentBuilder("Successfully removed ").color(GREEN)
                         .append(stringifyDiscount(realEntry, sender instanceof Player)).create()
                 );
             }
@@ -258,22 +258,22 @@ public class CommandShop extends BaseCommand {
         StaticShopElement.serializeItemStack(stack, new HashMap<>()).forEach(temp::set);
         String yamlString = temp.saveToString();
 
-        HoverEvent hoverEvent = new HoverEvent(HoverEvent.Action.SHOW_TEXT, new Text(TextComponent.fromLegacyText("Click to copy line", ChatColor.WHITE)));
-        player.spigot().sendMessage(new ComponentBuilder("Item: ").color(ChatColor.YELLOW)
-                .append("[Copy all]").color(ChatColor.GREEN)
+        HoverEvent hoverEvent = new HoverEvent(HoverEvent.Action.SHOW_TEXT, new Text(TextComponent.fromLegacyText("Click to copy line", WHITE)));
+        player.spigot().sendMessage(new ComponentBuilder("Item: ").color(YELLOW)
+                .append("[Copy all]").color(GREEN)
                 .event(new HoverEvent(HoverEvent.Action.SHOW_TEXT,
                         new Text(TextComponent.fromLegacyText("Click to copy all lines")))).event(new ClickEvent(ClickEvent.Action.COPY_TO_CLIPBOARD, yamlString))
                 .create());
         for (String line : yamlString.split("\n")) {
             if (line.contains("item-meta")) {
-                player.spigot().sendMessage(new ComponentBuilder(StringUtils.abbreviate(line, 25)).color(ChatColor.WHITE)
+                player.spigot().sendMessage(new ComponentBuilder(StringUtils.abbreviate(line, 25)).color(WHITE)
                         .event(new HoverEvent(HoverEvent.Action.SHOW_TEXT,
-                                new Text(TextComponent.fromLegacyText("This line is abbreviated!", ChatColor.YELLOW)),
-                                new Text(TextComponent.fromLegacyText("Click to copy line", ChatColor.WHITE))))
+                                new Text(TextComponent.fromLegacyText("This line is abbreviated!", YELLOW)),
+                                new Text(TextComponent.fromLegacyText("Click to copy line", WHITE))))
                         .event(new ClickEvent(ClickEvent.Action.COPY_TO_CLIPBOARD, line))
                         .create());
             } else {
-                player.spigot().sendMessage(new ComponentBuilder(line).color(ChatColor.WHITE)
+                player.spigot().sendMessage(new ComponentBuilder(line).color(WHITE)
                         .event(hoverEvent).event(new ClickEvent(ClickEvent.Action.COPY_TO_CLIPBOARD, line))
                         .create());
             }
@@ -306,9 +306,9 @@ public class CommandShop extends BaseCommand {
         try {
             Condition test = ConditionPermission.fromPermString(permString);
             boolean result = test.test(player.player);
-            sender.sendMessage(ChatColor.WHITE + "Perm string " + ChatColor.YELLOW + permString + ChatColor.WHITE + "(" +
-                    test.toString() + ") evaluated to " +
-                    (result ? ChatColor.GREEN : ChatColor.RED) + result + ChatColor.WHITE + " for " + player.player.getName());
+            sender.sendMessage(WHITE + "Perm string " + YELLOW + permString +
+                    WHITE + "(" + test + ") evaluated to " +
+                    (result ? GREEN : RED) + result + WHITE + " for " + player.player.getName());
         } catch (IllegalArgumentException ex) {
             throw new InvalidCommandArgument(ex.getMessage());
         }

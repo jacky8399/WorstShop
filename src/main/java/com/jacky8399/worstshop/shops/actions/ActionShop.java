@@ -245,26 +245,7 @@ public class ActionShop extends Action {
         public void init(Player player, InventoryContents contents) {
             contents.fill(FILLER);
 
-            String stage = "cost";
-            try {
-                costElem = cost.createElement(Commodity.TransactionType.COST).clone();
-                costElem.populateItems(player, contents, null);
-                stage = "reward";
-                rewardElem = reward.createElement(Commodity.TransactionType.REWARD).clone();
-                rewardElem.populateItems(player, contents, null);
-            } catch (Exception ex) {
-                // guess parent
-                Optional<SmartInventory> parent = contents.inventory().getParent();
-                String parentShop = "failed to locate owning shop";
-                if (parent.isPresent() && parent.get().getProvider() instanceof Shop) {
-                    parentShop = ((Shop) parent.get().getProvider()).id;
-                }
-                RuntimeException wrapped = new RuntimeException("Rendering " + stage + " element for " + player.getName() + " (@" + parentShop + ")", ex);
-                ItemStack err = ItemUtils.getErrorItem(wrapped);
-                // spam the player
-                contents.fill(ClickableItem.empty(err));
-                return;
-            }
+            updateCommodities(player, contents, false);
 
             updateItemCount(player, contents);
             if (cost.canMultiply() && reward.canMultiply())
@@ -318,7 +299,10 @@ public class ActionShop extends Action {
                         ItemBuilder.of(Material.HOPPER)
                             .name(I18n.translate(I18n.Keys.MESSAGES_KEY + "shops.buttons.maximize-purchase"))
                             .build(),
-                        e-> buyCount = Math.min(cost.getMaximumMultiplier(player), shop.getPlayerMaxPurchase(player))
+                        e -> {
+                            buyCount = Math.min(cost.getMaximumMultiplier(player), shop.getPlayerMaxPurchase(player));
+                            firstClick = false;
+                        }
                 ));
         }
 
@@ -328,21 +312,10 @@ public class ActionShop extends Action {
         protected int buyCount = 1;
         protected int lastBuyCount = buyCount;
 
-        int calculateItemColumn() {
-            return (animationSequence == 4 ? 2 : animationSequence + 3);
-        }
-
         private Consumer<InventoryClickEvent> createBuyCountChanger(int changeSize) {
-            return e->{
-                if (firstClick) {
-                    buyCount = changeSize;
-                    firstClick = false;
-                } else {
-                    buyCount += changeSize;
-                }
-                if (buyCount <= 0) {
-                    buyCount = 1;
-                }
+            return e -> {
+                buyCount = Math.max((firstClick ? 0 : buyCount) + changeSize, 0);
+                firstClick = false;
             };
         }
 
@@ -396,21 +369,55 @@ public class ActionShop extends Action {
             updateAnimation(player, contents);
         }
 
+        protected void updateCommodities(Player player, InventoryContents contents, boolean dynamicOnly) {
+            String stage = "cost";
+            try {
+                if (!dynamicOnly) {
+                    costElem = cost.createElement(Commodity.TransactionType.COST).clone();
+                    costElem.populateItems(player, contents, null);
+                    stage = "reward";
+                    rewardElem = reward.createElement(Commodity.TransactionType.REWARD).clone();
+                    rewardElem.populateItems(player, contents, null);
+                } else {
+                    if (cost.isElementDynamic()) {
+                        costElem.populateItems(player, contents, null);
+                    }
+                    stage = "reward";
+                    if (reward.isElementDynamic()) {
+                        rewardElem.populateItems(player, contents, null);
+                    }
+                }
+            } catch (Exception ex) {
+                // guess parent
+                Optional<SmartInventory> parent = contents.inventory().getParent();
+                String parentShop = "???";
+                if (parent.isPresent() && parent.get().getProvider() instanceof Shop) {
+                    parentShop = ((Shop) parent.get().getProvider()).id;
+                }
+                RuntimeException wrapped = new RuntimeException("Rendering " + stage + " element for " + player.getName() + " (@" + parentShop + ")", ex);
+                ItemStack err = ItemUtils.getErrorItem(wrapped);
+                // spam the player
+                contents.fill(ClickableItem.empty(err));
+            }
+        }
+
         protected void updateItemCount(Player player, InventoryContents contents) {
             List<String> lore = reward.canMultiply() ?
-                    Collections.singletonList(I18n.translate("worstshop.messages.shops.buy-counts.total-result", reward.multiply(buyCount).getPlayerResult(player, Commodity.TransactionType.REWARD))) :
+                    Collections.singletonList(I18n.translate("worstshop.messages.shops.buy-counts.total-result",
+                            reward.multiply(buyCount).getPlayerResult(player, Commodity.TransactionType.REWARD))) :
                     Collections.emptyList();
-            contents.set(4, 4, ClickableItem.empty(
-                    ItemBuilder.of(Material.END_CRYSTAL)
-                            .name(I18n.translate("worstshop.messages.shops.buy-counts.total", buyCount))
-                            .amount(Math.min(buyCount, 64))
-                            .lore(lore)
-                            .build()
-            ));
+            boolean useChest = cost instanceof CommodityItem || reward instanceof CommodityItem;
+            contents.set(4, 4, ItemBuilder.of(buyCount > 64 && useChest ? Material.CHEST :
+                    buyCount != 0 ? Material.END_CRYSTAL : Material.BARRIER)
+                    .name(I18n.translate("worstshop.messages.shops.buy-counts.total", buyCount))
+                    .amount(Math.max(Math.min(buyCount > 64 && useChest ? (int) Math.ceil(buyCount / 64f) : buyCount, 64), 1))
+                    .lore(lore)
+                    .toEmptyClickable()
+            );
         }
 
         protected void updateCanAfford(Player player, InventoryContents contents) {
-            if (shop.cost.multiply(buyCount).canAfford(player) && buyCount <= shop.getPlayerMaxPurchase(player)) {
+            if (cost.multiply(buyCount).canAfford(player) && buyCount <= shop.getPlayerMaxPurchase(player)) {
                 // green
                 contents.fillRow(3, GREEN);
             } else {
@@ -419,19 +426,22 @@ public class ActionShop extends Action {
             }
         }
 
+        final int calculateItemColumn() {
+            return (animationSequence == 4 ? 2 : animationSequence + 3);
+        }
+
         protected void updateAnimation(Player player, InventoryContents contents) {
             if (++tickCounter > 5) {
-                animationSequence = animationSequence == 4 ? 0 : animationSequence + 1;
                 tickCounter = 0;
             } else {
                 return;
             }
-            // clear
-            for(int row = 0; row <= 2; row++) {
-                for(int column = 2; column <= 6; column++) {
-                    contents.set(row, column, FILLER);
-                }
-            }
+            // clear last arrow
+            contents.set(0, animationSequence + 2, FILLER);
+            contents.set(1, calculateItemColumn(), FILLER);
+            contents.set(2, animationSequence + 2, FILLER);
+
+            animationSequence = animationSequence == 4 ? 0 : animationSequence + 1;
 
             contents.set(0, animationSequence + 2, ARROW);
             contents.set(1, calculateItemColumn(), ARROW);
@@ -439,25 +449,7 @@ public class ActionShop extends Action {
 
             // also update item lol
             if (animationSequence == 3) {
-                try {
-                    if (shop.cost.isElementDynamic()) {
-                        costElem.populateItems(player, contents, null);
-                    }
-                    if (shop.reward.isElementDynamic()) {
-                        rewardElem.populateItems(player, contents, null);
-                    }
-                } catch (Exception ex) {
-                    // guess parent
-                    Optional<SmartInventory> parent = contents.inventory().getParent();
-                    String parentShop = "failed to locate owning shop";
-                    if (parent.isPresent() && parent.get().getProvider() instanceof Shop) {
-                        parentShop = ((Shop) parent.get().getProvider()).id;
-                    }
-                    RuntimeException wrapped = new RuntimeException("An error occurred while opening ActionShop for " + player.getName() + " (@" + parentShop + ")", ex);
-                    ItemStack err = ItemUtils.getErrorItem(wrapped);
-                    // spam the player
-                    contents.fill(ClickableItem.empty(err));
-                }
+                updateCommodities(player, contents, true);
             }
         }
     }

@@ -15,7 +15,6 @@ import fr.minuskube.inv.content.InventoryContents;
 import fr.minuskube.inv.content.SlotPos;
 import io.papermc.lib.PaperLib;
 import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
 import org.bukkit.Chunk;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
@@ -64,24 +63,23 @@ public class ActionPlayerShop extends Action {
     public void onClick(InventoryClickEvent e) {
         Player player = (Player) e.getWhoClicked();
         boolean isBuying = e.getClick().isLeftClick();
-        ActionShop shop = createFakeShop(player, isBuying);
-        SmartInventory gui = getInventory(player, shop, WorstShop.get().inventories.getInventory(player).orElse(null), isBuying);
+        SmartInventory gui = getInventory(player, WorstShop.get().inventories.getInventory(player).orElse(null), isBuying);
         InventoryCloseListener.openSafely(player, gui);
     }
 
     @Override
     public void influenceItem(Player player, ItemStack readonlyStack, ItemStack stack) {
         ItemBuilder builder = ItemBuilder.from(stack);
-        OptionalDouble buyPrice = findAllShops(player, true).mapToDouble(Shop::getPrice).min(),
-                sellPrice = findAllShops(player, false).mapToDouble(Shop::getPrice).max();
+        List<Double> buyShops = findAllShops(player, true).map(Shop::getPrice).collect(Collectors.toList()),
+                sellShops = findAllShops(player, false).map(Shop::getPrice).collect(Collectors.toList());
         builder.addLores(
-                I18n.translate(I18N_KEY + "buy", buyPrice.isPresent() ?
-                        CommodityMoney.formatMoney(buyPrice.getAsDouble()) :
-                        ChatColor.GRAY + "/"
+                I18n.translate(I18N_KEY + "buy", buyShops.size(), buyShops.size() != 0 ?
+                        CommodityMoney.formatMoney(Collections.min(buyShops)) :
+                        I18n.translate(I18N_KEY + "no-available-price")
                 ),
-                I18n.translate(I18N_KEY + "sell", sellPrice.isPresent() ?
-                        CommodityMoney.formatMoney(sellPrice.getAsDouble()) :
-                        ChatColor.GRAY + "/"
+                I18n.translate(I18N_KEY + "sell", sellShops.size(), sellShops.size() != 0 ?
+                        CommodityMoney.formatMoney(Collections.max(sellShops)) :
+                        I18n.translate(I18N_KEY + "no-available-price")
                 )
         );
         builder.build();
@@ -115,11 +113,11 @@ public class ActionPlayerShop extends Action {
         return map;
     }
 
-    SmartInventory getInventory(Player player, ActionShop shop, SmartInventory parent, boolean isBuying) {
+    SmartInventory getInventory(Player player, SmartInventory parent, boolean isBuying) {
         return WorstShop.buildGui("worstshop:player_shop_gui")
                 .title(I18n.translate("worstshop.messages.shops.shop", player))
                 .type(InventoryType.CHEST).size(6, 9)
-                .provider(new ShopGui(shop, isBuying)).parent(parent)
+                .provider(new ShopGui(player, isBuying)).parent(parent)
                 .build();
     }
 
@@ -141,9 +139,12 @@ public class ActionPlayerShop extends Action {
     private static final SlotPos[] checkMarkPos = {SlotPos.of(2, 3), SlotPos.of(3, 4), SlotPos.of(2, 5), SlotPos.of(1, 6)};
     class ShopGui extends ActionShop.ShopGui {
         boolean isBuying;
-        protected ShopGui(ActionShop shop, boolean isBuying) {
-            super(shop);
+        int maxBuyCount;
+        protected ShopGui(Player player, boolean isBuying) {
+            super(createFakeShop(player, isBuying));
             this.isBuying = isBuying;
+            this.buyCount = 0;
+            this.maxBuyCount = getTargetItemStack(player).getMaxStackSize() * 36;
         }
 
         class PurchaseStrategy {
@@ -168,6 +169,9 @@ public class ActionPlayerShop extends Action {
         public void update(Player player, InventoryContents contents) {
             if (purchases == null) {
                 super.update(player, contents);
+                if (buyCount > maxBuyCount) {
+                    buyCount = maxBuyCount;
+                }
             } else if (animationSequence != 0) {
                 // horrible code
                 if (++tick == 4) {

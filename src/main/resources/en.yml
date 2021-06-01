@@ -67,8 +67,9 @@ worstshop:
       sell-all: '&aMiddle click to sell all'
       shop: '&6Shop'
       player-shop:
-        buy: '&aBuy from players starting at {0} &b(Left click)'
-        sell: '&aSell to players for at most {0} &b(Right click)'
+        buy: '&aBuy from {0} player shops starting at {1} &b(Left click)'
+        sell: '&aSell to {0} player shops for at most {1} &b(Right click)'
+        no-available-price: '&7N/A'
         buy-amount-prompt: '&6Please enter the amount to buy'
         sell-amount-prompt: '&6Please enter the amount to sell'
         confirmation-info: '&eYou will receive a confirmation before the transaction occurs.'
