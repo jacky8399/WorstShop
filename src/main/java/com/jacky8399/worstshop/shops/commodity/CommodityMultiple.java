@@ -1,6 +1,6 @@
 package com.jacky8399.worstshop.shops.commodity;
 
-import com.jacky8399.worstshop.shops.ElementPopulationContext;
+import com.jacky8399.worstshop.shops.ElementContext;
 import com.jacky8399.worstshop.shops.elements.ShopElement;
 import com.jacky8399.worstshop.shops.elements.StaticShopElement;
 import fr.minuskube.inv.content.InventoryContents;
@@ -96,7 +96,7 @@ public class CommodityMultiple extends Commodity implements IFlexibleCommodity {
             elem2.itemPositions = Collections.singletonList(pos2);
             return new StaticShopElement() {
                 @Override
-                public void populateItems(Player player, InventoryContents contents, ElementPopulationContext pagination) {
+                public void populateItems(Player player, InventoryContents contents, ElementContext pagination) {
                     elem1.populateItems(player, contents, pagination);
                     elem2.populateItems(player, contents, pagination);
                 }
@@ -107,7 +107,7 @@ public class CommodityMultiple extends Commodity implements IFlexibleCommodity {
             String self = UUID.randomUUID().toString();
             return new StaticShopElement() {
                 @Override
-                public void populateItems(Player player, InventoryContents contents, ElementPopulationContext pagination) {
+                public void populateItems(Player player, InventoryContents contents, ElementContext pagination) {
                     int itemSequence = contents.property(self + "_shopWantsItemSequence", 0);
                     int nextItemSequence = wrapIndexOffset(itemSequence, 1);
 

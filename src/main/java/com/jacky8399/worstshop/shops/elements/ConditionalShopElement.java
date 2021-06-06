@@ -3,7 +3,7 @@ package com.jacky8399.worstshop.shops.elements;
 import com.google.common.collect.Lists;
 import com.jacky8399.worstshop.helper.Config;
 import com.jacky8399.worstshop.helper.ConfigException;
-import com.jacky8399.worstshop.shops.ElementPopulationContext;
+import com.jacky8399.worstshop.shops.ElementContext;
 import com.jacky8399.worstshop.shops.ParseContext;
 import com.jacky8399.worstshop.shops.Shop;
 import com.jacky8399.worstshop.shops.ShopReference;
@@ -49,11 +49,8 @@ public class ConditionalShopElement extends ShopElement {
         if (element == null)
             throw new ConfigException("'then' must not be empty", config, "then");
         ret.elementTrue = element;
-
         ret.elementFalse = config.find("else", Config.class).map(ShopElement::fromConfig).orElse(null);
-
-        ShopReference owner = ShopReference.of(ParseContext.findLatest(Shop.class));
-        ret.owner = owner;
+        ret.owner = ShopReference.of(ParseContext.findLatest(Shop.class));
         return ret;
     }
 
@@ -63,7 +60,7 @@ public class ConditionalShopElement extends ShopElement {
     }
 
     @Override
-    public void populateItems(Player player, InventoryContents contents, ElementPopulationContext pagination) {
+    public void populateItems(Player player, InventoryContents contents, ElementContext pagination) {
         ShopElement toApply = condition.test(player) ? elementTrue : elementFalse;
 
         if (toApply != null) {
@@ -83,7 +80,7 @@ public class ConditionalShopElement extends ShopElement {
 
     @Override
     public String toString() {
-        return elementTrue.toString() + " if " + condition.toString() + (elementFalse != null ? " else " + elementFalse.toString() : "");
+        return elementTrue + " if " + condition + (elementFalse != null ? " else " + elementFalse : "");
     }
 
     @Override

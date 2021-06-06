@@ -205,7 +205,7 @@ public class Shop implements InventoryProvider, ParseContext.NamedContext {
     }
 
     public void populateElements(List<ShopElement> elementList,
-                                 Player player, InventoryContents contents, ElementPopulationContext helper) {
+                                 Player player, InventoryContents contents, ElementContext helper) {
         ListIterator<ShopElement> iterator = elementList.listIterator();
         while (iterator.hasNext()) {
             int index = iterator.nextIndex();
@@ -231,12 +231,12 @@ public class Shop implements InventoryProvider, ParseContext.NamedContext {
         while (!it.ended()) {
             it.next().set(null);
         }
-        ElementPopulationContext helper = new ElementPopulationContext(contents);
+        ElementContext helper = new ElementContext(contents, ElementContext.Stage.STATIC);
         populateElements(staticElements, player, contents, helper);
-        if (updateDynamic)
-            populateElements(dynamicElements, player, contents, helper);
-        // ensure pagination
         helper.doPaginationNow();
+
+        if (updateDynamic)
+            populateElements(dynamicElements, player, contents, new ElementContext(contents, ElementContext.Stage.DYNAMIC));
     }
 
     @Override

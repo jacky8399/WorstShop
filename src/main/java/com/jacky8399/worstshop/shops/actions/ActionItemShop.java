@@ -84,7 +84,9 @@ public class ActionItemShop extends Action {
         yaml.findList("matches", String.class).ifPresent(list -> {
             itemMatchers.clear();
             list.stream().map(s -> s.toLowerCase(Locale.ROOT).replace(' ', '_'))
-                    .map(CommodityItem.ItemMatcher.ITEM_MATCHERS::get).forEach(itemMatchers::add);
+                    .map(CommodityItem.ItemMatcher.ITEM_MATCHERS::get)
+                    .filter(Objects::nonNull)
+                    .forEach(itemMatchers::add);
         });
 
         // purchase limits

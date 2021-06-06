@@ -10,6 +10,7 @@ import org.bukkit.event.inventory.InventoryClickEvent;
 import java.util.Map;
 
 public class ActionOpen extends Action {
+    public transient boolean isShorthand = false;
     boolean skipPermission = false;
     ShopReference shop;
     public ActionOpen(Config yaml) {
@@ -23,6 +24,7 @@ public class ActionOpen extends Action {
         super(null);
         shop = ShopReference.of(input);
         skipPermission = true;
+        isShorthand = true;
     }
 
     public ActionOpen(ShopReference shop, boolean ignorePermission) {

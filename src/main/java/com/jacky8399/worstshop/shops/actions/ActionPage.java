@@ -2,8 +2,7 @@ package com.jacky8399.worstshop.shops.actions;
 
 import com.jacky8399.worstshop.WorstShop;
 import com.jacky8399.worstshop.helper.Config;
-import com.jacky8399.worstshop.helper.PaginationHelper;
-import com.jacky8399.worstshop.shops.Shop;
+import com.jacky8399.worstshop.helper.ConfigException;
 import fr.minuskube.inv.content.InventoryContents;
 import fr.minuskube.inv.content.Pagination;
 import org.bukkit.entity.Player;
@@ -16,12 +15,27 @@ public class ActionPage extends Action {
     int pageOffset;
     public ActionPage(Config yaml) {
         super(yaml);
-        if (yaml.get("preset", String.class).replace(' ', '_')
-                .equalsIgnoreCase("previous_page"))
-            pageOffset = -1;
-        else
-            pageOffset = 1;
-        yaml.find("pages", Integer.class).ifPresent(pageCount -> pageOffset *= Math.abs(pageCount));
+        switch (yaml.get("preset", String.class).replace(' ', '_')) {
+            case "previous_page":
+                pageOffset = -1;
+                break;
+            case "next_page":
+                pageOffset = 1;
+                break;
+            case "first_page":
+                pageOffset = Integer.MIN_VALUE;
+                break;
+            case "last_page":
+                pageOffset = Integer.MAX_VALUE;
+                break;
+            default:
+                throw new ConfigException("Invalid page preset", yaml, "preset");
+        }
+        yaml.find("pages", Integer.class).ifPresent(pageCount -> {
+            if (Math.abs(pageOffset) == 1) {
+                pageOffset *= pageCount;
+            }
+        });
     }
 
     public ActionPage(int page) {
@@ -33,22 +47,20 @@ public class ActionPage extends Action {
     public void onClick(InventoryClickEvent e) {
         Player player = (Player) e.getWhoClicked();
         Optional<InventoryContents> contents = WorstShop.get().inventories.getContents(player);
-        contents.ifPresent(c -> {
+        contents.ifPresent(c-> {
             Pagination pagination = c.pagination();
             int currentPage = pagination.getPage();
             if (pageOffset < 0 && currentPage + pageOffset < 0) {
                 return;
             } else if (pageOffset > 0) {
-                int lastPage = PaginationHelper.getLastPage(pagination);
-                if (currentPage + pageOffset > lastPage - 1)
+                // HACK: make SmartInv figure out last page for us
+                int lastPage = pagination.last().getPage();
+                // set the correct page
+                pagination.page(currentPage);
+                if (currentPage + pageOffset >= lastPage - 1)
                     return;
             }
-            pagination.page(currentPage + pageOffset);
-            ((Shop) c.inventory().getProvider()).refreshItems(player, c, true);
-//            Bukkit.getScheduler().runTask(WorstShop.get(), () -> {
-//                InventoryCloseListener.closeTemporarilyWithoutParent(player);
-//                c.inventory().open(player, currentPage + pageOffset);
-//            });
+            c.inventory().open(player, c.pagination().getPage() + pageOffset);
         });
     }
 

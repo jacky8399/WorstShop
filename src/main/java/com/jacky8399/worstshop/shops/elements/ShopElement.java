@@ -3,7 +3,7 @@ package com.jacky8399.worstshop.shops.elements;
 import com.google.common.collect.Lists;
 import com.jacky8399.worstshop.helper.Config;
 import com.jacky8399.worstshop.helper.ItemUtils;
-import com.jacky8399.worstshop.shops.ElementPopulationContext;
+import com.jacky8399.worstshop.shops.ElementContext;
 import com.jacky8399.worstshop.shops.ParseContext;
 import com.jacky8399.worstshop.shops.Shop;
 import com.jacky8399.worstshop.shops.ShopReference;
@@ -30,7 +30,7 @@ import java.util.stream.Collectors;
 
 public abstract class ShopElement implements Cloneable, ParseContext.NamedContext {
     public interface SlotFiller {
-        void fill(ShopElement element, ClickableItem item, InventoryContents contents, ElementPopulationContext pagination);
+        void fill(ShopElement element, ClickableItem item, InventoryContents contents, ElementContext pagination);
     }
 
     public static class DefaultSlotFiller {
@@ -51,7 +51,7 @@ public abstract class ShopElement implements Cloneable, ParseContext.NamedContex
                 SlotFiller actual = filler.apply(input);
 
                 @Override
-                public void fill(ShopElement element, ClickableItem item, InventoryContents contents, ElementPopulationContext pagination) {
+                public void fill(ShopElement element, ClickableItem item, InventoryContents contents, ElementContext pagination) {
                     actual.fill(element, item, contents, pagination);
                 }
 
@@ -208,6 +208,10 @@ public abstract class ShopElement implements Cloneable, ParseContext.NamedContex
         return null;
     }
 
+    public ItemStack createStack(Player player, ElementContext context) {
+        return createStack(player);
+    }
+
     public Map<String, Object> toMap(Map<String, Object> map) {
         if (id != null && !id.startsWith("index="))
             map.put("id", id);
@@ -245,12 +249,12 @@ public abstract class ShopElement implements Cloneable, ParseContext.NamedContex
         return list;
     }
 
-    public void populateItems(Player player, InventoryContents contents, ElementPopulationContext pagination) {
+    public void populateItems(Player player, InventoryContents contents, ElementContext pagination) {
         InventoryProvider provider = contents.inventory().getProvider();
         String owner = provider instanceof Shop ? ((Shop) provider).id : provider.toString();
         ItemStack stack;
         try {
-            stack = createStack(player);
+            stack = createStack(player, pagination);
             if (ItemUtils.isEmpty(stack))
                 return;
 

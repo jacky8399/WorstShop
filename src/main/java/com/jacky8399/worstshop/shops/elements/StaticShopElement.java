@@ -6,7 +6,7 @@ import com.jacky8399.worstshop.WorstShop;
 import com.jacky8399.worstshop.editor.Editable;
 import com.jacky8399.worstshop.editor.Property;
 import com.jacky8399.worstshop.helper.*;
-import com.jacky8399.worstshop.shops.ElementPopulationContext;
+import com.jacky8399.worstshop.shops.ElementContext;
 import com.jacky8399.worstshop.shops.ParseContext;
 import com.jacky8399.worstshop.shops.Shop;
 import com.jacky8399.worstshop.shops.ShopReference;
@@ -335,7 +335,7 @@ public class StaticShopElement extends ShopElement {
     }
 
     @Override
-    public void populateItems(Player player, InventoryContents contents, ElementPopulationContext pagination) {
+    public void populateItems(Player player, InventoryContents contents, ElementContext pagination) {
         super.populateItems(player, contents, pagination);
 
         if (async) {
@@ -348,13 +348,13 @@ public class StaticShopElement extends ShopElement {
                         try {
                             super.populateItems(player, contents, pagination);
                         } catch (Exception e) {
-                            RuntimeException wrapped = new RuntimeException("An error occurred while replacing asynchronous item for " + player.getName() + " (" + id + "@" + owner.id + ")");
+                            RuntimeException wrapped = new RuntimeException("Replacing asynchronous item for " + player.getName() + " (" + id + "@" + owner.id + ")");
                             asyncHack.put(player, ItemUtils.getErrorItem(wrapped));
                         }
                     });
                 } catch (Exception e) {
                     // error reporting
-                    RuntimeException wrapped = new RuntimeException("An error occurred while fetching asynchronous item for " + player.getName() + " (" + id + "@" + owner.id + ")");
+                    RuntimeException wrapped = new RuntimeException("Fetching asynchronous item for " + player.getName() + " (" + id + "@" + owner.id + ")");
                     asyncHack.put(player, ItemUtils.getErrorItem(wrapped));
                 }
             });
@@ -387,10 +387,13 @@ public class StaticShopElement extends ShopElement {
     public static final ItemStack ASYNC_PLACEHOLDER = ItemBuilder.of(Material.BEDROCK)
             .name("" + ChatColor.RED + ChatColor.BOLD + "...").build();
     // use a map to prevent conflicts
-    private static final WeakHashMap<Player, ItemStack> asyncHack = new WeakHashMap<>();
+    private static final Map<Player, ItemStack> asyncHack = Collections.synchronizedMap(new WeakHashMap<>());
 
     @Override
-    public ItemStack createStack(Player player) {
+    public ItemStack createStack(Player player, ElementContext context) {
+        if (context.getStage() == ElementContext.Stage.SKELETON)
+            return rawStack;
+
         if (async) {
             ItemStack asyncHackResult = asyncHack.remove(player);
             if (asyncHackResult != null) {
@@ -403,7 +406,6 @@ public class StaticShopElement extends ShopElement {
                 return toReturn;
             }
         }
-
 
         final ItemStack readonlyStack = createPlaceholderStack(player);
 

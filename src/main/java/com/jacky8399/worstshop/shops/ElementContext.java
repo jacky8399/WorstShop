@@ -8,9 +8,11 @@ import fr.minuskube.inv.content.SlotIterator;
 import java.util.ArrayList;
 import java.util.function.BiFunction;
 
-public class ElementPopulationContext {
+public class ElementContext {
     public enum Stage {
-
+        SKELETON,
+        STATIC,
+        DYNAMIC
     }
 
     SlotIterator slotIterator;
@@ -18,12 +20,14 @@ public class ElementPopulationContext {
     InventoryContents contents;
     boolean hasDonePagination = false;
     ArrayList<ClickableItem> paginationItems;
+    Stage stage;
 
-    ElementPopulationContext(InventoryContents contents) {
+    ElementContext(InventoryContents contents, Stage stage) {
         this.contents = contents;
         slotIterator = contents.newIterator(SlotIterator.Type.HORIZONTAL, 0, 0).allowOverride(false);
         pagination = contents.pagination();
         paginationItems = new ArrayList<>();
+        this.stage = stage;
     }
 
     public void add(ClickableItem item) {
@@ -41,6 +45,10 @@ public class ElementPopulationContext {
 
     public InventoryContents getPrimitive() {
         return contents;
+    }
+
+    public Stage getStage() {
+        return stage;
     }
 
     void doPaginationNow() {
