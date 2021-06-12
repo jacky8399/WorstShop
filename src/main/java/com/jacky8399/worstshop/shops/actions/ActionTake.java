@@ -7,7 +7,6 @@ import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.ItemStack;
 
 import java.util.Map;
-import java.util.Optional;
 
 public class ActionTake extends Action {
     boolean unlimited;
@@ -30,7 +29,7 @@ public class ActionTake extends Action {
         ItemStack current = e.getCurrentItem();
         e.getWhoClicked().setItemOnCursor(current);
         if (unlimited) {
-            e.setCurrentItem(Optional.ofNullable(current).map(ItemStack::clone).orElse(null));
+            e.setCurrentItem(current != null ? current.clone() : null);
         }
         if (e.getWhoClicked() instanceof Player) {
             ((Player) e.getWhoClicked()).updateInventory();

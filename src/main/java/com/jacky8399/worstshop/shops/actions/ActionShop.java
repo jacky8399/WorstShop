@@ -22,7 +22,6 @@ import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryType;
-import org.bukkit.inventory.ItemStack;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
@@ -330,7 +329,7 @@ public class ActionShop extends Action {
         private static final List<Integer> BUTTON_SIZE = Lists.newArrayList(1, 4, 16, 64);
         protected void populateBuyCountChangeButtons(Player player, InventoryContents contents) {
             ListIterator<Integer> iterator = BUTTON_SIZE.listIterator();
-            int correctedBuyCount = buyCount - (firstClick ? 1 : 0);
+            int oldCount = firstClick ? 0 : buyCount;
             while (iterator.hasNext()) {
                 int index = iterator.nextIndex() + 1;
                 int number = iterator.next();
@@ -339,7 +338,7 @@ public class ActionShop extends Action {
                         ItemBuilder.of(Material.LIME_STAINED_GLASS)
                                 .name(I18n.translate("worstshop.messages.shops.buy-counts.increase-by", number))
                                 .lores(I18n.translate(
-                                        "worstshop.messages.shops.buy-counts.change-result", correctedBuyCount + number
+                                        "worstshop.messages.shops.buy-counts.change-result", oldCount + number
                                 ))
                                 .amount(number)
                                 .build(),
@@ -349,7 +348,7 @@ public class ActionShop extends Action {
                         ItemBuilder.of(Material.RED_STAINED_GLASS)
                                 .name(I18n.translate("worstshop.messages.shops.buy-counts.decrease-by", number))
                                 .lores(I18n.translate(
-                                        "worstshop.messages.shops.buy-counts.change-result", Math.max(1, correctedBuyCount - number)
+                                        "worstshop.messages.shops.buy-counts.change-result", Math.max(1, oldCount - number)
                                 ))
                                 .amount(number)
                                 .build(),
@@ -395,9 +394,8 @@ public class ActionShop extends Action {
                     parentShop = ((Shop) parent.get().getProvider()).id;
                 }
                 RuntimeException wrapped = new RuntimeException("Rendering " + stage + " element for " + player.getName() + " (@" + parentShop + ")", ex);
-                ItemStack err = ItemUtils.getErrorItem(wrapped);
                 // spam the player
-                contents.fill(ClickableItem.empty(err));
+                contents.fill(ItemUtils.getClickableErrorItem(wrapped));
             }
         }
 

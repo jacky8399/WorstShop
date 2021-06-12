@@ -148,7 +148,7 @@ public class ActionPlayerShop extends Action {
         }
 
         class PurchaseStrategy {
-            public final org.maxgamer.quickshop.shop.Shop shop;
+            public final Shop shop;
             public final int buyCount;
             public final Info info;
 
@@ -195,7 +195,7 @@ public class ActionPlayerShop extends Action {
         protected void doTransaction(InventoryClickEvent e) {
             Player player = (Player) e.getWhoClicked();
             ItemStack stack = getTargetItemStack(player);
-            List<org.maxgamer.quickshop.shop.Shop> shops = cache.shops.get(stack.getType());
+            List<Shop> shops = cache.shops.get(stack.getType());
             int[] targetAmount = {buyCount};
 
             if (shops == null) { // no shop providing this item
@@ -261,7 +261,7 @@ public class ActionPlayerShop extends Action {
 
         protected void confirmPurchase(InventoryClickEvent e) {
             InventoryContents contents = WorstShop.get().inventories.getContents((Player) e.getWhoClicked())
-                    .orElseThrow(()->new IllegalStateException("No inventory?"));
+                    .orElseThrow(() -> new IllegalStateException("No inventory?"));
             contents.fill(FILLER);
             animationSequence = 1;
             Player player = (Player) e.getWhoClicked();

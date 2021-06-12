@@ -270,7 +270,8 @@ public abstract class ShopElement implements Cloneable, ParseContext.NamedContex
         } catch (Exception ex) {
             // something has gone horribly wrong
             RuntimeException wrapped = new RuntimeException("Populating item for " + player.getName() + " (" + id + "@" + owner + ")", ex);
-            stack = ItemUtils.getErrorItem(wrapped);
+            filler.fill(this, ItemUtils.getClickableErrorItem(wrapped), contents, pagination);
+            return;
         }
         ClickableItem item = ClickableItem.of(stack, e -> {
             try {

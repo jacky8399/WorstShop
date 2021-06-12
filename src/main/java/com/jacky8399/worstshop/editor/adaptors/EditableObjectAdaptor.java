@@ -63,7 +63,7 @@ public class EditableObjectAdaptor<T> implements EditableAdaptor<T> {
                 } catch (IllegalAccessException e) {
                     RuntimeException wrapped = new RuntimeException("Failed to obtain value for field " + fieldName, e);
                     // error item
-                    return ClickableItem.empty(ItemUtils.getErrorItem(wrapped));
+                    return ItemUtils.getClickableErrorItem(wrapped);
                 }
                 return ClickableItem.of(
                         adaptor.getRepresentation(value, name, fieldName),

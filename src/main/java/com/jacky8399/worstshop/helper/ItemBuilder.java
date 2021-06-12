@@ -1,5 +1,6 @@
 package com.jacky8399.worstshop.helper;
 
+import com.jacky8399.worstshop.shops.elements.StaticShopElement;
 import fr.minuskube.inv.ClickableItem;
 import org.bukkit.Material;
 import org.bukkit.OfflinePlayer;
@@ -7,6 +8,7 @@ import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.SkullMeta;
+import org.bukkit.persistence.PersistentDataType;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -54,10 +56,12 @@ public class ItemBuilder {
 
     public void loadMeta() {
         meta = stack.getItemMeta();
+        meta.getPersistentDataContainer().set(StaticShopElement.SAFETY_KEY, PersistentDataType.BYTE, (byte) 1);
     }
 
     public ItemBuilder meta(ItemMeta meta) {
         this.meta = meta;
+        this.meta.getPersistentDataContainer().set(StaticShopElement.SAFETY_KEY, PersistentDataType.BYTE, (byte) 1);
         return this;
     }
 
@@ -66,6 +70,10 @@ public class ItemBuilder {
             loadMeta();
         metaConsumer.accept(meta);
         return this;
+    }
+
+    public ItemBuilder removeSafetyKey() {
+        return meta(meta -> meta.getPersistentDataContainer().remove(StaticShopElement.SAFETY_KEY));
     }
 
     public ItemBuilder name(String str) {

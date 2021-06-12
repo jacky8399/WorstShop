@@ -225,25 +225,27 @@ public class Shop implements InventoryProvider, ParseContext.NamedContext {
         }
     }
 
-    public void refreshItems(Player player, InventoryContents contents, boolean updateDynamic) {
+    public void refreshItems(Player player, InventoryContents contents, boolean updateDynamic, boolean isOutline) {
         // clear old items
         SlotIterator it = contents.newIterator(SlotIterator.Type.HORIZONTAL, 0,0).allowOverride(true);
         while (!it.ended()) {
             it.next().set(null);
         }
-        ElementContext helper = new ElementContext(contents, ElementContext.Stage.STATIC);
+        ElementContext helper = new ElementContext(contents,
+                isOutline ? ElementContext.Stage.SKELETON : ElementContext.Stage.STATIC);
         populateElements(staticElements, player, contents, helper);
         helper.doPaginationNow();
 
         if (updateDynamic)
-            populateElements(dynamicElements, player, contents, new ElementContext(contents, ElementContext.Stage.DYNAMIC));
+            populateElements(dynamicElements, player, contents, new ElementContext(contents,
+                    isOutline ? ElementContext.Stage.SKELETON : ElementContext.Stage.DYNAMIC));
     }
 
     @Override
     public void init(Player player, InventoryContents contents) {
         // TODO find a better solution to fix page turning
-        refreshItems(player, contents, false);
-        refreshItems(player, contents, true);
+        refreshItems(player, contents, false, true);
+        refreshItems(player, contents, true, false);
     }
 
     @Override
@@ -252,7 +254,7 @@ public class Shop implements InventoryProvider, ParseContext.NamedContext {
         if (updateInterval != 0) {
             Integer ticksSinceUpdate = contents.property("ticksSinceUpdate", 0);
             if (++ticksSinceUpdate == updateInterval) {
-                refreshItems(player, contents, false);
+                refreshItems(player, contents, true, false);
                 ticksSinceUpdate = 0;
             }
             contents.setProperty("ticksSinceUpdate", ticksSinceUpdate);

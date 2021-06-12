@@ -1,7 +1,11 @@
 package com.jacky8399.worstshop.helper;
 
 import com.jacky8399.worstshop.I18n;
+import com.jacky8399.worstshop.WorstShop;
+import fr.minuskube.inv.ClickableItem;
+import org.bukkit.Bukkit;
 import org.bukkit.Material;
+import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.Nullable;
 
@@ -23,5 +27,22 @@ public class ItemUtils {
                 .name(I18n.translate("worstshop.errors.error-element.name"))
                 .lores(I18n.translate("worstshop.errors.error-element.lore", hash))
                 .build();
+    }
+
+    public static ClickableItem getClickableErrorItem(@Nullable Exception ex) {
+        String err = Exceptions.logException(ex);
+        String lore = ex != null ? "error #" + err : "unknown error";
+        return ItemBuilder.of(Material.BEDROCK)
+                .name(I18n.translate("worstshop.errors.error-element.name"))
+                .lores(I18n.translate("worstshop.errors.error-element.lore", lore))
+                .toClickable(e -> {
+                    Player player = (Player) e.getWhoClicked();
+                    if (player.hasPermission("worstshop.log.error")) {
+                        Bukkit.getScheduler().runTask(WorstShop.get(), () -> {
+                            InventoryCloseListener.closeWithoutParent(player);
+                            player.chat("/worstshop log error show " + err);
+                        });
+                    }
+                });
     }
 }

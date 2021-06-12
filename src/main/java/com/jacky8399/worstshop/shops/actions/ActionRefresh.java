@@ -20,7 +20,7 @@ public class ActionRefresh extends Action {
         WorstShop.get().inventories.getContents(player).ifPresent(contents -> {
             SmartInventory inv = contents.inventory();
             if (inv.getProvider() instanceof Shop) {
-                ((Shop) inv.getProvider()).refreshItems(player, contents, true);
+                ((Shop) inv.getProvider()).refreshItems(player, contents, true, false);
             }
         });
     }
