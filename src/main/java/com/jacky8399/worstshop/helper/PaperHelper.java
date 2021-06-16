@@ -8,6 +8,7 @@ import com.mojang.authlib.ProfileLookupCallback;
 import com.mojang.authlib.minecraft.MinecraftSessionService;
 import com.mojang.authlib.properties.Property;
 import com.mojang.authlib.properties.PropertyMap;
+import com.mojang.authlib.yggdrasil.YggdrasilAuthenticationService;
 import net.md_5.bungee.api.ChatMessageType;
 import net.md_5.bungee.api.chat.BaseComponent;
 import org.apache.commons.lang.StringUtils;
@@ -23,6 +24,7 @@ import org.bukkit.inventory.meta.SkullMeta;
 
 import javax.annotation.Nullable;
 import java.lang.reflect.Field;
+import java.net.Proxy;
 import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
@@ -113,6 +115,15 @@ public class PaperHelper {
     }
 
     public static class NmsGameProfile extends GameProfile {
+        private static final GameProfileRepository repository;
+        private static final MinecraftSessionService session;
+
+        static {
+            YggdrasilAuthenticationService auth = new YggdrasilAuthenticationService(Proxy.NO_PROXY);
+            repository = auth.createProfileRepository();
+            session = auth.createMinecraftSessionService();
+        }
+
         private com.mojang.authlib.GameProfile obj;
 
         public NmsGameProfile(UUID uuid, String name) {
@@ -142,28 +153,21 @@ public class PaperHelper {
 
         private CompletableFuture<Void> completeUUID() {
             CompletableFuture<Void> future = new CompletableFuture<>();
+            final NmsGameProfile self = this;
+            ProfileLookupCallback callback = new ProfileLookupCallback() {
+                @Override
+                public void onProfileLookupSucceeded(com.mojang.authlib.GameProfile gameProfile) {
+                    self.obj = gameProfile;
+                    future.complete(null);
+                }
 
-            try {
-                Object server = Bukkit.getServer().getClass().getMethod("getHandle").invoke(Bukkit.getServer());
-                GameProfileRepository gameProfileRepository = (GameProfileRepository) server.getClass().getDeclaredField("gameProfileRepository").get(server);
-                final NmsGameProfile self = this;
-                ProfileLookupCallback callback = new ProfileLookupCallback() {
-                    @Override
-                    public void onProfileLookupSucceeded(com.mojang.authlib.GameProfile gameProfile) {
-                        self.obj = gameProfile;
-                        future.complete(null);
-                    }
-
-                    @Override
-                    public void onProfileLookupFailed(com.mojang.authlib.GameProfile gameProfile, Exception e) {
-                        self.obj = gameProfile;
-                        future.complete(null);
-                    }
-                };
-                gameProfileRepository.findProfilesByNames(new String[]{getName()}, Agent.MINECRAFT, callback);
-            } catch (Exception e) {
-                throw new Error(e);
-            }
+                @Override
+                public void onProfileLookupFailed(com.mojang.authlib.GameProfile gameProfile, Exception e) {
+                    self.obj = gameProfile;
+                    future.complete(null);
+                }
+            };
+            repository.findProfilesByNames(new String[]{getName()}, Agent.MINECRAFT, callback);
             return future;
         }
 
@@ -174,11 +178,9 @@ public class PaperHelper {
                 CompletableFuture<Void> uuidFilled;
                 uuidFilled = getUUID() == null ? completeUUID() : CompletableFuture.completedFuture(null);
 
-                return uuidFilled.thenAcceptAsync(v -> {
+                return uuidFilled.thenRunAsync(() -> {
                     try {
-                        Object server = Bukkit.getServer().getClass().getMethod("getHandle").invoke(Bukkit.getServer());
-                        MinecraftSessionService sessionService = (MinecraftSessionService) server.getClass().getDeclaredField("minecraftSessionService").get(server);
-                        obj = sessionService.fillProfileProperties(obj, true);
+                        obj = session.fillProfileProperties(obj, true);
                         skinNotLoaded = false;
                     } catch (Exception e) {
                         throw new Error(e);

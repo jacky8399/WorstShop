@@ -108,6 +108,7 @@ public abstract class Action implements Cloneable {
                 Action result = fromShorthand(preset);
                 if (result == null)
                     throw new ConfigException(preset + " is not a valid shorthand!", yaml, "preset");
+                return result;
             }
             String presetName = preset.replace(' ', '_').toLowerCase(Locale.ROOT);
             Function<Config, Action> constructor = PRESETS.get(presetName);

@@ -391,7 +391,7 @@ public class StaticShopElement extends ShopElement {
 
     @Override
     public ItemStack createStack(Player player, ElementContext context) {
-        if (context.getStage() == ElementContext.Stage.SKELETON) // don't replace placeholders
+        if (context != null && context.getStage() == ElementContext.Stage.SKELETON) // don't replace placeholders
             return rawStack;
 
         if (async) {
