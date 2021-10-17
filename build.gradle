@@ -46,17 +46,17 @@ compileJava {
 
 dependencies {
     // BungeeCord Chat
-    compileOnly 'net.md-5:bungeecord-chat:1.16-R0.3'
+    compileOnly 'net.md-5:bungeecord-chat:1.16-R0.4'
     // Paper API
     compileOnly 'com.destroystokyo.paper:paper-api:1.16.5-R0.1-SNAPSHOT'
-    compileOnly 'org.spigotmc:spigot:1.17-R0.1-SNAPSHOT'
-    //compileOnly 'com.destroystokyo.paper:paper:1.16.5-R0.1-SNAPSHOT'
+//    compileOnly 'org.spigotmc:spigot:1.16.5-R0.1-SNAPSHOT'
+    compileOnly 'com.destroystokyo.paper:paper:1.16.5-R0.1-SNAPSHOT'
     // Mojang AuthLib
     compileOnly('com.mojang:authlib:1.5.21') {
         transitive = false
     }
     // LuckPerms
-    compileOnly 'net.luckperms:api:5.0'
+    compileOnly 'net.luckperms:api:5.3'
     // SmartInventory API
     api(group: 'fr.minuskube.inv', name: 'smart-invs', version: '1.2.7') {
         transitive = false
@@ -78,9 +78,9 @@ dependencies {
         transitive = false
     }
     // PaperLib
-    api "io.papermc:paperlib:1.0.6"
+    implementation "io.papermc:paperlib:1.0.6"
     // Annotations
-    compileOnly 'org.jetbrains:annotations:16.0.2'
+    compileOnly 'org.jetbrains:annotations:22.0.0'
 
     // Tests
     testImplementation "org.mockito:mockito-inline:3.6.0"

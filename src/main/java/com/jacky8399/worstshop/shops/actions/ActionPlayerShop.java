@@ -290,7 +290,7 @@ public class ActionPlayerShop extends Action {
         }
     }
 
-    private static ShopCache cache;
+    private static final ShopCache cache;
     private static class ShopCache implements Listener {
         ShopCache() {
             Bukkit.getScheduler().runTask(WorstShop.get(), this::refreshCache);

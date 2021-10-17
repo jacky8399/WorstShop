@@ -33,13 +33,14 @@ public class ActionShop extends Action {
     public Commodity cost, reward;
     public PlayerPurchaseRecords.RecordTemplate purchaseLimitTemplate;
     public int purchaseLimit;
+
     public ActionShop(Config yaml) {
         super(yaml);
         this.cost = yaml.tryFind("cost", String.class, Config.class)
                 .map(Commodity::fromObject)
                 // check types even in lists
                 // the previous implementation might have allowed lists within lists
-                .orElseGet(()->yaml.findList("cost", String.class, Config.class)
+                .orElseGet(() -> yaml.findList("cost", String.class, Config.class)
                         .map(list -> (Commodity) // cast to ensure return type is Commodity
                                 list.stream()
                                         .map(Commodity::fromObject)
@@ -51,7 +52,7 @@ public class ActionShop extends Action {
                 .map(Commodity::fromObject)
                 // check types even in lists
                 // the previous implementation might have allowed lists within lists
-                .orElseGet(()->yaml.findList("reward", String.class, Config.class)
+                .orElseGet(() -> yaml.findList("reward", String.class, Config.class)
                         .map(list -> (Commodity) // cast to ensure return type is Commodity
                                 list.stream()
                                         .map(Commodity::fromObject)
@@ -213,6 +214,7 @@ public class ActionShop extends Action {
         protected final Commodity cost;
         protected final Commodity reward;
         protected ShopElement costElem, rewardElem;
+
         protected ShopGui(ActionShop shop) {
             this.shop = shop;
             this.cost = shop.cost;
@@ -254,9 +256,9 @@ public class ActionShop extends Action {
 
             // player balance etc
             contents.set(5, 4, ClickableItem.empty(
-               ItemBuilder.of(Material.PLAYER_HEAD)
-                    .name(ChatColor.WHITE + player.getDisplayName()).skullOwner(player)
-                    .lore(Arrays.asList(cost.getPlayerTrait(player).split("\\n"))).build()
+                    ItemBuilder.of(Material.PLAYER_HEAD)
+                            .name(ChatColor.WHITE + player.getDisplayName()).skullOwner(player)
+                            .lore(Arrays.asList(cost.getPlayerTrait(player).split("\\n"))).build()
             ));
 
             // ok button
@@ -269,7 +271,7 @@ public class ActionShop extends Action {
             contents.set(5, 5, ClickableItem.of(
                     ItemBuilder.of(Material.RED_TERRACOTTA)
                             .name(I18n.translate("worstshop.messages.shops.buttons.cancel"))
-                            .build(), e-> contents.inventory().close(player)
+                            .build(), e -> contents.inventory().close(player)
             ));
             // purchase limit
             if (shop.purchaseLimitTemplate != null) {
@@ -296,10 +298,13 @@ public class ActionShop extends Action {
             if (cost.canMultiply() && reward.canMultiply())
                 contents.set(5, 8, ClickableItem.of(
                         ItemBuilder.of(Material.HOPPER)
-                            .name(I18n.translate(I18n.Keys.MESSAGES_KEY + "shops.buttons.maximize-purchase"))
-                            .build(),
+                                .name(I18n.translate(I18n.Keys.MESSAGES_KEY + "shops.buttons.maximize-purchase"))
+                                .build(),
                         e -> {
-                            buyCount = Math.min(cost.getMaximumMultiplier(player), shop.getPlayerMaxPurchase(player));
+                            buyCount = Math.min(
+                                    Math.min(cost.getMaximumMultiplier(player), reward.getMaximumPurchase(player)),
+                                    shop.getPlayerMaxPurchase(player)
+                            );
                             firstClick = false;
                         }
                 ));
@@ -311,49 +316,72 @@ public class ActionShop extends Action {
         protected int buyCount = 1;
         protected int lastBuyCount = buyCount;
 
-        private Consumer<InventoryClickEvent> createBuyCountChanger(int changeSize) {
-            return e -> {
-                buyCount = Math.max((firstClick ? 0 : buyCount) + changeSize, 0);
-                firstClick = false;
-            };
-        }
-
         protected void doTransaction(InventoryClickEvent e) {
             Player player = (Player) e.getWhoClicked();
-            Bukkit.getScheduler().runTask(WorstShop.get(), ()->{
+            Bukkit.getScheduler().runTask(WorstShop.get(), () -> {
                 player.closeInventory();
                 shop.doTransaction(player, buyCount);
             });
         }
 
-        private static final List<Integer> BUTTON_SIZE = Lists.newArrayList(1, 4, 16, 64);
-        protected void populateBuyCountChangeButtons(Player player, InventoryContents contents) {
-            ListIterator<Integer> iterator = BUTTON_SIZE.listIterator();
-            int oldCount = firstClick ? 0 : buyCount;
-            while (iterator.hasNext()) {
-                int index = iterator.nextIndex() + 1;
-                int number = iterator.next();
+        private static final int[] BUTTON_DELTA = new int[] {1, 4, 16, 64};
 
-                contents.set(4, 4 + index, ClickableItem.of(
-                        ItemBuilder.of(Material.LIME_STAINED_GLASS)
-                                .name(I18n.translate("worstshop.messages.shops.buy-counts.increase-by", number))
-                                .lores(I18n.translate(
-                                        "worstshop.messages.shops.buy-counts.change-result", oldCount + number
-                                ))
-                                .amount(number)
-                                .build(),
-                        createBuyCountChanger(number)
-                ));
-                contents.set(4, 4 - index, ClickableItem.of(
-                        ItemBuilder.of(Material.RED_STAINED_GLASS)
-                                .name(I18n.translate("worstshop.messages.shops.buy-counts.decrease-by", number))
-                                .lores(I18n.translate(
-                                        "worstshop.messages.shops.buy-counts.change-result", Math.max(1, oldCount - number)
-                                ))
-                                .amount(number)
-                                .build(),
-                        createBuyCountChanger(-number)
-                ));
+        private Consumer<InventoryClickEvent> createBuyCountChanger(int newValue) {
+            return e -> {
+                buyCount = newValue;
+                firstClick = false;
+            };
+        }
+
+        // create button pairs
+        protected void populateBuyCountChangeButtons(Player player, InventoryContents contents) {
+            int oldCount = firstClick ? 0 : buyCount;
+            int maxPurchase = Math.min(shop.getPlayerMaxPurchase(player),
+                    Math.min(cost.getMaximumMultiplier(player), reward.getMaximumPurchase(player)));
+            for (int i = 0; i < BUTTON_DELTA.length; i++) {
+                int index = i + 1;
+                int number = BUTTON_DELTA[i];
+
+                // increase by x
+                if (oldCount + number <= maxPurchase) {
+                    contents.set(4, 4 + index, ItemBuilder.of(Material.LIME_STAINED_GLASS)
+                            .name(I18n.translate("worstshop.messages.shops.buy-counts.increase-by", number))
+                            .lores(I18n.translate(
+                                    "worstshop.messages.shops.buy-counts.change-result", oldCount + number
+                            ))
+                            .amount(number)
+                            .toClickable(createBuyCountChanger(oldCount + number))
+                    );
+                } else {
+                    contents.set(4, 4 + index, ItemBuilder.of(Material.GRAY_STAINED_GLASS)
+                            .name(I18n.translate("worstshop.messages.shops.buy-counts.increase-by", number))
+                            .lores(I18n.translate(
+                                    "worstshop.messages.shops.buy-counts.change-result", maxPurchase
+                            ))
+                            .amount(number)
+                            .toClickable(createBuyCountChanger(maxPurchase))
+                    );
+                }
+                // decrease by x
+                if (oldCount - number >= 1) {
+                    contents.set(4, 4 - index, ItemBuilder.of(Material.RED_STAINED_GLASS)
+                            .name(I18n.translate("worstshop.messages.shops.buy-counts.decrease-by", number))
+                            .lores(I18n.translate(
+                                    "worstshop.messages.shops.buy-counts.change-result", oldCount - number
+                            ))
+                            .amount(number)
+                            .toClickable(createBuyCountChanger(oldCount - number))
+                    );
+                } else {
+                    contents.set(4, 4 - index, ItemBuilder.of(Material.GRAY_STAINED_GLASS)
+                            .name(I18n.translate("worstshop.messages.shops.buy-counts.decrease-by", number))
+                            .lores(I18n.translate(
+                                    "worstshop.messages.shops.buy-counts.change-result", 1
+                            ))
+                            .amount(number)
+                            .toClickable(createBuyCountChanger(1))
+                    );
+                }
             }
         }
 
@@ -406,7 +434,7 @@ public class ActionShop extends Action {
                     Collections.emptyList();
             boolean useChest = cost instanceof CommodityItem || reward instanceof CommodityItem;
             contents.set(4, 4, ItemBuilder.of(buyCount > 64 && useChest ? Material.CHEST :
-                    buyCount != 0 ? Material.END_CRYSTAL : Material.BARRIER)
+                            buyCount != 0 ? Material.END_CRYSTAL : Material.BARRIER)
                     .name(I18n.translate("worstshop.messages.shops.buy-counts.total", buyCount))
                     .amount(Math.max(Math.min(buyCount > 64 && useChest ? (int) Math.ceil(buyCount / 64f) : buyCount, 64), 1))
                     .lore(lore)

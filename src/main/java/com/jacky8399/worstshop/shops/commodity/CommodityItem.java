@@ -177,6 +177,11 @@ public class CommodityItem extends Commodity implements IFlexibleCommodity {
     }
 
     @Override
+    public int getMaximumPurchase(Player player) {
+        return stack != null ? stack.getType().getMaxStackSize() * 36 : 64 * 36;
+    }
+
+    @Override
     public String getPlayerTrait(Player player) {
         return getInventoryMatchingFormatted(player.getInventory());
     }
@@ -190,8 +195,8 @@ public class CommodityItem extends Commodity implements IFlexibleCommodity {
 
     public int getInventoryMatching(Inventory inventory) {
         int amount = 0;
-        for (ItemStack playerStack : inventory.getStorageContents()) {
-            if (stackMatches(playerStack)) {
+        for (ItemStack playerStack : inventory.getContents()) {
+            if (playerStack != null && stackMatches(playerStack)) {
                 amount += playerStack.getAmount();
             }
         }
@@ -206,8 +211,8 @@ public class CommodityItem extends Commodity implements IFlexibleCommodity {
 
     public void deduct(Inventory inventory) {
         int amount = getAmount();
-        for (ItemStack playerStack : inventory.getStorageContents()) {
-            if (stackMatches(playerStack)) {
+        for (ItemStack playerStack : inventory.getContents()) {
+            if (playerStack != null && stackMatches(playerStack)) {
                 if (playerStack.getAmount() >= amount) {
                     // has more than enough
                     playerStack.setAmount(playerStack.getAmount() - amount);

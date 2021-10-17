@@ -99,6 +99,11 @@ public final class CommodityCustomizable extends Commodity implements IFlexibleC
     }
 
     @Override
+    public int getMaximumPurchase(Player player) {
+        return base.getMaximumPurchase(player);
+    }
+
+    @Override
     public Commodity adjustForPlayer(Player player) {
         return base instanceof IFlexibleCommodity ?
                 new CommodityCustomizable(((IFlexibleCommodity) base).adjustForPlayer(player), element, copyFromParent) :

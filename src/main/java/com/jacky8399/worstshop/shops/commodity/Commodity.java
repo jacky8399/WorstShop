@@ -159,6 +159,10 @@ public abstract class Commodity {
         return canAfford;
     }
 
+    public int getMaximumPurchase(Player player) {
+        return Integer.MAX_VALUE;
+    }
+
     /**
      * Denotes the type of transaction
      */
