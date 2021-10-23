@@ -3,7 +3,7 @@ package com.jacky8399.worstshop.shops.actions;
 import com.jacky8399.worstshop.I18n;
 import com.jacky8399.worstshop.WorstShop;
 import com.jacky8399.worstshop.helper.Config;
-import com.jacky8399.worstshop.helper.InventoryCloseListener;
+import com.jacky8399.worstshop.helper.InventoryUtils;
 import com.jacky8399.worstshop.helper.ItemBuilder;
 import com.jacky8399.worstshop.shops.ParseContext;
 import com.jacky8399.worstshop.shops.commodity.*;
@@ -17,13 +17,17 @@ import io.papermc.lib.PaperLib;
 import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
 import org.bukkit.Material;
+import org.bukkit.NamespacedKey;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryType;
+import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.persistence.PersistentDataType;
+import org.bukkit.scheduler.BukkitTask;
 import org.maxgamer.quickshop.QuickShop;
 import org.maxgamer.quickshop.api.QuickShopAPI;
 import org.maxgamer.quickshop.api.ShopAPI;
@@ -51,37 +55,83 @@ public class ActionPlayerShop extends Action {
     }
 
     ShopElement parentElement;
+    ActionItemShop fallback = null;
     public ActionPlayerShop(Config yaml) {
         super(yaml);
         ShopElement element = ParseContext.findLatest(ShopElement.class);
         if (element == null)
             throw new IllegalStateException("Couldn't find parent element! Not in parse context?");
+        yaml.find("fallback", Config.class).ifPresent(fallbackYaml -> fallback = new ActionItemShop(fallbackYaml));
         parentElement = element.clone();
     }
 
+    private static final NamespacedKey NO_OFFERS_MARKER = new NamespacedKey(WorstShop.get(), "no_offers_marker");
     @Override
     public void onClick(InventoryClickEvent e) {
         Player player = (Player) e.getWhoClicked();
         boolean isBuying = e.getClick().isLeftClick();
-        SmartInventory gui = getInventory(player, WorstShop.get().inventories.getInventory(player).orElse(null), isBuying);
-        InventoryCloseListener.openSafely(player, gui);
+        // check for offers
+        if (findAllShops(player, isBuying).findAny().isPresent()) {
+            SmartInventory gui = getInventory(player, InventoryUtils.getInventory(player), isBuying);
+            InventoryUtils.openSafely(player, gui);
+        } else if (fallback != null && (isBuying ? fallback.buyPrice : fallback.sellPrice) != 0) {
+            fallback.onClick(e);
+        } else {
+            // hack to display message temporarily without too much of a mess
+            Inventory bukkitInv = e.getClickedInventory();
+            int clickedSlot = e.getSlot();
+            ItemStack[] currentItem = {e.getCurrentItem()};
+            String itemName = I18n.translate(I18N_KEY + "no-offers-message");
+            BukkitTask task = Bukkit.getScheduler().runTaskTimer(WorstShop.get(), () -> {
+                ItemStack slotItem = bukkitInv.getItem(clickedSlot);
+                if (slotItem != null && !slotItem.getItemMeta().getPersistentDataContainer()
+                        .has(NO_OFFERS_MARKER, PersistentDataType.BYTE)) {
+                    currentItem[0] = slotItem;
+                    bukkitInv.setItem(clickedSlot, ItemBuilder.of(Material.BARRIER)
+                            .name(itemName)
+                            .meta(meta -> meta.getPersistentDataContainer()
+                                    .set(NO_OFFERS_MARKER, PersistentDataType.BYTE, (byte) 1))
+                            .build());
+                }
+            }, 0, 5);
+            Bukkit.getScheduler().runTaskLater(WorstShop.get(), () -> {
+                task.cancel();
+                if (!currentItem[0].getItemMeta().getPersistentDataContainer()
+                        .has(NO_OFFERS_MARKER, PersistentDataType.BYTE))
+                    bukkitInv.setItem(clickedSlot, currentItem[0]);
+            }, 20);
+        }
     }
+
+    I18n.Translatable elementLoreBuy = I18n.createTranslatable(I18N_KEY + "buy"),
+            elementLoreSell = I18n.createTranslatable(I18N_KEY + "sell"),
+            elementLoreNoOffer = I18n.createTranslatable(I18N_KEY + "no-offers"),
+            elementLoreFallbackBuy = I18n.createTranslatable(I18N_KEY + "fallback.buy"),
+            elementLoreFallbackSell = I18n.createTranslatable(I18N_KEY + "fallback.sell");
 
     @Override
     public void influenceItem(Player player, ItemStack readonlyStack, ItemStack stack) {
         ItemBuilder builder = ItemBuilder.from(stack);
-        List<Double> buyShops = findAllShops(player, true).map(Shop::getPrice).collect(Collectors.toList()),
-                sellShops = findAllShops(player, false).map(Shop::getPrice).collect(Collectors.toList());
-        builder.addLores(
-                I18n.translate(I18N_KEY + "buy", buyShops.size(), buyShops.size() != 0 ?
-                        CommodityMoney.formatMoney(Collections.min(buyShops)) :
-                        I18n.translate(I18N_KEY + "no-available-price")
-                ),
-                I18n.translate(I18N_KEY + "sell", sellShops.size(), sellShops.size() != 0 ?
-                        CommodityMoney.formatMoney(Collections.max(sellShops)) :
-                        I18n.translate(I18N_KEY + "no-available-price")
-                )
-        );
+        DoubleSummaryStatistics buyShops = findAllShops(player, true).mapToDouble(Shop::getPrice).summaryStatistics(),
+                sellShops = findAllShops(player, false).mapToDouble(Shop::getPrice).summaryStatistics();
+        List<String> lines = new ArrayList<>();
+        if (buyShops.getCount() == 0 && fallback != null && fallback.buyPrice != 0) {
+            lines.add(elementLoreFallbackBuy.apply(CommodityMoney.formatMoney(fallback.buyPrice)));
+        } else {
+            lines.add(elementLoreBuy.apply(
+                    Long.toString(buyShops.getCount()),
+                    buyShops.getCount() != 0 ? CommodityMoney.formatMoney(buyShops.getMin()) : elementLoreNoOffer.apply()
+            ));
+        }
+        if (sellShops.getCount() == 0 && fallback != null && fallback.sellPrice != 0) {
+            lines.add(elementLoreFallbackSell.apply(CommodityMoney.formatMoney(fallback.sellPrice)));
+        } else {
+            lines.add(elementLoreSell.apply(
+                    Long.toString(sellShops.getCount()),
+                    sellShops.getCount() != 0 ? CommodityMoney.formatMoney(sellShops.getMin()) : elementLoreNoOffer.apply()
+            ));
+        }
+        builder.addLore(lines);
         builder.build();
     }
 
@@ -123,11 +173,11 @@ public class ActionPlayerShop extends Action {
 
     public Stream<Shop> findAllShops(Player player, boolean isBuying) {
         ItemStack stack = getTargetItemStack(player);
-        List<org.maxgamer.quickshop.shop.Shop> shops = cache.shops.get(stack.getType());
+        List<Shop> shops = cache.shops.get(stack.getType());
         if (shops == null)
             return Stream.empty();
 
-        Comparator<org.maxgamer.quickshop.shop.Shop> comparator = Comparator.comparingDouble(org.maxgamer.quickshop.shop.Shop::getPrice);
+        Comparator<Shop> comparator = Comparator.comparingDouble(Shop::getPrice);
         if (!isBuying) {
             comparator = comparator.reversed();
         }
@@ -207,7 +257,12 @@ public class ActionPlayerShop extends Action {
             purchases = findAllShops(player, isBuying)
                     .sequential()
                     .map(s -> {
-                        int stock = isBuying ? s.getRemainingStock() : s.getRemainingSpace();
+                        int stock;
+                        if (s.isUnlimited()) {
+                            stock = Integer.MAX_VALUE;
+                        } else {
+                            stock = isBuying ? s.getRemainingStock() : s.getRemainingSpace();
+                        }
                         if (stock < targetAmount[0]) {
                             targetAmount[0] -= stock;
                             return new PurchaseStrategy(s, stock);
@@ -228,6 +283,8 @@ public class ActionPlayerShop extends Action {
             InventoryContents contents = WorstShop.get().inventories.getContents(player).orElseThrow(()->new IllegalStateException("No inventory?"));
             contents.fill(FILLER);
             // confirmation
+            double grandTotal = purchases.stream().mapToDouble(strategy -> strategy.shop.getPrice() * strategy.buyCount).sum();
+            String grandTotalString = I18n.translate(I18N_KEY + "confirmation-grand-total", CommodityMoney.formatMoney(grandTotal));
             I18n.Translatable translatable = new I18n.Translatable(I18N_KEY + (isBuying ? "buying-from" : "selling-to"));
             contents.set(2, 4, ItemBuilder.of(Material.PAPER)
                     .name(I18n.translate(I18N_KEY + "confirmation"))
@@ -241,8 +298,8 @@ public class ActionPlayerShop extends Action {
                             .collect(Collectors.toList())
                     )
                     .addLore(unfulfilledAmount == 0 ?
-                            Collections.emptyList() :
-                            Collections.singletonList(I18n.translate(I18N_KEY + "failed-to-fulfill", unfulfilledAmount)))
+                            Collections.singletonList(grandTotalString) :
+                            Arrays.asList(grandTotalString, I18n.translate(I18N_KEY + "failed-to-fulfill", unfulfilledAmount)))
                     .toEmptyClickable());
 
             // ok button

@@ -158,7 +158,7 @@ public class ActionShop extends Action {
         if (parentContentsOptional.isPresent()) {
             InventoryContents parentContents = parentContentsOptional.get();
             SmartInventory inv = ShopGui.getInventory(player, this.adjustForPlayer(player), parentContents.inventory());
-            InventoryCloseListener.openSafely(player, inv);
+            InventoryUtils.openSafely(player, inv);
         }
     }
 
@@ -311,7 +311,7 @@ public class ActionShop extends Action {
         }
 
         // animation
-        protected int tickCounter = 0;
+        protected int tickCounter = 4; // to display animation on init
         protected int animationSequence = 0;
         protected int buyCount = 1;
         protected int lastBuyCount = buyCount;
@@ -457,9 +457,11 @@ public class ActionShop extends Action {
         }
 
         protected void updateAnimation(Player player, InventoryContents contents) {
-            if (++tickCounter > 5) {
-                tickCounter = 0;
+            int animationCooldown = contents.property("animationCooldown", 0);
+            if (animationCooldown == 0) {
+                contents.setProperty("animationCooldown", 3);
             } else {
+                contents.setProperty("animationCooldown", animationCooldown - 1);
                 return;
             }
             // clear last arrow

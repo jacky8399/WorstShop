@@ -30,7 +30,7 @@ public class ActionItemShop extends Action {
     ShopElement parentElement;
     Shop parentShop;
     boolean canSellAll;
-    public double buyPrice = 0, sellPrice = 0;
+    public double buyPrice, sellPrice;
     @Nullable
     public PlayerPurchaseRecords.RecordTemplate buyLimitTemplate, sellLimitTemplate;
     public int buyLimit, sellLimit;

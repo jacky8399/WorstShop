@@ -35,6 +35,11 @@ public class CommodityFree extends Commodity {
     }
 
     @Override
+    public int getMaximumPurchase(Player player) {
+        return Integer.MAX_VALUE;
+    }
+
+    @Override
     public Map<String, Object> toMap(Map<String, Object> map) {
         map.put("preset", "free");
         return map;

@@ -68,15 +68,20 @@ worstshop:
       shop: '&6Shop'
       player-shop:
         buy: '&aBuy from {0} player shops starting at {1} &b(Left click)'
-        sell: '&aSell to {0} player shops for at most {1} &b(Right click)'
-        no-available-price: '&7N/A'
+        sell: '&aSell to {0} player shops for up to {1} &b(Right click)'
+        no-offers: '&7N/A'
+        no-offers-message: '&cThere are currently no offers. Check back later.'
+        fallback:
+          buy: '&aBuy from the server at {0} &b(Left click)'
+          sell: '&aSell to the server for {0} &b(Right click)'
         buy-amount-prompt: '&6Please enter the amount to buy'
         sell-amount-prompt: '&6Please enter the amount to sell'
-        confirmation-info: '&eYou will receive a confirmation before the transaction occurs.'
-        confirmation: '&aPlease confirm your purchase:'
+        confirmation-info: '&eYou will asked to confirm the transaction before it actually takes place.'
+        confirmation: '&aPlease confirm your transaction:'
+        confirmation-grand-total: '&6Grand total: {0}'
         buying-from: '&bBuying&e x{0} from {1} at {2}&e (={3}&e)'
         selling-to: '&bSelling&e x{0} to {1} at {2}&e (={3}&e)'
-        failed-to-fulfill: '&cCouldn''t fulfill x{0} of your transaction.'
+        failed-to-fulfill: '&cCouldn''t fulfill x{0} of your request.'
 
       buy-counts:
         increase-by: '&a+{0}'

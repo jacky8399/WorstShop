@@ -8,10 +8,11 @@ import fr.minuskube.inv.content.InventoryContents;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.InventoryCloseEvent;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.Optional;
 
-public class InventoryCloseListener extends InventoryListener<InventoryCloseEvent> {
+public class InventoryUtils extends InventoryListener<InventoryCloseEvent> {
     /**
      * Skips opening parent inventory once.
      */
@@ -22,7 +23,7 @@ public class InventoryCloseListener extends InventoryListener<InventoryCloseEven
     public static final String PROPERTY_NO_PARENT = "noParent";
     private static final String PROPERTY_HAS_CLOSED = "hasClosed";
 
-    public InventoryCloseListener() {
+    public InventoryUtils() {
         super(InventoryCloseEvent.class, e -> {
             if (e == null) {
                 return;
@@ -80,5 +81,14 @@ public class InventoryCloseListener extends InventoryListener<InventoryCloseEven
     public static void openSafely(Player player, SmartInventory toOpen, int page) {
         inv.getContents(player).ifPresent(contents -> contents.setProperty(PROPERTY_SKIP_ONCE, true));
         toOpen.open(player, page);
+    }
+
+    public static Optional<InventoryContents> getContents(Player player) {
+        return inv.getContents(player);
+    }
+
+    @Nullable
+    public static SmartInventory getInventory(Player player) {
+        return inv.getInventory(player).orElse(null);
     }
 }

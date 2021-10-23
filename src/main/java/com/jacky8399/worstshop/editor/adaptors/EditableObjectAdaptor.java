@@ -5,7 +5,7 @@ import com.jacky8399.worstshop.editor.Editable;
 import com.jacky8399.worstshop.editor.EditableAdaptor;
 import com.jacky8399.worstshop.editor.Property;
 import com.jacky8399.worstshop.helper.EditorUtils;
-import com.jacky8399.worstshop.helper.InventoryCloseListener;
+import com.jacky8399.worstshop.helper.InventoryUtils;
 import com.jacky8399.worstshop.helper.ItemBuilder;
 import com.jacky8399.worstshop.helper.ItemUtils;
 import fr.minuskube.inv.ClickableItem;
@@ -110,7 +110,7 @@ public class EditableObjectAdaptor<T> implements EditableAdaptor<T> {
         SmartInventory toOpen = WorstShop.buildGui("worstshop:editor_editable_adaptor")
                 .provider(new Inventory()).size(rows, 9)
                 .parent(parent).title(getTitle()).build();
-        InventoryCloseListener.openSafely(player, toOpen);
+        InventoryUtils.openSafely(player, toOpen);
         // doesn't change the object
         return CompletableFuture.completedFuture(val);
     }

@@ -39,7 +39,7 @@ public class ItemUtils {
                     Player player = (Player) e.getWhoClicked();
                     if (player.hasPermission("worstshop.log.error")) {
                         Bukkit.getScheduler().runTask(WorstShop.get(), () -> {
-                            InventoryCloseListener.closeWithoutParent(player);
+                            InventoryUtils.closeWithoutParent(player);
                             player.chat("/worstshop log error show " + err);
                         });
                     }

@@ -31,7 +31,7 @@ public class Exceptions {
         ExceptionLog log = new ExceptionLog(e);
         String id = UUID.randomUUID().toString().substring(0, 8);
         exceptions.put(id, log);
-        WorstShop.get().logger.severe("An error just occurred for a player. To inspect, use /worstshop log error show " + id);
+        WorstShop.get().logger.severe("FATAL ERROR. For details run /worstshop log error show " + id);
         return id;
     }
 }

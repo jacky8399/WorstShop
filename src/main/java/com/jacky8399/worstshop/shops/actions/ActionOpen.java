@@ -1,7 +1,7 @@
 package com.jacky8399.worstshop.shops.actions;
 
 import com.jacky8399.worstshop.helper.Config;
-import com.jacky8399.worstshop.helper.InventoryCloseListener;
+import com.jacky8399.worstshop.helper.InventoryUtils;
 import com.jacky8399.worstshop.shops.Shop;
 import com.jacky8399.worstshop.shops.ShopReference;
 import org.bukkit.entity.Player;
@@ -38,7 +38,7 @@ public class ActionOpen extends Action {
         Player player = (Player) e.getWhoClicked();
         Shop shop = this.shop.get();
         if (skipPermission || shop.canPlayerView(player)) {
-            InventoryCloseListener.openSafely(player, shop.getInventory(player));
+            InventoryUtils.openSafely(player, shop.getInventory(player));
         }
     }
 

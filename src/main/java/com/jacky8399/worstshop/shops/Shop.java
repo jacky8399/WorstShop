@@ -322,7 +322,7 @@ public class Shop implements InventoryProvider, ParseContext.NamedContext {
                             .thenAccept(newId -> {
                                 ShopManager.renameShop(Shop.this, newId);
                                 // reopen GUI
-                                InventoryCloseListener.closeWithoutParent(player);
+                                InventoryUtils.closeWithoutParent(player);
                                 onInteract(player, Shop.this, null);
                             })
             ));

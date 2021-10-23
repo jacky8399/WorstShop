@@ -3,7 +3,7 @@ package com.jacky8399.worstshop;
 import co.aikar.commands.PaperCommandManager;
 import com.jacky8399.worstshop.commands.Commands;
 import com.jacky8399.worstshop.events.Events;
-import com.jacky8399.worstshop.helper.InventoryCloseListener;
+import com.jacky8399.worstshop.helper.InventoryUtils;
 import com.jacky8399.worstshop.helper.PaperHelper;
 import com.jacky8399.worstshop.shops.ShopManager;
 import fr.minuskube.inv.InventoryManager;
@@ -49,7 +49,7 @@ public final class WorstShop extends JavaPlugin {
     public RegisteredServiceProvider<Chat> vaultChat;
 
     public static SmartInventory.Builder buildGui(String id) {
-        return SmartInventory.builder().manager(plugin.inventories).id(id).listener(new InventoryCloseListener());
+        return SmartInventory.builder().manager(plugin.inventories).id(id).listener(new InventoryUtils());
     }
 
     @Override

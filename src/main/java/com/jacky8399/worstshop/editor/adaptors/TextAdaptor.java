@@ -4,7 +4,7 @@ import com.jacky8399.worstshop.I18n;
 import com.jacky8399.worstshop.WorstShop;
 import com.jacky8399.worstshop.editor.EditableAdaptor;
 import com.jacky8399.worstshop.helper.EditorUtils;
-import com.jacky8399.worstshop.helper.InventoryCloseListener;
+import com.jacky8399.worstshop.helper.InventoryUtils;
 import org.bukkit.conversations.Conversation;
 import org.bukkit.conversations.ConversationContext;
 import org.bukkit.conversations.Prompt;
@@ -17,7 +17,7 @@ import java.util.concurrent.CompletableFuture;
 public abstract class TextAdaptor<T> implements EditableAdaptor<T> {
     @Override
     public CompletableFuture<T> onInteract(Player player, T val, @Nullable String fieldName) {
-        Runnable opener = InventoryCloseListener.closeTemporarilyWithoutParent(player);
+        Runnable opener = InventoryUtils.closeTemporarilyWithoutParent(player);
         CompletableFuture<T> future = new CompletableFuture<>();
         player.beginConversation(new Conversation(WorstShop.get(), player,
                 createPrompt(player, fieldName, val, opener, future)));
