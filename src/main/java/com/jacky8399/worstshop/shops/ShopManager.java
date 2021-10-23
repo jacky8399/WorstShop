@@ -147,9 +147,9 @@ public class ShopManager {
                 }
 
                 currentShopId = shopPath.substring(shopsFolderPath.length() + 1, shopPath.length() - shopExt.length() - 1).replace('\\', '/');
-                YamlConfiguration yaml = YamlConfiguration.loadConfiguration(shop);
+//                YamlConfiguration yaml = YamlConfiguration.loadConfiguration(shop);
 
-                SHOPS.put(currentShopId, Shop.fromYaml(currentShopId, yaml));
+                SHOPS.put(currentShopId, Shop.fromYaml(currentShopId, shop));
                 plugin.logger.fine("Loaded " + currentShopId + ".yml");
                 count++;
             }

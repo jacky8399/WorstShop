@@ -1,8 +1,7 @@
 package com.jacky8399.worstshop.shops.conditions;
 
-import com.jacky8399.worstshop.WorstShop;
+import com.jacky8399.worstshop.I18n;
 import com.jacky8399.worstshop.helper.Config;
-import me.clip.placeholderapi.PlaceholderAPI;
 import org.bukkit.entity.Player;
 
 import java.util.Map;
@@ -15,7 +14,7 @@ public class ConditionPlaceholder extends Condition {
     public final String placeholderStr;
     private final Internal matcher;
     public ConditionPlaceholder(Config config) {
-        if (!WorstShop.get().placeholderAPI) throw new IllegalStateException("PlaceholderAPI not enabled!");
+//        if (!WorstShop.get().placeholderAPI) throw new IllegalStateException("PlaceholderAPI not enabled!");
         placeholderStr = config.get("placeholder", String.class);
         Optional<String> regex = config.find("matches", String.class);
         if (regex.isPresent()) {
@@ -27,7 +26,7 @@ public class ConditionPlaceholder extends Condition {
 
     @Override
     public boolean test(Player player) {
-        String replacedPlaceholderStr = PlaceholderAPI.setPlaceholders(player, placeholderStr);
+        String replacedPlaceholderStr = I18n.doPlaceholders(player, placeholderStr);
         return matcher.test(replacedPlaceholderStr);
     }
 

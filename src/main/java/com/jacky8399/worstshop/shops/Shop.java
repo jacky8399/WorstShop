@@ -1,8 +1,12 @@
 package com.jacky8399.worstshop.shops;
 
 import com.google.common.collect.Streams;
+import com.jacky8399.worstshop.I18n;
 import com.jacky8399.worstshop.WorstShop;
-import com.jacky8399.worstshop.editor.*;
+import com.jacky8399.worstshop.editor.Adaptor;
+import com.jacky8399.worstshop.editor.Editable;
+import com.jacky8399.worstshop.editor.Property;
+import com.jacky8399.worstshop.editor.Representation;
 import com.jacky8399.worstshop.editor.adaptors.EditableObjectAdaptor;
 import com.jacky8399.worstshop.editor.adaptors.StringAdaptor;
 import com.jacky8399.worstshop.helper.*;
@@ -26,7 +30,10 @@ import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.permissions.Permissible;
 import org.jetbrains.annotations.Nullable;
+import org.yaml.snakeyaml.Yaml;
 
+import java.io.File;
+import java.io.FileReader;
 import java.util.*;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
@@ -67,12 +74,18 @@ public class Shop implements InventoryProvider, ParseContext.NamedContext {
     @Property
     public boolean autoSetParentShop = false;
 
+    @Property
+    public ShopReference extendsFrom = ShopReference.EMPTY;
+
     // aliases
     public static final Pattern ALIAS_PATTERN = Pattern.compile("^\\w+$", Pattern.UNICODE_CHARACTER_CLASS);
     @Property
     public List<String> aliases;
     @Property
     public boolean aliasesIgnorePermission;
+
+    // variables
+    public final HashMap<String, Object> variables = new HashMap<>();
 
     @Override
     public String getHierarchyName() {
@@ -96,6 +109,14 @@ public class Shop implements InventoryProvider, ParseContext.NamedContext {
                 && condition.test(player);
     }
 
+    public Object getVariable(String key) {
+        Object ret = variables.get(key);
+        if (ret == null && extendsFrom.find().isPresent() && !extendsFrom.refersTo(this)) {
+            ret = extendsFrom.get().getVariable(key);
+        }
+        return ret;
+    }
+
     public SmartInventory getInventory(Player player) {
         return getInventory(player, false);
     }
@@ -116,11 +137,18 @@ public class Shop implements InventoryProvider, ParseContext.NamedContext {
                 }
             });
         }
-        return builder.title(title).build();
+        if (title == null) {
+            if (extendsFrom != ShopReference.EMPTY)
+                builder.title(I18n.doPlaceholders(player, extendsFrom.get().title, this, null));
+            else
+                builder.title("null");
+        } else {
+            builder.title(I18n.doPlaceholders(player, title, this, null));
+        }
+        return builder.build();
     }
 
-    @SuppressWarnings({"ConstantConditions", "null"})
-    public static Shop fromYaml(String shopName, YamlConfiguration yaml) {
+    public static Shop fromYaml(String shopName, File file) {
         Shop inst = new Shop();
         ShopManager.currentShop = inst;
         inst.id = shopName;
@@ -130,12 +158,23 @@ public class Shop implements InventoryProvider, ParseContext.NamedContext {
         try {
             ParseContext.pushContext(inst);
 
-            Config config = new Config(yaml.getValues(false), null, "ROOT");
+            Config config = new Config(new Yaml().load(new FileReader(file)), null, "ROOT");
+
+            config.find("extends", String.class).ifPresent(templateId -> {
+                // self-reference check
+                if (templateId.equals(shopName))
+                    throw new ConfigException("Self-reference not allowed", config, "extends");
+                inst.extendsFrom = ShopReference.of(templateId);
+            });
 
             inst.rows = config.find("rows", Integer.class).orElse(6);
             inst.type = config.find("type", InventoryType.class).orElse(InventoryType.CHEST);
 
-            inst.title = ConfigHelper.translateString(config.get("title", String.class));
+            if (!config.has("title") && inst.extendsFrom != ShopReference.EMPTY) {
+                inst.title = null; // allow templates to do the hard work
+            } else {
+                inst.title = ConfigHelper.translateString(config.get("title", String.class));
+            }
             inst.updateInterval = config.find("update-interval", Integer.class).orElse(0);
 
             inst.condition = config.find("condition", Config.class).map(Condition::fromMap).orElse(ConditionConstant.TRUE);
@@ -144,6 +183,7 @@ public class Shop implements InventoryProvider, ParseContext.NamedContext {
             if ("auto".equals(inst.parentShop.id)) {
                 inst.autoSetParentShop = true;
             }
+            WorstShop.get().logger.info(shopName + " extends from " + inst.extendsFrom.id);
 
             config.getList("items", Config.class).forEach(itemConfig -> {
                 ShopElement element = ShopElement.fromConfig(itemConfig);
@@ -152,8 +192,7 @@ public class Shop implements InventoryProvider, ParseContext.NamedContext {
             });
 
             // commands
-            if (yaml.isString("alias")) {
-                String aliasString = yaml.getString("alias");
+            config.find("alias", String.class).ifPresent(aliasString -> {
                 inst.aliases = Arrays.stream(aliasString.split(","))
                         .filter(alias -> {
                             if (ALIAS_PATTERN.matcher(alias).matches())
@@ -166,8 +205,20 @@ public class Shop implements InventoryProvider, ParseContext.NamedContext {
 
                 if (inst.aliases.size() < 1)
                     inst.aliases = null;
-                inst.aliasesIgnorePermission = yaml.getBoolean("alias-ignore-permission", false);
-            }
+                inst.aliasesIgnorePermission = config.find("alias-ignore-permission", Boolean.class).orElse(false);
+            });
+
+            // variables
+            config.find("variables", Config.class).ifPresent(variables -> {
+                variables.getKeys().forEach(key -> {
+                    Optional<Config> complexConfig = variables.tryFind(key, Config.class);
+                    if (complexConfig.isPresent()) {
+                        WorstShop.get().logger.warning("Unsupported variable type: " + complexConfig.get().get("type", String.class));
+                    } else {
+                        inst.variables.put(key, variables.get(key, Object.class));
+                    }
+                });
+            });
 
             // should be self
             if (ParseContext.popContext() != inst) {
@@ -204,8 +255,52 @@ public class Shop implements InventoryProvider, ParseContext.NamedContext {
         );
     }
 
-    public void populateElements(List<ShopElement> elementList,
+    boolean circularReferenceChecked = false;
+    public void checkCircularReference() {
+        ShopReference template = extendsFrom;
+        Set<String> traversed = new LinkedHashSet<>();
+        int depth = 0;
+        while (template != ShopReference.EMPTY) {
+            boolean shouldExit = false;
+            if (!traversed.add(template.id)) {
+                WorstShop.get().logger.severe("Circular reference is not allowed!!! (at shop " + id + "). The circular reference has been removed.");
+                shouldExit = true;
+            }
+            if (template.id.equals(id)) {
+                WorstShop.get().logger.severe("Self-reference is not allowed!!! (at shop " + id + "). The self-reference has been removed.");
+                shouldExit = true;
+            }
+            if (++depth >= 100) {
+                WorstShop.get().logger.severe("Hierarchy too deep!!! (at shop " + id + "). The reference has been removed.");
+                shouldExit = true;
+            }
+
+            if (shouldExit) {
+                WorstShop.get().logger.severe("Hierarchy: " + String.join(" <- ", traversed));
+                extendsFrom = ShopReference.EMPTY;
+                break;
+            }
+
+            Optional<Shop> shop = template.find();
+            if (shop.isPresent()) {
+                template = shop.get().extendsFrom;
+            } else {
+                break;
+            }
+        }
+        circularReferenceChecked = true;
+    }
+
+    public void populateElements(boolean dynamic,
                                  Player player, InventoryContents contents, ElementContext helper) {
+        if (!circularReferenceChecked)
+            checkCircularReference();
+
+        if (extendsFrom.find().isPresent()) {
+            extendsFrom.get().populateElements(dynamic, player, contents, helper);
+        }
+
+        List<ShopElement> elementList = dynamic ? dynamicElements : staticElements;
         ListIterator<ShopElement> iterator = elementList.listIterator();
         while (iterator.hasNext()) {
             int index = iterator.nextIndex();
@@ -233,11 +328,11 @@ public class Shop implements InventoryProvider, ParseContext.NamedContext {
         }
         ElementContext helper = new ElementContext(contents,
                 isOutline ? ElementContext.Stage.SKELETON : ElementContext.Stage.STATIC);
-        populateElements(staticElements, player, contents, helper);
+        populateElements(false, player, contents, helper);
         helper.doPaginationNow();
 
         if (updateDynamic)
-            populateElements(dynamicElements, player, contents, new ElementContext(contents,
+            populateElements(true, player, contents, new ElementContext(contents,
                     isOutline ? ElementContext.Stage.SKELETON : ElementContext.Stage.DYNAMIC));
     }
 
@@ -250,7 +345,10 @@ public class Shop implements InventoryProvider, ParseContext.NamedContext {
 
     @Override
     public void update(Player player, InventoryContents contents) {
-        populateElements(dynamicElements, player, contents, null);
+//        if (extendsFrom.find().isPresent() && !extendsFrom.refersTo(this)) {
+//            extendsFrom.get().update(player, contents);
+//        }
+        populateElements(true, player, contents, null);
         if (updateInterval != 0) {
             Integer ticksSinceUpdate = contents.property("ticksSinceUpdate", 0);
             if (++ticksSinceUpdate == updateInterval) {

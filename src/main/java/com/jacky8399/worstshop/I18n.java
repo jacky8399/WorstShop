@@ -6,8 +6,10 @@ import co.aikar.commands.Locales;
 import co.aikar.locales.LanguageTable;
 import co.aikar.locales.LocaleManager;
 import com.jacky8399.worstshop.helper.ConfigHelper;
+import com.jacky8399.worstshop.helper.InventoryUtils;
 import com.jacky8399.worstshop.helper.PaginationHelper;
 import com.jacky8399.worstshop.helper.PaperHelper;
+import com.jacky8399.worstshop.shops.Shop;
 import fr.minuskube.inv.content.InventoryContents;
 import fr.minuskube.inv.content.Pagination;
 import me.clip.placeholderapi.PlaceholderAPI;
@@ -17,6 +19,7 @@ import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.io.File;
 import java.io.IOException;
@@ -30,6 +33,8 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class I18n {
     public static class Keys {
@@ -180,15 +185,35 @@ public class I18n {
         return translatables.computeIfAbsent(path, Translatable::new);
     }
 
+    public static final Pattern SHOP_VARIABLE_PATTERN = Pattern.compile("!([A-Za-z0-9_]+)!");
     public static String doPlaceholders(@NotNull Player player, String input) {
+        Optional<InventoryContents> contents = InventoryUtils.getContents(player);
+        return doPlaceholders(player, input,
+                (Shop) contents.map(c -> c.inventory().getProvider())
+                        .filter(provider -> provider instanceof Shop).orElse(null),
+                contents.orElse(null));
+    }
+
+    public static String doPlaceholders(@NotNull Player player, String input, @Nullable Shop owner, @Nullable InventoryContents contents) {
         String ret = (plugin.placeholderAPI ? PlaceholderAPI.setPlaceholders(player, input) : input)
                 .replace("{player}", player.getName());
-        Optional<InventoryContents> inv = WorstShop.get().inventories.getContents(player);
-        if (inv.isPresent() && ret.contains("page}")) {
-            Pagination pagination = inv.get().pagination();
-            int page = pagination.getPage() + 1;
-            int maxPage = PaginationHelper.getLastPage(pagination);
-            ret = ret.replace("{page}", Integer.toString(page)).replace("{max_page}", Integer.toString(maxPage));
+        if (contents != null) {
+            // page
+            if (ret.contains("!page!") || ret.contains("!max_page!")) {
+                Pagination pagination = contents.pagination();
+                int page = pagination.getPage() + 1;
+                int maxPage = PaginationHelper.getLastPage(pagination);
+                ret = ret.replace("!page!", Integer.toString(page)).replace("!max_page!", Integer.toString(maxPage));
+            }
+        }
+        if (owner != null) {
+            // other shop variables
+            Matcher matcher = SHOP_VARIABLE_PATTERN.matcher(ret);
+            ret = matcher.replaceAll(result -> {
+                String var = result.group(1);
+                Object obj = owner.getVariable(var);
+                return obj != null ? String.valueOf(obj) : "!" + var + "!";
+            });
         }
         return ret;
     }
