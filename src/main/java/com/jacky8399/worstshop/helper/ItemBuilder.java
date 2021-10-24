@@ -2,6 +2,7 @@ package com.jacky8399.worstshop.helper;
 
 import com.jacky8399.worstshop.shops.elements.StaticShopElement;
 import fr.minuskube.inv.ClickableItem;
+import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.event.inventory.InventoryClickEvent;
@@ -59,6 +60,15 @@ public class ItemBuilder {
         meta.getPersistentDataContainer().set(StaticShopElement.SAFETY_KEY, PersistentDataType.BYTE, (byte) 1);
     }
 
+    public ItemBuilder type(Material material) {
+        if (meta == null)
+            loadMeta();
+        meta = Bukkit.getItemFactory().asMetaFor(meta, material);
+        stack.setType(material);
+        stack.setItemMeta(meta);
+        return meta(meta);
+    }
+
     public ItemBuilder meta(ItemMeta meta) {
         this.meta = meta;
         this.meta.getPersistentDataContainer().set(StaticShopElement.SAFETY_KEY, PersistentDataType.BYTE, (byte) 1);
@@ -90,19 +100,25 @@ public class ItemBuilder {
     }
 
     public ItemBuilder lores(String... lore) {
-        return lore(lore.length == 1 ? Collections.singletonList(lore[0]) : Arrays.asList(lore));
+        return lore(Arrays.asList(lore));
     }
 
     public ItemBuilder lore(List<String> lore) {
         return meta(meta -> meta.setLore(lore));
     }
 
+    @SuppressWarnings("ConstantConditions")
     public ItemBuilder addLores(String... lore) {
         if (lore != null)
-            addLore(lore.length == 1 ? Collections.singletonList(lore[0]) : Arrays.asList(lore));
+            meta(meta -> {
+                List<String> oldLore = meta.hasLore() ? new ArrayList<>(meta.getLore()) : new ArrayList<>();
+                Collections.addAll(oldLore, lore);
+                meta.setLore(oldLore);
+            });
         return this;
     }
 
+    @SuppressWarnings("ConstantConditions")
     public ItemBuilder addLore(List<String> lore) {
         if (lore != null)
             meta(meta -> {

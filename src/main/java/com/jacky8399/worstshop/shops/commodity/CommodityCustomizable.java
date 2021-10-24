@@ -46,16 +46,18 @@ public final class CommodityCustomizable extends Commodity implements IFlexibleC
     }
 
     public ShopElement fromYaml(Config config) {
-        return config.find("from", String.class).map(from -> {
-            if (from.equalsIgnoreCase("parent")) {
-                copyFromParent = true;
-                ShopElement parent = ParseContext.findLatest(ShopElement.class);
-                if (parent == null)
-                    throw new ConfigException("Failed to find parent element with 'from: parent'", config, "from");
-                return parent.clone();
-            }
-            throw new ConfigException("Unsupported source " + from, config, "from");
-        }).orElseGet(()->ShopElement.fromConfig(config));
+        return config.find("from", String.class)
+                .map(from -> {
+                    if (from.equalsIgnoreCase("parent")) {
+                        copyFromParent = true;
+                        ShopElement parent = ParseContext.findLatest(ShopElement.class);
+                        if (parent == null)
+                            throw new ConfigException("Failed to find parent element with 'from: parent'", config, "from");
+                        return parent.clone();
+                    }
+                    throw new ConfigException("Unsupported source " + from, config, "from");
+                })
+                .orElseGet(() -> ShopElement.fromConfig(config));
     }
 
     @Override

@@ -7,6 +7,7 @@ import com.jacky8399.worstshop.helper.InventoryUtils;
 import com.jacky8399.worstshop.helper.ItemBuilder;
 import com.jacky8399.worstshop.shops.ParseContext;
 import com.jacky8399.worstshop.shops.commodity.*;
+import com.jacky8399.worstshop.shops.elements.DynamicShopElement;
 import com.jacky8399.worstshop.shops.elements.ShopElement;
 import com.jacky8399.worstshop.shops.elements.StaticShopElement;
 import fr.minuskube.inv.ClickableItem;
@@ -139,18 +140,23 @@ public class ActionPlayerShop extends Action {
         return parentElement instanceof StaticShopElement ? ((StaticShopElement) parentElement).createPlaceholderStack(player) : parentElement.createStack(player);
     }
 
-    public Commodity createFakeCommodity(Commodity.TransactionType type) {
+    public Commodity createDynamicCommodity(boolean isBuying) {
+        // dynamic element
+        // updated at ShopGui.updateCommodities
         return new CommodityCustomizable(CommodityFree.INSTANCE,
-                StaticShopElement.fromStack(
-                        ItemBuilder.of(Material.GOLD_INGOT)
-                                .name(I18n.translate(I18N_KEY +
-                                        (type == Commodity.TransactionType.COST ? "buy" : "sell") + "-amount-prompt"))
+                new DynamicShopElement() {
+                    @Override
+                    public ItemStack createStack(Player player) {
+                        return ItemBuilder.of(Material.GOLD_INGOT)
+                                .name(I18n.translate(I18N_KEY + (isBuying ? "buy" : "sell") + "-amount-prompt"))
                                 .lores(I18n.translate(I18N_KEY + "confirmation-info"))
-                                .build()));
+                                .build();
+                    }
+                });
     }
 
     public ActionShop createFakeShop(Player player, boolean isBuyingItem) {
-        Commodity fakeCost = createFakeCommodity(isBuyingItem ? Commodity.TransactionType.COST : Commodity.TransactionType.REWARD),
+        Commodity fakeCost = createDynamicCommodity(isBuyingItem),
                 item = new CommodityItem(getTargetItemStack(player));
         return isBuyingItem ?
                 new ActionShop(fakeCost, item, null, 0) :
@@ -186,6 +192,75 @@ public class ActionPlayerShop extends Action {
                 .sorted(comparator);
     }
 
+    private record PurchaseStrategySummary(List<PurchaseStrategy> strategies, int unfulfilled) {
+        public double grandTotal() {
+            return strategies.stream().mapToDouble(PurchaseStrategy::total).sum();
+        }
+
+        public ItemBuilder getDisplay(boolean isBuying) {
+            String grandTotalString = I18n.translate(I18N_KEY + "confirmation-grand-total",
+                    CommodityMoney.formatMoney(grandTotal()));
+            I18n.Translatable translatable = new I18n.Translatable(I18N_KEY + (isBuying ? "buying-from" : "selling-to"));
+
+            return ItemBuilder.of(Material.PAPER)
+                    .name(I18n.translate(I18N_KEY + "confirmation"))
+                    .lore(strategies.stream()
+                            .map(strategy -> translatable.apply(
+                                    Integer.toString(strategy.buyCount),
+                                    strategy.shop.ownerName(),
+                                    CommodityMoney.formatMoney(strategy.shop.getPrice()),
+                                    CommodityMoney.formatMoney(strategy.shop.getPrice() * strategy.buyCount)
+                            ))
+                            .collect(Collectors.toList())
+                    )
+                    .addLores(unfulfilled == 0 ?
+                            new String[] {grandTotalString} :
+                            new String[] {grandTotalString, I18n.translate(I18N_KEY + "failed-to-fulfill", unfulfilled)});
+        }
+    }
+
+    private record PurchaseStrategy(Shop shop, int buyCount, Info info) {
+        PurchaseStrategy(Shop shop, int buyCount) {
+            this(shop, buyCount,
+                    new Info(shop.getLocation(), ShopAction.BUY, shop.getItem(), shop.getLocation().getBlock(), shop));
+        }
+
+        public double total() {
+            return shop.getPrice() * buyCount;
+        }
+    }
+    
+    private PurchaseStrategySummary deviseStrategy(Player player, boolean isBuying, int targetAmount) {
+        // check for any shops
+        ItemStack stack = getTargetItemStack(player);
+        List<Shop> shops = cache.shops.get(stack.getType());
+        if (shops == null) {
+            return new PurchaseStrategySummary(Collections.emptyList(), targetAmount);
+        }
+        int[] amount = {targetAmount};
+        List<PurchaseStrategy> strategies = findAllShops(player, isBuying)
+                .sequential()
+                .map(s -> {
+                    int stock;
+                    if (s.isUnlimited()) {
+                        stock = Integer.MAX_VALUE;
+                    } else {
+                        stock = isBuying ? s.getRemainingStock() : s.getRemainingSpace();
+                    }
+                    if (stock < amount[0]) {
+                        amount[0] -= stock;
+                        return new PurchaseStrategy(s, stock);
+                    } else {
+                        int purchaseCount = amount[0];
+                        amount[0] = 0;
+                        return new PurchaseStrategy(s, purchaseCount);
+                    }
+                })
+                .filter(strategy -> strategy.buyCount > 0)
+                .collect(Collectors.toList());
+        return new PurchaseStrategySummary(strategies, amount[0]);
+    }
+
     private static final SlotPos[] checkMarkPos = {SlotPos.of(2, 3), SlotPos.of(3, 4), SlotPos.of(2, 5), SlotPos.of(1, 6)};
     class ShopGui extends ActionShop.ShopGui {
         boolean isBuying;
@@ -197,30 +272,27 @@ public class ActionPlayerShop extends Action {
             this.maxBuyCount = getTargetItemStack(player).getMaxStackSize() * 36;
         }
 
-        class PurchaseStrategy {
-            public final Shop shop;
-            public final int buyCount;
-            public final Info info;
-
-            PurchaseStrategy(Shop shop, int buyCount) {
-                this.shop = shop;
-                this.buyCount = buyCount;
-                info = new Info(shop.getLocation(), ShopAction.BUY, shop.getItem(), shop.getLocation().getBlock(), shop);
-            }
-        }
-
-        List<PurchaseStrategy> purchases = null;
-        int unfulfilledAmount;
+        PurchaseStrategySummary purchaseSummary = null;
 
         int animationSequence = 0;
         int tick = 3;
 
         @Override
         public void update(Player player, InventoryContents contents) {
-            if (purchases == null) {
+            if (purchaseSummary == null) {
                 super.update(player, contents);
-                if (buyCount > maxBuyCount) {
-                    buyCount = maxBuyCount;
+
+                if (super.animationSequence == 3) {
+                    // estimate cost and update accordingly
+                    PurchaseStrategySummary strategySummary = deviseStrategy(player, isBuying, buyCount);
+                    contents.set((isBuying ? Commodity.TransactionType.COST : Commodity.TransactionType.REWARD).pos,
+                            strategySummary.getDisplay(isBuying)
+                                    // remove references to confirmation
+                                    .type(Material.GOLD_INGOT)
+                                    .name(I18n.translate(I18N_KEY + (isBuying ? "buy" : "sell") + "-amount-prompt"))
+                                    .addLores(I18n.translate(I18N_KEY + "confirmation-info"))
+                                    .toEmptyClickable()
+                    );
                 }
             } else if (animationSequence != 0) {
                 // horrible code
@@ -244,64 +316,15 @@ public class ActionPlayerShop extends Action {
         @Override
         protected void doTransaction(InventoryClickEvent e) {
             Player player = (Player) e.getWhoClicked();
-            ItemStack stack = getTargetItemStack(player);
-            List<Shop> shops = cache.shops.get(stack.getType());
-            int[] targetAmount = {buyCount};
-
-            if (shops == null) { // no shop providing this item
-                purchases = Collections.emptyList();
-                unfulfilledAmount = buyCount;
-                showConfirmation(player);
-                return;
-            }
-            purchases = findAllShops(player, isBuying)
-                    .sequential()
-                    .map(s -> {
-                        int stock;
-                        if (s.isUnlimited()) {
-                            stock = Integer.MAX_VALUE;
-                        } else {
-                            stock = isBuying ? s.getRemainingStock() : s.getRemainingSpace();
-                        }
-                        if (stock < targetAmount[0]) {
-                            targetAmount[0] -= stock;
-                            return new PurchaseStrategy(s, stock);
-                        } else {
-                            int purchaseCount = targetAmount[0];
-                            targetAmount[0] = 0;
-                            return new PurchaseStrategy(s, purchaseCount);
-                        }
-                    })
-                    .filter(strategy -> strategy.buyCount != 0)
-                    .collect(Collectors.toList());
-
-            unfulfilledAmount = targetAmount[0];
+            purchaseSummary = deviseStrategy(player, isBuying, buyCount);
             showConfirmation(player);
         }
 
         protected void showConfirmation(Player player) {
-            InventoryContents contents = WorstShop.get().inventories.getContents(player).orElseThrow(()->new IllegalStateException("No inventory?"));
+            InventoryContents contents = WorstShop.get().inventories.getContents(player).orElseThrow(IllegalStateException::new);
             contents.fill(FILLER);
             // confirmation
-            double grandTotal = purchases.stream().mapToDouble(strategy -> strategy.shop.getPrice() * strategy.buyCount).sum();
-            String grandTotalString = I18n.translate(I18N_KEY + "confirmation-grand-total", CommodityMoney.formatMoney(grandTotal));
-            I18n.Translatable translatable = new I18n.Translatable(I18N_KEY + (isBuying ? "buying-from" : "selling-to"));
-            contents.set(2, 4, ItemBuilder.of(Material.PAPER)
-                    .name(I18n.translate(I18N_KEY + "confirmation"))
-                    .lore(purchases.stream()
-                            .map(strategy -> translatable.apply(
-                                    Integer.toString(strategy.buyCount),
-                                    strategy.shop.ownerName(),
-                                    CommodityMoney.formatMoney(strategy.shop.getPrice()),
-                                    CommodityMoney.formatMoney(strategy.shop.getPrice() * strategy.buyCount)
-                            ))
-                            .collect(Collectors.toList())
-                    )
-                    .addLore(unfulfilledAmount == 0 ?
-                            Collections.singletonList(grandTotalString) :
-                            Arrays.asList(grandTotalString, I18n.translate(I18N_KEY + "failed-to-fulfill", unfulfilledAmount)))
-                    .toEmptyClickable());
-
+            contents.set(2, 4, purchaseSummary.getDisplay(isBuying).toEmptyClickable());
             // ok button
             contents.set(5, 3, ClickableItem.of(
                     ItemBuilder.of(Material.GREEN_TERRACOTTA)
@@ -323,7 +346,7 @@ public class ActionPlayerShop extends Action {
             animationSequence = 1;
             Player player = (Player) e.getWhoClicked();
             QuickShop qs = QuickShop.getInstance();
-            CompletableFuture<?>[] futures = purchases.stream().map(purchase -> {
+            CompletableFuture<?>[] futures = purchaseSummary.strategies.stream().map(purchase -> {
                 Shop qShop = purchase.shop;
                 CompletableFuture<Chunk> future = qShop.isLoaded() ?
                         CompletableFuture.completedFuture(null) :
@@ -357,11 +380,11 @@ public class ActionPlayerShop extends Action {
         HashMap<Material, List<org.maxgamer.quickshop.shop.Shop>> shops = new HashMap<>();
 
         public void refreshCache() {
-            List<org.maxgamer.quickshop.shop.Shop> shops = QuickShopAPI.getShopAPI().getAllShops();
-            for (org.maxgamer.quickshop.shop.Shop shop : shops) {
+            List<Shop> shops = QuickShopAPI.getShopAPI().getAllShops();
+            for (Shop shop : shops) {
                 ItemStack stack = shop.getItem();
                 Material mat = stack.getType();
-                List<org.maxgamer.quickshop.shop.Shop> shopz = this.shops.computeIfAbsent(mat, key->new ArrayList<>());
+                List<Shop> shopz = this.shops.computeIfAbsent(mat, key->new ArrayList<>());
                 shopz.add(shop);
             }
         }

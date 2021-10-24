@@ -183,7 +183,6 @@ public class Shop implements InventoryProvider, ParseContext.NamedContext {
             if ("auto".equals(inst.parentShop.id)) {
                 inst.autoSetParentShop = true;
             }
-            WorstShop.get().logger.info(shopName + " extends from " + inst.extendsFrom.id);
 
             config.getList("items", Config.class).forEach(itemConfig -> {
                 ShopElement element = ShopElement.fromConfig(itemConfig);
