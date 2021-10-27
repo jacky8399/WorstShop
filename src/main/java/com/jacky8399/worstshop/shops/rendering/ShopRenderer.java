@@ -53,6 +53,7 @@ public class ShopRenderer implements InventoryProvider, RenderingLayer {
     public void initInventoryStructure() {
         outline.clear();
         toUpdateNextTick.clear();
+        paginationItems.clear();
     }
 
     public void fillOutline() {
@@ -93,7 +94,7 @@ public class ShopRenderer implements InventoryProvider, RenderingLayer {
         BiConsumer<SlotPos, ShopElement> addToElements = (pos, element) -> {
             if (element == null || !element.condition.test(player))
                 return;
-            ItemStack stack = element.createStack(player, this);
+            ItemStack stack = element.createStack(this, pos);
             if (stack == null)
                 return;
             elements.put(pos, new RenderingLayer.ElementInfo(element, stack));
@@ -115,10 +116,12 @@ public class ShopRenderer implements InventoryProvider, RenderingLayer {
             this.maxPage = (int) Math.ceil(((double) paginationItems.size()) / emptySlots.size());
 
             int start = page * emptySlots.size(), end = Math.min(start + emptySlots.size(), paginationItems.size());
-            List<ShopElement> itemsDisplayed = paginationItems.subList(start, end);
-            for (int i = 0; i < itemsDisplayed.size(); i++) {
-                SlotPos slot = emptySlots.get(i);
-                addToElements.accept(slot, itemsDisplayed.get(i));
+            if (start < end) {
+                List<ShopElement> itemsDisplayed = paginationItems.subList(start, end);
+                for (int i = 0; i < itemsDisplayed.size(); i++) {
+                    SlotPos slot = emptySlots.get(i);
+                    addToElements.accept(slot, itemsDisplayed.get(i));
+                }
             }
         }
 
@@ -130,13 +133,18 @@ public class ShopRenderer implements InventoryProvider, RenderingLayer {
         result.forEach((var pos, @Nullable var info) -> {
             if (info == null || info.raw() == null)
                 return;
+            ShopElement element = info.element();
             ItemStack stack = info.raw();
             ItemStack stackWithPlaceholders = StaticShopElement.replacePlaceholders(player, stack, shop, this);
-            ClickableItem item = ClickableItem.of(stackWithPlaceholders, info.element()::onClick);
+            ClickableItem item = ClickableItem.of(stackWithPlaceholders, element.getClickHandler(this, pos));
             contents.set(pos, item);
-            if (info.element().getRenderingFlags(this, pos).contains(RenderingFlag.UPDATE_NEXT_TICK))
-                toUpdateNextTick.computeIfAbsent(info.element(), ignored -> new ArrayList<>()).add(pos);
+            if (element.getRenderingFlags(this, pos).contains(RenderingFlag.UPDATE_NEXT_TICK))
+                toUpdateNextTick.computeIfAbsent(element, ignored -> new ArrayList<>()).add(pos);
         });
+    }
+
+    public static void clearAll(InventoryContents contents) {
+//        contents.fill(null);
     }
 
     @Override
@@ -151,12 +159,14 @@ public class ShopRenderer implements InventoryProvider, RenderingLayer {
         if (shop.updateInterval != 0) {
             int ticksElapsed = contents.property("ticksSinceUpdate", 0);
             if (++ticksElapsed == shop.updateInterval) {
+                clearAll(contents);
                 apply(player, contents);
                 updated = true;
             }
             contents.setProperty("ticksSinceUpdate", ticksElapsed);
         }
         if (!updated && contents.pagination().getPage() != page) {
+            clearAll(contents);
             apply(player, contents);
             updated = true;
         }
@@ -165,9 +175,9 @@ public class ShopRenderer implements InventoryProvider, RenderingLayer {
                 ShopElement element = entry.getKey();
                 List<SlotPos> posList = entry.getValue();
                 posList.removeIf(pos -> {
-                    ItemStack stack = element.createStack(player, this);
+                    ItemStack stack = element.createStack(this, pos);
                     ItemStack stackWithPlaceholders = StaticShopElement.replacePlaceholders(player, stack, shop, this);
-                    ClickableItem item = ClickableItem.of(stackWithPlaceholders, element::onClick);
+                    ClickableItem item = ClickableItem.of(stackWithPlaceholders, element.getClickHandler(this, pos));
                     contents.set(pos, item);
 
                     return !element.getRenderingFlags(this, pos).contains(RenderingFlag.UPDATE_NEXT_TICK);

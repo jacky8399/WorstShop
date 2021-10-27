@@ -12,10 +12,13 @@ import com.jacky8399.worstshop.shops.commodity.CommodityMultiple;
 import com.jacky8399.worstshop.shops.commodity.IFlexibleCommodity;
 import com.jacky8399.worstshop.shops.elements.ShopElement;
 import com.jacky8399.worstshop.shops.elements.StaticShopElement;
+import com.jacky8399.worstshop.shops.rendering.ShopRenderer;
+import com.jacky8399.worstshop.shops.rendering.SlotFiller;
 import fr.minuskube.inv.ClickableItem;
 import fr.minuskube.inv.SmartInventory;
 import fr.minuskube.inv.content.InventoryContents;
 import fr.minuskube.inv.content.InventoryProvider;
+import fr.minuskube.inv.content.SlotPos;
 import net.md_5.bungee.api.ChatColor;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
@@ -396,22 +399,37 @@ public class ActionShop extends Action {
             updateAnimation(player, contents);
         }
 
+        private static final Shop FAKE_SHOP = new Shop();
+        static {
+            FAKE_SHOP.id = "worstshop_internal:shop_gui";
+        }
+        private void populateItems(Player player, ShopElement element, InventoryContents contents) {
+            ShopRenderer fake = new ShopRenderer(FAKE_SHOP, player);
+            SlotFiller filler = element.getFiller(fake);
+            Collection<SlotPos> posList = filler.fill(element, fake);
+            if (posList != null) {
+                for (SlotPos pos : posList) {
+                    contents.set(pos, ClickableItem.empty(element.createStack(fake, pos)));
+                }
+            }
+        }
+
         protected void updateCommodities(Player player, InventoryContents contents, boolean dynamicOnly) {
             String stage = "cost";
             try {
                 if (!dynamicOnly) {
                     costElem = cost.createElement(Commodity.TransactionType.COST).clone();
-                    costElem.populateItems(player, contents, null);
+                    populateItems(player, costElem, contents);
                     stage = "reward";
                     rewardElem = reward.createElement(Commodity.TransactionType.REWARD).clone();
-                    rewardElem.populateItems(player, contents, null);
+                    populateItems(player, rewardElem, contents);
                 } else {
                     if (cost.isElementDynamic()) {
-                        costElem.populateItems(player, contents, null);
+                        populateItems(player, costElem, contents);
                     }
                     stage = "reward";
                     if (reward.isElementDynamic()) {
-                        rewardElem.populateItems(player, contents, null);
+                        populateItems(player, rewardElem, contents);
                     }
                 }
             } catch (Exception ex) {
@@ -432,11 +450,11 @@ public class ActionShop extends Action {
                     Collections.singletonList(I18n.translate("worstshop.messages.shops.buy-counts.total-result",
                             reward.multiply(buyCount).getPlayerResult(player, Commodity.TransactionType.REWARD))) :
                     Collections.emptyList();
-            boolean useChest = cost instanceof CommodityItem || reward instanceof CommodityItem;
-            contents.set(4, 4, ItemBuilder.of(buyCount > 64 && useChest ? Material.CHEST :
+            boolean useChest = buyCount > 64 && (cost instanceof CommodityItem || reward instanceof CommodityItem);
+            contents.set(4, 4, ItemBuilder.of(useChest ? Material.CHEST :
                             buyCount != 0 ? Material.END_CRYSTAL : Material.BARRIER)
                     .name(I18n.translate("worstshop.messages.shops.buy-counts.total", buyCount))
-                    .amount(Math.max(Math.min(buyCount > 64 && useChest ? (int) Math.ceil(buyCount / 64f) : buyCount, 64), 1))
+                    .amount(Math.max(Math.min(useChest ? (int) Math.ceil(buyCount / 64f) : buyCount, 64), 1))
                     .lore(lore)
                     .toEmptyClickable()
             );

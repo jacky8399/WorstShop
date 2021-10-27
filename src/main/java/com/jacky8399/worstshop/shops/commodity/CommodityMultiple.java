@@ -1,12 +1,14 @@
 package com.jacky8399.worstshop.shops.commodity;
 
-import com.jacky8399.worstshop.shops.ElementContext;
+import com.jacky8399.worstshop.helper.ItemBuilder;
 import com.jacky8399.worstshop.shops.elements.ShopElement;
-import com.jacky8399.worstshop.shops.elements.StaticShopElement;
-import com.jacky8399.worstshop.shops.rendering.DefaultSlotFiller;
-import fr.minuskube.inv.content.InventoryContents;
+import com.jacky8399.worstshop.shops.rendering.ShopRenderer;
+import com.jacky8399.worstshop.shops.rendering.SlotFiller;
 import fr.minuskube.inv.content.SlotPos;
+import org.bukkit.ChatColor;
+import org.bukkit.Material;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemStack;
 
 import java.util.*;
 import java.util.function.Function;
@@ -91,43 +93,46 @@ public class CommodityMultiple extends Commodity implements IFlexibleCommodity {
             ShopElement elem1 = wants.get(0).createElement(position), elem2 = wants.get(1).createElement(position);
             SlotPos pos1 = SlotPos.of(position.pos.getRow() - 1, position.pos.getColumn()),
                     pos2 = SlotPos.of(position.pos.getRow() + 1, position.pos.getColumn());
-            // sanitize elements
-            elem1.filler = elem2.filler = DefaultSlotFiller.NONE;
-            elem1.itemPositions = Collections.singletonList(pos1);
-            elem2.itemPositions = Collections.singletonList(pos2);
-            return new StaticShopElement() {
+            return new ShopElement() {
                 @Override
-                public void populateItems(Player player, InventoryContents contents, ElementContext pagination) {
-                    elem1.populateItems(player, contents, pagination);
-                    elem2.populateItems(player, contents, pagination);
+                public ItemStack createStack(ShopRenderer renderer, SlotPos pos) {
+                    return pos == pos1 ? elem1.createStack(renderer, pos) : elem2.createStack(renderer, pos);
+                }
+
+                @Override
+                public SlotFiller getFiller(ShopRenderer renderer) {
+                    return (ignored, ignored1) -> Arrays.asList(pos1, pos2);
                 }
             };
         } else {
-            SlotPos pos1 = SlotPos.of(position.pos.getRow() - 1, position.pos.getColumn()),
-                    pos3 = SlotPos.of(position.pos.getRow() + 1, position.pos.getColumn());
-            String self = UUID.randomUUID().toString();
-            return new StaticShopElement() {
-                @Override
-                public void populateItems(Player player, InventoryContents contents, ElementContext pagination) {
-                    int itemSequence = contents.property(self + "_shopWantsItemSequence", 0);
-                    int nextItemSequence = wrapIndexOffset(itemSequence, 1);
-
-                    contents.setProperty(self + "_shopWantsItemSequence", nextItemSequence);
-
-                    ShopElement elem1 = wants.get(wrapIndexOffset(itemSequence, -1)).createElement(position),
-                            elem2 = wants.get(itemSequence).createElement(position),
-                            elem3 = wants.get(nextItemSequence).createElement(position);
-                    // sanitize
-                    elem1.filler = elem2.filler = elem3.filler = DefaultSlotFiller.NONE;
-                    elem1.itemPositions = Collections.singletonList(pos1);
-                    elem2.itemPositions = Collections.singletonList(position.pos);
-                    elem3.itemPositions = Collections.singletonList(pos3);
-
-                    elem1.populateItems(player, contents, pagination);
-                    elem2.populateItems(player, contents, pagination);
-                    elem3.populateItems(player, contents, pagination);
-                }
-            };
+            // uhhhh
+            // TODO fix 3 or more commodities
+            return position.createElement(ItemBuilder.of(Material.BARRIER).name(ChatColor.RED + "WIP").build());
+//            SlotPos pos1 = SlotPos.of(position.pos.getRow() - 1, position.pos.getColumn()),
+//                    pos3 = SlotPos.of(position.pos.getRow() + 1, position.pos.getColumn());
+//            String self = UUID.randomUUID().toString();
+//            return new StaticShopElement() {
+//                @Override
+//                public void populateItems(Player player, InventoryContents contents, ElementContext pagination) {
+//                    int itemSequence = contents.property(self + "_shopWantsItemSequence", 0);
+//                    int nextItemSequence = wrapIndexOffset(itemSequence, 1);
+//
+//                    contents.setProperty(self + "_shopWantsItemSequence", nextItemSequence);
+//
+//                    ShopElement elem1 = wants.get(wrapIndexOffset(itemSequence, -1)).createElement(position),
+//                            elem2 = wants.get(itemSequence).createElement(position),
+//                            elem3 = wants.get(nextItemSequence).createElement(position);
+//                    // sanitize
+//                    elem1.filler = elem2.filler = elem3.filler = DefaultSlotFiller.NONE;
+//                    elem1.itemPositions = Collections.singletonList(pos1);
+//                    elem2.itemPositions = Collections.singletonList(position.pos);
+//                    elem3.itemPositions = Collections.singletonList(pos3);
+//
+//                    elem1.populateItems(player, contents, pagination);
+//                    elem2.populateItems(player, contents, pagination);
+//                    elem3.populateItems(player, contents, pagination);
+//                }
+//            };
         }
     }
 
@@ -149,7 +154,7 @@ public class CommodityMultiple extends Commodity implements IFlexibleCommodity {
 
     @Override
     public boolean isElementDynamic() {
-        return wants.size() >= 3;
+        return wants.size() >= 3 || wants.stream().anyMatch(Commodity::isElementDynamic);
     }
 
     @Override

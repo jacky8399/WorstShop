@@ -74,8 +74,8 @@ public class DefaultSlotFiller {
             }
             renderer.backgrounds.add(ignored -> {
                 if (element.condition.test(renderer.player))
-                    return Maps.asMap(items, ignored1 ->
-                            new RenderingLayer.ElementInfo(element, element.createStack(renderer.player, renderer)));
+                    return Maps.asMap(items, pos ->
+                            new RenderingLayer.ElementInfo(element, element.createStack(renderer, pos)));
                 else return Collections.emptyMap();
             });
             return null;

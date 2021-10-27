@@ -13,7 +13,9 @@ import com.jacky8399.worstshop.shops.rendering.DefaultSlotFiller;
 import com.jacky8399.worstshop.shops.rendering.ShopRenderer;
 import com.jacky8399.worstshop.shops.rendering.SlotFiller;
 import fr.minuskube.inv.content.InventoryContents;
+import fr.minuskube.inv.content.SlotPos;
 import org.bukkit.entity.Player;
+import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -21,6 +23,7 @@ import org.jetbrains.annotations.Nullable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.function.Consumer;
 
 public class ConditionalShopElement extends ShopElement {
     @NotNull
@@ -79,7 +82,19 @@ public class ConditionalShopElement extends ShopElement {
     }
 
     @Override
-    public ItemStack createStack(Player player, ShopRenderer renderer) {
+    public ItemStack createStack(ShopRenderer renderer, SlotPos pos) {
+        Player player = renderer.player;
+        ShopElement toApply = condition.test(player) ? elementTrue : elementFalse;
+        if (toApply != null) {
+            ShopElement clone = toApply.clone();
+            return clone.createStack(renderer, pos);
+        }
+        return null;
+    }
+
+    @Override
+    public Consumer<InventoryClickEvent> getClickHandler(ShopRenderer renderer, SlotPos pos) {
+        Player player = renderer.player;
         ShopElement toApply = condition.test(player) ? elementTrue : elementFalse;
         if (toApply != null) {
             ShopElement clone = toApply.clone();
@@ -87,9 +102,9 @@ public class ConditionalShopElement extends ShopElement {
             newActions.addAll(clone.actions);
             clone.actions = newActions;
 
-            return clone.createStack(player, renderer);
+            return clone.getClickHandler(renderer, pos);
         }
-        return null;
+        return e->{};
     }
 
     @Override

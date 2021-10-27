@@ -28,6 +28,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 public abstract class ShopElement implements Cloneable, ParseContext.NamedContext {
@@ -115,8 +116,12 @@ public abstract class ShopElement implements Cloneable, ParseContext.NamedContex
         return null;
     }
 
-    public ItemStack createStack(Player player, ShopRenderer renderer) {
-        return createStack(player);
+    public ItemStack createStack(ShopRenderer renderer, SlotPos pos) {
+        return createStack(renderer.player);
+    }
+
+    public Consumer<InventoryClickEvent> getClickHandler(ShopRenderer renderer, SlotPos pos) {
+        return this::onClick;
     }
 
     public Map<String, Object> toMap(Map<String, Object> map) {

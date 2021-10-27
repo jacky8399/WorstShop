@@ -19,7 +19,6 @@ import fr.minuskube.inv.ClickableItem;
 import fr.minuskube.inv.InventoryListener;
 import fr.minuskube.inv.SmartInventory;
 import fr.minuskube.inv.content.InventoryContents;
-import fr.minuskube.inv.content.InventoryProvider;
 import fr.minuskube.inv.content.SlotIterator;
 import net.md_5.bungee.api.ChatColor;
 import org.bukkit.Bukkit;
@@ -44,7 +43,7 @@ import static com.jacky8399.worstshop.I18n.translate;
 
 @Adaptor(Shop.Adaptor.class)
 @Editable("shop")
-public class Shop implements InventoryProvider, ParseContext.NamedContext {
+public class Shop implements ParseContext.NamedContext {
     public static final String SHOP_ID_PREFIX = "worstshop:shop/";
 
     @Property
@@ -339,29 +338,28 @@ public class Shop implements InventoryProvider, ParseContext.NamedContext {
             populateElements(true, player, contents, new ElementContext(contents,
                     isOutline ? ElementContext.Stage.SKELETON : ElementContext.Stage.DYNAMIC));
     }
-    @Deprecated
-    @Override
-    public void init(Player player, InventoryContents contents) {
-        // TODO find a better solution to fix page turning
-        refreshItems(player, contents, false, true);
-        refreshItems(player, contents, true, false);
-    }
-    @Deprecated
-    @Override
-    public void update(Player player, InventoryContents contents) {
-//        if (extendsFrom.find().isPresent() && !extendsFrom.refersTo(this)) {
-//            extendsFrom.get().update(player, contents);
+//    @Deprecated
+//    @Override
+//    public void init(Player player, InventoryContents contents) {
+//        refreshItems(player, contents, false, true);
+//        refreshItems(player, contents, true, false);
+//    }
+//    @Deprecated
+//    @Override
+//    public void update(Player player, InventoryContents contents) {
+////        if (extendsFrom.find().isPresent() && !extendsFrom.refersTo(this)) {
+////            extendsFrom.get().update(player, contents);
+////        }
+//        populateElements(true, player, contents, null);
+//        if (updateInterval != 0) {
+//            Integer ticksSinceUpdate = contents.property("ticksSinceUpdate", 0);
+//            if (++ticksSinceUpdate == updateInterval) {
+//                refreshItems(player, contents, true, false);
+//                ticksSinceUpdate = 0;
+//            }
+//            contents.setProperty("ticksSinceUpdate", ticksSinceUpdate);
 //        }
-        populateElements(true, player, contents, null);
-        if (updateInterval != 0) {
-            Integer ticksSinceUpdate = contents.property("ticksSinceUpdate", 0);
-            if (++ticksSinceUpdate == updateInterval) {
-                refreshItems(player, contents, true, false);
-                ticksSinceUpdate = 0;
-            }
-            contents.setProperty("ticksSinceUpdate", ticksSinceUpdate);
-        }
-    }
+//    }
 
     public void close(InventoryCloseEvent e) {
         if (e == null) {
