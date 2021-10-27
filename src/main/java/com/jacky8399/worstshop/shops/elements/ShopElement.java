@@ -12,6 +12,9 @@ import com.jacky8399.worstshop.shops.conditions.Condition;
 import com.jacky8399.worstshop.shops.conditions.ConditionAnd;
 import com.jacky8399.worstshop.shops.conditions.ConditionConstant;
 import com.jacky8399.worstshop.shops.conditions.ConditionPermission;
+import com.jacky8399.worstshop.shops.rendering.DefaultSlotFiller;
+import com.jacky8399.worstshop.shops.rendering.ShopRenderer;
+import com.jacky8399.worstshop.shops.rendering.SlotFiller;
 import fr.minuskube.inv.ClickableItem;
 import fr.minuskube.inv.content.InventoryContents;
 import fr.minuskube.inv.content.InventoryProvider;
@@ -25,105 +28,9 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 public abstract class ShopElement implements Cloneable, ParseContext.NamedContext {
-    public interface SlotFiller {
-        void fill(ShopElement element, ClickableItem item, InventoryContents contents, ElementContext pagination);
-    }
-
-    public static class DefaultSlotFiller {
-        private static final HashMap<String, DefaultSlotFiller> FILLERS = new HashMap<>();
-        // very special case
-        public static final SlotFiller NONE;
-        public static final SlotFiller ALL;
-        public final String name;
-        public final String usage;
-        public final Function<String[], SlotFiller> filler;
-        private DefaultSlotFiller(String name, SlotFiller staticFiller) {
-            this(name, name, input -> staticFiller);
-        }
-        private DefaultSlotFiller(String name, String usage, Function<String[], SlotFiller> filler) {
-            this.name = name;
-            this.usage = usage;
-            this.filler = input -> new SlotFiller() {
-                SlotFiller actual = filler.apply(input);
-
-                @Override
-                public void fill(ShopElement element, ClickableItem item, InventoryContents contents, ElementContext pagination) {
-                    actual.fill(element, item, contents, pagination);
-                }
-
-                @Override
-                public String toString() {
-                    return input.length == 0 ? name : name + " " + String.join(" ", input);
-                }
-            };
-            FILLERS.put(name, this);
-        }
-        static {
-            ALL = new DefaultSlotFiller("all", (element, item, contents, pagination) -> contents.fill(item))
-                    .filler.apply(null);
-            NONE = new DefaultSlotFiller("none", (element, item, contents, pagination) -> {
-                if (element.itemPositions != null) {
-                    for (SlotPos pos : element.itemPositions) {
-                        contents.set(pos, item);
-                    }
-                } else {
-                    pagination.add(item);
-                }
-            }).filler.apply(null);
-            new DefaultSlotFiller("border", "border <radius>", input -> {
-                int radius = Integer.parseInt(input[0]);
-                return (element, item, contents, pagination) -> {
-                    for (int i = 0, rows = contents.inventory().getRows(); i < rows; i++) {
-                        for (int j = 0, columns = contents.inventory().getColumns(); j < columns; j++) {
-                            if (i < radius || i >= rows - radius || j < radius || j >= columns - radius)
-                                contents.set(i, j, item);
-                        }
-                    }
-                };
-            });
-            new DefaultSlotFiller("remaining", (element, item, contents, pagination) ->
-                    pagination.forEachRemaining((integer, integer2) -> item));
-            new DefaultSlotFiller("row", "row <row>", input -> {
-                int row = Integer.parseInt(input[0]);
-                return ((element, item, contents, pagination) -> contents.fillRow(row, item));
-            });
-            new DefaultSlotFiller("column", "column <row>", input -> {
-                int row = Integer.parseInt(input[0]);
-                return (element, item, contents, pagination) -> contents.fillColumn(row, item);
-            });
-            new DefaultSlotFiller("rectangle", "rectangle <row,col> <row,col> [solid]", input -> {
-                SlotPos pos1 = parsePos(input[0]).get(0), pos2 = parsePos(input[1]).get(0);
-                boolean solid = input.length == 3 && ("solid".equals(input[2]) || "true".equals(input[2]));
-                return (element, item, contents, pagination) -> {
-                    for (int i = 0, rows = contents.inventory().getRows(); i < rows; i++) {
-                        for (int j = 0, columns = contents.inventory().getColumns(); j < columns; j++) {
-                            if (i == pos1.getRow() || i == pos2.getRow() ||
-                                    j == pos1.getColumn() || j == pos2.getColumn() ||
-                                    (solid && i > pos1.getRow() && i < pos2.getRow() && j > pos1.getColumn() && j < pos2.getColumn()))
-                                contents.set(i, j, item);
-                        }
-                    }
-                };
-            });
-        }
-        public static SlotFiller fromInput(String input) {
-            input = input.toLowerCase(Locale.ROOT);
-            String[] split = input.split(" ");
-            DefaultSlotFiller filler = FILLERS.get(split[0]);
-            if (filler == null)
-                throw new IllegalArgumentException(input);
-            try {
-                return filler.filler.apply(Arrays.copyOfRange(split, 1, split.length));
-            } catch (Exception e) {
-                throw new IllegalArgumentException(filler.usage, e);
-            }
-        }
-    }
-
     // for debugging
     @Nullable
     public String id;
@@ -208,7 +115,7 @@ public abstract class ShopElement implements Cloneable, ParseContext.NamedContex
         return null;
     }
 
-    public ItemStack createStack(Player player, ElementContext context) {
+    public ItemStack createStack(Player player, ShopRenderer renderer) {
         return createStack(player);
     }
 
@@ -231,7 +138,7 @@ public abstract class ShopElement implements Cloneable, ParseContext.NamedContex
         return map;
     }
 
-    protected static List<SlotPos> parsePos(String input) {
+    public static List<SlotPos> parsePos(String input) {
         String[] posStrings = input.split(";");
         List<SlotPos> list = Lists.newArrayList();
         for (String posString : posStrings) {
@@ -249,16 +156,16 @@ public abstract class ShopElement implements Cloneable, ParseContext.NamedContex
         return list;
     }
 
+    @Deprecated
     public void populateItems(Player player, InventoryContents contents, ElementContext pagination) {
         InventoryProvider provider = contents.inventory().getProvider();
         String owner = provider instanceof Shop ? ((Shop) provider).id : provider.toString();
         ItemStack stack;
         try {
-            stack = createStack(player, pagination);
+            stack = createStack(player);
             if (ItemUtils.isEmpty(stack))
                 return;
 
-            // debug
             if (contents.property("debug", false)) {
                 // modify lore
                 ItemMeta meta = stack.getItemMeta();
@@ -270,7 +177,7 @@ public abstract class ShopElement implements Cloneable, ParseContext.NamedContex
         } catch (Exception ex) {
             // something has gone horribly wrong
             RuntimeException wrapped = new RuntimeException("Populating item for " + player.getName() + " (" + id + "@" + owner + ")", ex);
-            filler.fill(this, ItemUtils.getClickableErrorItem(wrapped), contents, pagination);
+//            filler.fill(this, ItemUtils.getClickableErrorItem(wrapped), contents, pagination);
             return;
         }
         ClickableItem item = ClickableItem.of(stack, e -> {
@@ -282,7 +189,17 @@ public abstract class ShopElement implements Cloneable, ParseContext.NamedContex
                 e.setCurrentItem(err);
             }
         });
-        filler.fill(this, item, contents, pagination);
+//        filler.fill(this, item, contents, pagination);
+    }
+
+    private static final EnumSet<ShopRenderer.RenderingFlag> STATIC_FLAGS = EnumSet.noneOf(ShopRenderer.RenderingFlag.class),
+            DYNAMIC_FLAGS = EnumSet.of(ShopRenderer.RenderingFlag.UPDATE_NEXT_TICK);
+    public EnumSet<ShopRenderer.RenderingFlag> getRenderingFlags(ShopRenderer renderer, SlotPos pos) {
+        return isDynamic() ? DYNAMIC_FLAGS : STATIC_FLAGS;
+    }
+    
+    public SlotFiller getFiller(ShopRenderer renderer) {
+        return filler;
     }
 
     public ShopElement clone() {

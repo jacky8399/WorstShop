@@ -3,8 +3,7 @@ package com.jacky8399.worstshop.shops.actions;
 import com.jacky8399.worstshop.WorstShop;
 import com.jacky8399.worstshop.helper.Config;
 import com.jacky8399.worstshop.helper.ConfigException;
-import com.jacky8399.worstshop.helper.PaginationHelper;
-import com.jacky8399.worstshop.shops.Shop;
+import com.jacky8399.worstshop.shops.rendering.ShopRenderer;
 import fr.minuskube.inv.content.InventoryContents;
 import fr.minuskube.inv.content.Pagination;
 import org.bukkit.entity.Player;
@@ -55,12 +54,12 @@ public class ActionPage extends Action {
             if (pageOffset < 0 && currentPage + pageOffset < 0) {
                 return;
             } else if (pageOffset > 0) {
-                int lastPage = PaginationHelper.getLastPage(pagination);
+                int lastPage = ((ShopRenderer) c.inventory().getProvider()).maxPage;
                 if (currentPage + pageOffset > lastPage - 1)
                     return;
             }
             pagination.page(currentPage + pageOffset);
-            ((Shop) c.inventory().getProvider()).refreshItems(player, c, true, false);
+//            ((Shop) c.inventory().getProvider()).refreshItems(player, c, true, false);
         });
     }
 

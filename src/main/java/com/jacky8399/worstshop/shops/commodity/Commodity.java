@@ -7,6 +7,7 @@ import com.jacky8399.worstshop.shops.conditions.ConditionCommodity;
 import com.jacky8399.worstshop.shops.conditions.ConditionConstant;
 import com.jacky8399.worstshop.shops.elements.ShopElement;
 import com.jacky8399.worstshop.shops.elements.StaticShopElement;
+import com.jacky8399.worstshop.shops.rendering.DefaultSlotFiller;
 import fr.minuskube.inv.content.SlotPos;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -189,7 +190,7 @@ public abstract class Commodity {
         @NotNull
         public ShopElement createElement(ShopElement element) {
             ShopElement clone = element == null ? StaticShopElement.fromStack(UNDEFINED) : element.clone();
-            clone.filler = ShopElement.DefaultSlotFiller.NONE;
+            clone.filler = DefaultSlotFiller.NONE;
             clone.itemPositions = Collections.singletonList(pos);
             return clone;
         }

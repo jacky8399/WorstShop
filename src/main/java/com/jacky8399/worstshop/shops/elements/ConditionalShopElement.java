@@ -9,11 +9,16 @@ import com.jacky8399.worstshop.shops.Shop;
 import com.jacky8399.worstshop.shops.ShopReference;
 import com.jacky8399.worstshop.shops.actions.Action;
 import com.jacky8399.worstshop.shops.conditions.Condition;
+import com.jacky8399.worstshop.shops.rendering.DefaultSlotFiller;
+import com.jacky8399.worstshop.shops.rendering.ShopRenderer;
+import com.jacky8399.worstshop.shops.rendering.SlotFiller;
 import fr.minuskube.inv.content.InventoryContents;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
@@ -71,6 +76,28 @@ public class ConditionalShopElement extends ShopElement {
 
             clone.populateItems(player, contents, pagination);
         }
+    }
+
+    @Override
+    public ItemStack createStack(Player player, ShopRenderer renderer) {
+        ShopElement toApply = condition.test(player) ? elementTrue : elementFalse;
+        if (toApply != null) {
+            ShopElement clone = toApply.clone();
+            List<Action> newActions = new ArrayList<>(actions);
+            newActions.addAll(clone.actions);
+            clone.actions = newActions;
+
+            return clone.createStack(player, renderer);
+        }
+        return null;
+    }
+
+    @Override
+    public SlotFiller getFiller(ShopRenderer renderer) {
+        ShopElement toApply = condition.test(renderer.player) ? elementTrue : elementFalse;
+        return toApply != null ?
+                (ignored, ignored1) -> toApply.getFiller(renderer).fill(toApply, renderer) :
+                DefaultSlotFiller.NONE;
     }
 
     @Override

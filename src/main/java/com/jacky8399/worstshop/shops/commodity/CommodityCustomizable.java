@@ -7,6 +7,7 @@ import com.jacky8399.worstshop.shops.ParseContext;
 import com.jacky8399.worstshop.shops.conditions.Condition;
 import com.jacky8399.worstshop.shops.elements.ShopElement;
 import com.jacky8399.worstshop.shops.elements.StaticShopElement;
+import com.jacky8399.worstshop.shops.rendering.DefaultSlotFiller;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -116,7 +117,7 @@ public final class CommodityCustomizable extends Commodity implements IFlexibleC
     public ShopElement createElement(TransactionType position) {
         // sanitize element
         ShopElement element = this.element.clone();
-        element.filler = ShopElement.DefaultSlotFiller.NONE;
+        element.filler = DefaultSlotFiller.NONE;
         element.itemPositions = Collections.singletonList(position.pos);
         element.actions = Lists.newArrayList();
         return element;

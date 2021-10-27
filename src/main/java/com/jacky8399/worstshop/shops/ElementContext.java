@@ -4,8 +4,11 @@ import fr.minuskube.inv.ClickableItem;
 import fr.minuskube.inv.content.InventoryContents;
 import fr.minuskube.inv.content.Pagination;
 import fr.minuskube.inv.content.SlotIterator;
+import fr.minuskube.inv.content.SlotPos;
 
 import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.CompletableFuture;
 import java.util.function.BiFunction;
 
 public class ElementContext {
@@ -20,6 +23,7 @@ public class ElementContext {
     InventoryContents contents;
     boolean hasDonePagination = false;
     ArrayList<ClickableItem> paginationItems;
+    public final CompletableFuture<List<SlotPos>> paginationItemResults = new CompletableFuture<>();
     Stage stage;
 
     ElementContext(InventoryContents contents, Stage stage) {
@@ -30,8 +34,9 @@ public class ElementContext {
         this.stage = stage;
     }
 
-    public void add(ClickableItem item) {
+    public int add(ClickableItem item) {
         paginationItems.add(item);
+        return paginationItems.size() - 1;
     }
 
     public void forEachRemaining(BiFunction<Integer, Integer, ClickableItem> supplier) {
@@ -66,6 +71,16 @@ public class ElementContext {
 //        WorstShop.get().logger.info("Empty slots: " + emptySlots + ", items: " + paginationItems.size());
         if (emptySlots != 0)
             pagination.setItemsPerPage(emptySlots);
-        pagination.addToIterator(slotIterator);
+
+        List<SlotPos> pos = new ArrayList<>();
+        for(ClickableItem item : pagination.getPageItems()) {
+            slotIterator.next();
+            pos.add(SlotPos.of(slotIterator.row(), slotIterator.column()));
+            slotIterator.set(item);
+
+            if(slotIterator.ended())
+                break;
+        }
+        paginationItemResults.complete(pos);
     }
 }

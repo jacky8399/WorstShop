@@ -7,6 +7,7 @@ import com.jacky8399.worstshop.shops.ParseContext;
 import com.jacky8399.worstshop.shops.actions.Action;
 import com.jacky8399.worstshop.shops.elements.DynamicShopElement;
 import com.jacky8399.worstshop.shops.elements.ShopElement;
+import com.jacky8399.worstshop.shops.rendering.DefaultSlotFiller;
 import fr.minuskube.inv.content.InventoryContents;
 import org.apache.commons.lang.Validate;
 import org.bukkit.entity.Player;

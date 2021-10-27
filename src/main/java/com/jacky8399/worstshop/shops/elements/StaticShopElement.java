@@ -10,8 +10,8 @@ import com.jacky8399.worstshop.shops.ElementContext;
 import com.jacky8399.worstshop.shops.ParseContext;
 import com.jacky8399.worstshop.shops.Shop;
 import com.jacky8399.worstshop.shops.ShopReference;
+import com.jacky8399.worstshop.shops.rendering.ShopRenderer;
 import fr.minuskube.inv.content.InventoryContents;
-import me.clip.placeholderapi.PlaceholderAPI;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -36,6 +36,7 @@ import org.yaml.snakeyaml.Yaml;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.function.BiConsumer;
+import java.util.function.UnaryOperator;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -338,7 +339,7 @@ public class StaticShopElement extends ShopElement {
     public void populateItems(Player player, InventoryContents contents, ElementContext pagination) {
         super.populateItems(player, contents, pagination);
 
-        if (async) {
+        if (async && pagination.getStage() == ElementContext.Stage.SKELETON) {
             Bukkit.getScheduler().runTaskAsynchronously(WorstShop.get(), () -> {
                 try {
                     asyncHack.put(player, createStack(player));
@@ -390,10 +391,7 @@ public class StaticShopElement extends ShopElement {
     private static final Map<Player, ItemStack> asyncHack = Collections.synchronizedMap(new WeakHashMap<>());
 
     @Override
-    public ItemStack createStack(Player player, ElementContext context) {
-        if (context != null && context.getStage() == ElementContext.Stage.SKELETON) // don't replace placeholders
-            return rawStack;
-
+    public ItemStack createStack(Player player, ShopRenderer renderer) {
         if (async) {
             ItemStack asyncHackResult = asyncHack.remove(player);
             if (asyncHackResult != null) {
@@ -426,35 +424,43 @@ public class StaticShopElement extends ShopElement {
         return actualStack;
     }
 
+
     @Nullable
     @Contract("_, null -> null; _, !null -> !null")
     public static ItemStack replacePlaceholders(Player player, @Nullable ItemStack stack) {
+        return replacePlaceholders(player, stack, null, null);
+    }
+
+    @Nullable
+    @Contract("_, null, _, _ -> null; _, !null, _, _ -> !null")
+    public static ItemStack replacePlaceholders(Player player, @Nullable ItemStack stack, @Nullable Shop shop, @Nullable ShopRenderer renderer) {
         if (stack == null || stack.getType() == Material.AIR)
             return stack;
+
+        UnaryOperator<String> placeholderReplacer = str -> I18n.doPlaceholders(player, str, shop, renderer);
 
         stack = stack.clone();
         ItemMeta meta = stack.getItemMeta();
         if (meta.hasLore()) {
             // noinspection ConstantConditions
             meta.setLore(meta.getLore().stream()
-                    .map(lore -> I18n.doPlaceholders(player, lore))
+                    .map(placeholderReplacer)
                     .collect(Collectors.toList())
             );
         }
         if (meta.hasDisplayName()) {
-            meta.setDisplayName(I18n.doPlaceholders(player, meta.getDisplayName()));
+            meta.setDisplayName(placeholderReplacer.apply(meta.getDisplayName()));
         }
         // wow why didn't I think of this
         // check for player skull
-        if (meta instanceof SkullMeta) {
-            SkullMeta skullMeta = (SkullMeta) meta;
+        if (meta instanceof SkullMeta skullMeta) {
             PaperHelper.GameProfile profile = PaperHelper.getSkullMetaProfile(skullMeta);
             if (profile != null) {
                 if (profile.equals(VIEWER_SKULL)) {
                     skullMeta.setOwningPlayer(player);
-                } else if (profile.getName() != null && profile.getName().contains("%") && WorstShop.get().placeholderAPI) {
+                } else if (profile.getName() != null && (profile.getName().contains("%") || profile.getName().contains("!"))) {
                     // replace placeholders too
-                    String newName = PlaceholderAPI.setPlaceholders(player, profile.getName());
+                    String newName = placeholderReplacer.apply(profile.getName());
                     // check if the name is that of a online player
                     Player newPlayer = Bukkit.getPlayer(newName);
                     if (newPlayer != null && newPlayer.isOnline()) {

@@ -7,11 +7,10 @@ import co.aikar.locales.LanguageTable;
 import co.aikar.locales.LocaleManager;
 import com.jacky8399.worstshop.helper.ConfigHelper;
 import com.jacky8399.worstshop.helper.InventoryUtils;
-import com.jacky8399.worstshop.helper.PaginationHelper;
 import com.jacky8399.worstshop.helper.PaperHelper;
 import com.jacky8399.worstshop.shops.Shop;
+import com.jacky8399.worstshop.shops.rendering.ShopRenderer;
 import fr.minuskube.inv.content.InventoryContents;
-import fr.minuskube.inv.content.Pagination;
 import me.clip.placeholderapi.PlaceholderAPI;
 import net.md_5.bungee.api.ChatColor;
 import org.bukkit.configuration.InvalidConfigurationException;
@@ -186,32 +185,33 @@ public class I18n {
     }
 
     public static final Pattern SHOP_VARIABLE_PATTERN = Pattern.compile("!([A-Za-z0-9_]+)!");
+    @Deprecated
     public static String doPlaceholders(@NotNull Player player, String input) {
         Optional<InventoryContents> contents = InventoryUtils.getContents(player);
         return doPlaceholders(player, input,
                 (Shop) contents.map(c -> c.inventory().getProvider())
                         .filter(provider -> provider instanceof Shop).orElse(null),
-                contents.orElse(null));
+                null);
     }
 
-    public static String doPlaceholders(@NotNull Player player, String input, @Nullable Shop owner, @Nullable InventoryContents contents) {
+    public static String doPlaceholders(@NotNull Player player, String input, @Nullable Shop shop, @Nullable ShopRenderer renderer) {
         String ret = (plugin.placeholderAPI ? PlaceholderAPI.setPlaceholders(player, input) : input)
                 .replace("{player}", player.getName());
-        if (contents != null) {
+        if (renderer != null) {
             // page
             if (ret.contains("!page!") || ret.contains("!max_page!")) {
-                Pagination pagination = contents.pagination();
-                int page = pagination.getPage() + 1;
-                int maxPage = PaginationHelper.getLastPage(pagination);
-                ret = ret.replace("!page!", Integer.toString(page)).replace("!max_page!", Integer.toString(maxPage));
+                int page = renderer.page + 1;
+                int maxPage = renderer.maxPage;
+                ret = ret.replace("!page!", Integer.toString(page))
+                        .replace("!max_page!", Integer.toString(maxPage));
             }
         }
-        if (owner != null) {
+        if (shop != null) {
             // other shop variables
             Matcher matcher = SHOP_VARIABLE_PATTERN.matcher(ret);
             ret = matcher.replaceAll(result -> {
                 String var = result.group(1);
-                Object obj = owner.getVariable(var);
+                Object obj = shop.getVariable(var);
                 return obj != null ? String.valueOf(obj) : "!" + var + "!";
             });
         }

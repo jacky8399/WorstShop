@@ -14,6 +14,7 @@ import com.jacky8399.worstshop.shops.conditions.Condition;
 import com.jacky8399.worstshop.shops.conditions.ConditionConstant;
 import com.jacky8399.worstshop.shops.elements.ShopElement;
 import com.jacky8399.worstshop.shops.elements.StaticShopElement;
+import com.jacky8399.worstshop.shops.rendering.ShopRenderer;
 import fr.minuskube.inv.ClickableItem;
 import fr.minuskube.inv.InventoryListener;
 import fr.minuskube.inv.SmartInventory;
@@ -123,7 +124,9 @@ public class Shop implements InventoryProvider, ParseContext.NamedContext {
 
     public SmartInventory getInventory(Player player, boolean skipAutoParent) {
         SmartInventory.Builder builder = getDefaultBuilder();
-        builder.id(SHOP_ID_PREFIX + id).provider(this)
+        builder.id(SHOP_ID_PREFIX + id)
+//                .provider(this)
+                .provider(new ShopRenderer(this, player))
                 .listener(new InventoryListener<>(InventoryCloseEvent.class, this::close))
                 .type(type);
         if (type == InventoryType.CHEST) {
@@ -290,6 +293,7 @@ public class Shop implements InventoryProvider, ParseContext.NamedContext {
         circularReferenceChecked = true;
     }
 
+    @Deprecated
     public void populateElements(boolean dynamic,
                                  Player player, InventoryContents contents, ElementContext helper) {
         if (!circularReferenceChecked)
@@ -319,6 +323,7 @@ public class Shop implements InventoryProvider, ParseContext.NamedContext {
         }
     }
 
+    @Deprecated
     public void refreshItems(Player player, InventoryContents contents, boolean updateDynamic, boolean isOutline) {
         // clear old items
         SlotIterator it = contents.newIterator(SlotIterator.Type.HORIZONTAL, 0,0).allowOverride(true);
@@ -334,14 +339,14 @@ public class Shop implements InventoryProvider, ParseContext.NamedContext {
             populateElements(true, player, contents, new ElementContext(contents,
                     isOutline ? ElementContext.Stage.SKELETON : ElementContext.Stage.DYNAMIC));
     }
-
+    @Deprecated
     @Override
     public void init(Player player, InventoryContents contents) {
         // TODO find a better solution to fix page turning
         refreshItems(player, contents, false, true);
         refreshItems(player, contents, true, false);
     }
-
+    @Deprecated
     @Override
     public void update(Player player, InventoryContents contents) {
 //        if (extendsFrom.find().isPresent() && !extendsFrom.refersTo(this)) {
