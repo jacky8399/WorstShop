@@ -2,13 +2,12 @@ package com.jacky8399.worstshop.shops.commodity;
 
 import com.jacky8399.worstshop.helper.ItemBuilder;
 import com.jacky8399.worstshop.shops.elements.ShopElement;
+import com.jacky8399.worstshop.shops.rendering.RenderElement;
 import com.jacky8399.worstshop.shops.rendering.ShopRenderer;
-import com.jacky8399.worstshop.shops.rendering.SlotFiller;
 import fr.minuskube.inv.content.SlotPos;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
-import org.bukkit.inventory.ItemStack;
 
 import java.util.*;
 import java.util.function.Function;
@@ -85,6 +84,8 @@ public class CommodityMultiple extends Commodity implements IFlexibleCommodity {
         return 0;
     }
 
+
+    private static final EnumSet<ShopRenderer.RenderingFlag> flags = EnumSet.of(ShopRenderer.RenderingFlag.UPDATE_NEXT_TICK);
     @Override
     public ShopElement createElement(TransactionType position) {
         if (wants.size() == 1) {
@@ -95,13 +96,15 @@ public class CommodityMultiple extends Commodity implements IFlexibleCommodity {
                     pos2 = SlotPos.of(position.pos.getRow() + 1, position.pos.getColumn());
             return new ShopElement() {
                 @Override
-                public ItemStack createStack(ShopRenderer renderer, SlotPos pos) {
-                    return pos == pos1 ? elem1.createStack(renderer, pos) : elem2.createStack(renderer, pos);
-                }
-
-                @Override
-                public SlotFiller getFiller(ShopRenderer renderer) {
-                    return (ignored, ignored1) -> Arrays.asList(pos1, pos2);
+                public List<RenderElement> getRenderElement(ShopRenderer renderer) {
+                    return Arrays.asList(
+                            new RenderElement(this, Collections.singleton(pos1),
+                                    elem1.getRenderElement(renderer).get(0).stack(),
+                                    e -> {}, flags),
+                            new RenderElement(this, Collections.singleton(pos2),
+                                    elem2.getRenderElement(renderer).get(0).stack(),
+                                    e -> {}, flags)
+                    );
                 }
             };
         } else {

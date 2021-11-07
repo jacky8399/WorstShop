@@ -13,6 +13,7 @@ import com.jacky8399.worstshop.shops.conditions.ConditionAnd;
 import com.jacky8399.worstshop.shops.conditions.ConditionConstant;
 import com.jacky8399.worstshop.shops.conditions.ConditionPermission;
 import com.jacky8399.worstshop.shops.rendering.DefaultSlotFiller;
+import com.jacky8399.worstshop.shops.rendering.RenderElement;
 import com.jacky8399.worstshop.shops.rendering.ShopRenderer;
 import com.jacky8399.worstshop.shops.rendering.SlotFiller;
 import fr.minuskube.inv.ClickableItem;
@@ -116,12 +117,19 @@ public abstract class ShopElement implements Cloneable, ParseContext.NamedContex
         return null;
     }
 
-    public ItemStack createStack(ShopRenderer renderer, SlotPos pos) {
+    public ItemStack createStack(ShopRenderer renderer) {
         return createStack(renderer.player);
     }
 
-    public Consumer<InventoryClickEvent> getClickHandler(ShopRenderer renderer, SlotPos pos) {
+    public Consumer<InventoryClickEvent> getClickHandler(ShopRenderer renderer) {
         return this::onClick;
+    }
+
+    public List<RenderElement> getRenderElement(ShopRenderer renderer) {
+        SlotFiller filler = getFiller(renderer);
+        Collection<SlotPos> positions = filler.fill(this, renderer);
+        return Collections.singletonList(new RenderElement(this, positions,
+                createStack(renderer), getClickHandler(renderer), getRenderingFlags(renderer)));
     }
 
     public Map<String, Object> toMap(Map<String, Object> map) {
@@ -199,7 +207,7 @@ public abstract class ShopElement implements Cloneable, ParseContext.NamedContex
 
     private static final EnumSet<ShopRenderer.RenderingFlag> STATIC_FLAGS = EnumSet.noneOf(ShopRenderer.RenderingFlag.class),
             DYNAMIC_FLAGS = EnumSet.of(ShopRenderer.RenderingFlag.UPDATE_NEXT_TICK);
-    public EnumSet<ShopRenderer.RenderingFlag> getRenderingFlags(ShopRenderer renderer, SlotPos pos) {
+    public EnumSet<ShopRenderer.RenderingFlag> getRenderingFlags(ShopRenderer renderer) {
         return isDynamic() ? DYNAMIC_FLAGS : STATIC_FLAGS;
     }
     

@@ -40,13 +40,12 @@ public class DefaultSlotFiller {
     }
 
     static {
-        ALL = new DefaultSlotFiller("all", (element, renderer) -> renderer.outline.keySet())
+        ALL = new DefaultSlotFiller("all", (element, renderer) -> renderer.getSlots())
                 .fillerFactory.apply(null);
         NONE = new DefaultSlotFiller("none", (element, renderer) -> {
             if (element.itemPositions != null) {
                 return element.itemPositions;
             } else {
-                renderer.add(element);
                 return null;
             }
         }).fillerFactory.apply(null);
@@ -73,10 +72,12 @@ public class DefaultSlotFiller {
                 }
             }
             renderer.backgrounds.add(ignored -> {
-                if (element.condition.test(renderer.player))
-                    return Maps.asMap(items, pos ->
-                            new RenderingLayer.ElementInfo(element, element.createStack(renderer, pos)));
-                else return Collections.emptyMap();
+                if (element.condition.test(renderer.player)) {
+                    List<RenderElement> elements = element.getRenderElement(renderer);
+                    if (elements.size() != 0)
+                        return Maps.asMap(items, pos -> elements.get(0));
+                }
+                return Collections.emptyMap();
             });
             return null;
         });

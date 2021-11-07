@@ -7,7 +7,7 @@ import org.bukkit.inventory.ItemStack;
 import java.util.Map;
 
 public interface RenderingLayer {
-    Map<SlotPos, ElementInfo> render(int page);
+    Map<SlotPos, RenderElement> render(int page);
 
 
     record ElementInfo(ShopElement element, ItemStack raw) {

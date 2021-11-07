@@ -12,8 +12,8 @@ import com.jacky8399.worstshop.shops.commodity.CommodityMultiple;
 import com.jacky8399.worstshop.shops.commodity.IFlexibleCommodity;
 import com.jacky8399.worstshop.shops.elements.ShopElement;
 import com.jacky8399.worstshop.shops.elements.StaticShopElement;
+import com.jacky8399.worstshop.shops.rendering.RenderElement;
 import com.jacky8399.worstshop.shops.rendering.ShopRenderer;
-import com.jacky8399.worstshop.shops.rendering.SlotFiller;
 import fr.minuskube.inv.ClickableItem;
 import fr.minuskube.inv.SmartInventory;
 import fr.minuskube.inv.content.InventoryContents;
@@ -405,13 +405,22 @@ public class ActionShop extends Action {
         }
         private void populateItems(Player player, ShopElement element, InventoryContents contents) {
             ShopRenderer fake = new ShopRenderer(FAKE_SHOP, player);
-            SlotFiller filler = element.getFiller(fake);
-            Collection<SlotPos> posList = filler.fill(element, fake);
-            if (posList != null) {
-                for (SlotPos pos : posList) {
-                    contents.set(pos, ClickableItem.empty(element.createStack(fake, pos)));
+            List<RenderElement> items = element.getRenderElement(fake);
+            for (RenderElement item : items) {
+                Collection<SlotPos> posList = item.positions();
+                if (posList != null) {
+                    for (SlotPos pos : posList) {
+                        contents.set(pos, ClickableItem.empty(item.stack()));
+                    }
                 }
             }
+//            SlotFiller filler = element.getFiller(fake);
+//            Collection<SlotPos> posList = filler.fill(element, fake);
+//            if (posList != null) {
+//                for (SlotPos pos : posList) {
+//                    contents.set(pos, ClickableItem.empty(element.createStack(fake, pos)));
+//                }
+//            }
         }
 
         protected void updateCommodities(Player player, InventoryContents contents, boolean dynamicOnly) {

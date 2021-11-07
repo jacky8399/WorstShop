@@ -1,5 +1,6 @@
 package com.jacky8399.worstshop.shops.rendering;
 
+import com.google.common.collect.ImmutableList;
 import com.jacky8399.worstshop.shops.Shop;
 import com.jacky8399.worstshop.shops.ShopReference;
 import com.jacky8399.worstshop.shops.elements.ShopElement;
@@ -15,7 +16,6 @@ import org.jetbrains.annotations.Nullable;
 import java.util.*;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
-import java.util.stream.Collectors;
 
 public class ShopRenderer implements InventoryProvider, RenderingLayer {
     public final Shop shop;
@@ -25,9 +25,10 @@ public class ShopRenderer implements InventoryProvider, RenderingLayer {
         this.player = player;
     }
 
-    public HashMap<SlotPos, @Nullable ShopElement> outline = new HashMap<>();
-    public HashMap<ShopElement, List<SlotPos>> toUpdateNextTick = new HashMap<>();
-    public List<ShopElement> paginationItems = new ArrayList<>();
+    public HashMap<SlotPos, @Nullable RenderElement> outline = new HashMap<>();
+    public List<RenderElement> toUpdateNextTick = new ArrayList<>();
+//    public HashMap<RenderElement, List<SlotPos>> toUpdateNextTick = new HashMap<>();
+    public List<RenderElement> paginationItems = new ArrayList<>();
     public List<RenderingLayer> backgrounds = new ArrayList<>();
 
     public void addShopBackground() {
@@ -38,16 +39,26 @@ public class ShopRenderer implements InventoryProvider, RenderingLayer {
         }
     }
 
-    public void add(ShopElement element) {
-        paginationItems.add(element);
-    }
-
     public int getRows() {
         return shop.rows;
     }
 
     public int getColumns() {
         return 9;
+    }
+
+    private ImmutableList<SlotPos> slots;
+    public ImmutableList<SlotPos> getSlots() {
+        if (slots == null) {
+            ImmutableList.Builder<SlotPos> builder = ImmutableList.builder();
+            for (int i = 0; i < getRows(); i++) {
+                for (int j = 0; j < getColumns(); j++) {
+                    builder.add(new SlotPos(i, j));
+                }
+            }
+            slots = builder.build();
+        }
+        return slots;
     }
 
     public void initInventoryStructure() {
@@ -59,11 +70,15 @@ public class ShopRenderer implements InventoryProvider, RenderingLayer {
     public void fillOutline() {
         initInventoryStructure();
         Consumer<ShopElement> addToOutline = element -> {
-            SlotFiller filler = element.getFiller(this);
-            Collection<SlotPos> slots = filler.fill(element, this);
-            if (slots != null) {
-                for (SlotPos slot : slots) {
-                    outline.put(slot, element);
+            List<RenderElement> items = element.getRenderElement(this);
+            for (RenderElement item : items) {
+                Collection<SlotPos> slots = item.positions();
+                if (slots != null) {
+                    for (SlotPos slot : slots) {
+                        outline.put(slot, item);
+                    }
+                } else {
+                    paginationItems.add(item);
                 }
             }
         };
@@ -74,8 +89,8 @@ public class ShopRenderer implements InventoryProvider, RenderingLayer {
     public transient int page, maxPage;
 
 
-    public Map<SlotPos, ElementInfo> render(int page) {
-        LinkedHashMap<SlotPos, RenderingLayer.ElementInfo> elements = new LinkedHashMap<>();
+    public Map<SlotPos, RenderElement> render(int page) {
+        LinkedHashMap<SlotPos, RenderElement> elements = new LinkedHashMap<>();
         for (int row = 0; row < getRows(); row++) {
             for (int column = 0; column < getColumns(); column++) {
                 elements.put(new SlotPos(row, column), null);
@@ -84,43 +99,40 @@ public class ShopRenderer implements InventoryProvider, RenderingLayer {
         // background layers
         addShopBackground();
         for (RenderingLayer layer : backgrounds) {
-            Map<SlotPos, RenderingLayer.ElementInfo> layerItems = layer.render(page);
+            Map<SlotPos, RenderElement> layerItems = layer.render(page);
             layerItems.forEach((pos, stack) -> {
                 if (stack != null)
                     elements.put(pos, stack);
             });
         }
 
-        BiConsumer<SlotPos, ShopElement> addToElements = (pos, element) -> {
-            if (element == null || !element.condition.test(player))
+        BiConsumer<SlotPos, RenderElement> addToElements = (pos, element) -> {
+            if (element == null || !element.owner().condition.test(player))
                 return;
-            ItemStack stack = element.createStack(this, pos);
-            if (stack == null)
-                return;
-            elements.put(pos, new RenderingLayer.ElementInfo(element, stack));
+            elements.put(pos, element);
         };
 
         fillOutline();
         outline.forEach(addToElements);
         // pagination
         // find empty slots
-        List<SlotPos> emptySlots = elements.entrySet()
-                .stream()
-                .filter(entry -> entry.getValue() == null)
-                .map(Map.Entry::getKey)
-                .collect(Collectors.toList());
-//        WorstShop.get().logger.info(elements.toString());
-//        WorstShop.get().logger.info("Empty slots = " + emptySlots.size());
+        List<SlotPos> emptySlots = new ArrayList<>();
+        for (Map.Entry<SlotPos, RenderElement> entry : elements.entrySet()) {
+            if (entry.getValue() == null) {
+                SlotPos key = entry.getKey();
+                emptySlots.add(key);
+            }
+        }
         if (emptySlots.size() != 0) {
             this.page = page;
             this.maxPage = (int) Math.ceil(((double) paginationItems.size()) / emptySlots.size());
 
             int start = page * emptySlots.size(), end = Math.min(start + emptySlots.size(), paginationItems.size());
             if (start < end) {
-                List<ShopElement> itemsDisplayed = paginationItems.subList(start, end);
-                for (int i = 0; i < itemsDisplayed.size(); i++) {
+                List<RenderElement> elementsDisplayed = paginationItems.subList(start, end);
+                for (int i = 0; i < elementsDisplayed.size(); i++) {
                     SlotPos slot = emptySlots.get(i);
-                    addToElements.accept(slot, itemsDisplayed.get(i));
+                    addToElements.accept(slot, elementsDisplayed.get(i));
                 }
             }
         }
@@ -129,17 +141,18 @@ public class ShopRenderer implements InventoryProvider, RenderingLayer {
     }
 
     public void apply(Player player, InventoryContents contents) {
-        Map<SlotPos, RenderingLayer.ElementInfo> result = render(contents.pagination().getPage());
+        Map<SlotPos, RenderElement> result = render(contents.pagination().getPage());
         result.forEach((var pos, @Nullable var info) -> {
-            if (info == null || info.raw() == null)
+            if (info == null || info.stack() == null) {
+                contents.set(pos, null); // to clear old pagination items
                 return;
-            ShopElement element = info.element();
-            ItemStack stack = info.raw();
+            }
+            ItemStack stack = info.stack();
             ItemStack stackWithPlaceholders = StaticShopElement.replacePlaceholders(player, stack, shop, this);
-            ClickableItem item = ClickableItem.of(stackWithPlaceholders, element.getClickHandler(this, pos));
+            ClickableItem item = ClickableItem.of(stackWithPlaceholders, info.handler());
             contents.set(pos, item);
-            if (element.getRenderingFlags(this, pos).contains(RenderingFlag.UPDATE_NEXT_TICK))
-                toUpdateNextTick.computeIfAbsent(element, ignored -> new ArrayList<>()).add(pos);
+            if (info.flags().contains(RenderingFlag.UPDATE_NEXT_TICK))
+                toUpdateNextTick.add(info);
         });
     }
 
@@ -171,18 +184,15 @@ public class ShopRenderer implements InventoryProvider, RenderingLayer {
             updated = true;
         }
         if (!updated) {
-            toUpdateNextTick.entrySet().removeIf(entry -> {
-                ShopElement element = entry.getKey();
-                List<SlotPos> posList = entry.getValue();
-                posList.removeIf(pos -> {
-                    ItemStack stack = element.createStack(this, pos);
-                    ItemStack stackWithPlaceholders = StaticShopElement.replacePlaceholders(player, stack, shop, this);
-                    ClickableItem item = ClickableItem.of(stackWithPlaceholders, element.getClickHandler(this, pos));
-                    contents.set(pos, item);
+            toUpdateNextTick.removeIf(renderElement -> {
+                renderElement.update();
 
-                    return !element.getRenderingFlags(this, pos).contains(RenderingFlag.UPDATE_NEXT_TICK);
-                });
-                return posList.size() == 0;
+                ItemStack stackWithPlaceholders = StaticShopElement.replacePlaceholders(player, renderElement.stack(), shop, this);
+                ClickableItem item = ClickableItem.of(stackWithPlaceholders, renderElement.handler());
+                Collection<SlotPos> positions = renderElement.positions();
+                for (SlotPos pos : positions)
+                    contents.set(pos, item);
+                return !renderElement.flags().contains(RenderingFlag.UPDATE_NEXT_TICK);
             });
         }
     }

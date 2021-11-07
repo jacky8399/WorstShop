@@ -12,7 +12,6 @@ import com.jacky8399.worstshop.shops.Shop;
 import com.jacky8399.worstshop.shops.ShopReference;
 import com.jacky8399.worstshop.shops.rendering.ShopRenderer;
 import fr.minuskube.inv.content.InventoryContents;
-import fr.minuskube.inv.content.SlotPos;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -392,7 +391,7 @@ public class StaticShopElement extends ShopElement {
     private static final Map<Player, ItemStack> asyncHack = Collections.synchronizedMap(new WeakHashMap<>());
 
     @Override
-    public ItemStack createStack(ShopRenderer renderer, SlotPos pos) {
+    public ItemStack createStack(ShopRenderer renderer) {
         Player player = renderer.player;
         if (async) {
             ItemStack asyncHackResult = asyncHack.remove(player);

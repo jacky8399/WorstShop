@@ -82,18 +82,18 @@ public class ConditionalShopElement extends ShopElement {
     }
 
     @Override
-    public ItemStack createStack(ShopRenderer renderer, SlotPos pos) {
+    public ItemStack createStack(ShopRenderer renderer) {
         Player player = renderer.player;
         ShopElement toApply = condition.test(player) ? elementTrue : elementFalse;
         if (toApply != null) {
             ShopElement clone = toApply.clone();
-            return clone.createStack(renderer, pos);
+            return clone.createStack(renderer);
         }
         return null;
     }
 
     @Override
-    public Consumer<InventoryClickEvent> getClickHandler(ShopRenderer renderer, SlotPos pos) {
+    public Consumer<InventoryClickEvent> getClickHandler(ShopRenderer renderer) {
         Player player = renderer.player;
         ShopElement toApply = condition.test(player) ? elementTrue : elementFalse;
         if (toApply != null) {
@@ -102,7 +102,7 @@ public class ConditionalShopElement extends ShopElement {
             newActions.addAll(clone.actions);
             clone.actions = newActions;
 
-            return clone.getClickHandler(renderer, pos);
+            return clone.getClickHandler(renderer);
         }
         return e->{};
     }
