@@ -403,9 +403,12 @@ public class ActionShop extends Action {
         static {
             FAKE_SHOP.id = "worstshop_internal:shop_gui";
         }
+        private ShopRenderer renderer;
         private void populateItems(Player player, ShopElement element, InventoryContents contents) {
-            ShopRenderer fake = new ShopRenderer(FAKE_SHOP, player);
-            List<RenderElement> items = element.getRenderElement(fake);
+            if (renderer == null) {
+                renderer = new ShopRenderer(FAKE_SHOP, player);
+            }
+            List<RenderElement> items = element.getRenderElement(renderer);
             for (RenderElement item : items) {
                 Collection<SlotPos> posList = item.positions();
                 if (posList != null) {

@@ -12,6 +12,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -109,6 +110,7 @@ public class ShopReference {
         @Override
         public Collection<? extends ShopReference> getValues() {
             return Stream.concat(ShopManager.SHOPS.keySet().stream().map(ShopReference::of), Stream.of(EMPTY))
+                    .sorted(Comparator.comparing(ref -> ref.id))
                     .collect(Collectors.toList());
         }
 
@@ -117,7 +119,7 @@ public class ShopReference {
             if (fieldName != null)
                 return ItemBuilder.of(Material.EMERALD_BLOCK)
                         .name(EditorUtils.NAME_FORMAT.apply(fieldName))
-                        .lores(EditorUtils.VALUE_FORMAT.apply(val == EMPTY ? "?" : val.id))
+                        .lores(EditorUtils.VALUE_FORMAT.apply(val instanceof Empty ? "?" : val.id))
                         .addLores(EditorUtils.getDesc(parentName, fieldName))
                         .build();
             return ItemBuilder.of(Material.EMERALD_BLOCK).name(ChatColor.GREEN + val.id).build();

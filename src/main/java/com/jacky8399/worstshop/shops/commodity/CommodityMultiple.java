@@ -1,12 +1,9 @@
 package com.jacky8399.worstshop.shops.commodity;
 
-import com.jacky8399.worstshop.helper.ItemBuilder;
 import com.jacky8399.worstshop.shops.elements.ShopElement;
 import com.jacky8399.worstshop.shops.rendering.RenderElement;
 import com.jacky8399.worstshop.shops.rendering.ShopRenderer;
 import fr.minuskube.inv.content.SlotPos;
-import org.bukkit.ChatColor;
-import org.bukkit.Material;
 import org.bukkit.entity.Player;
 
 import java.util.*;
@@ -47,22 +44,22 @@ public class CommodityMultiple extends Commodity implements IFlexibleCommodity {
 
     @Override
     public int getMaximumMultiplier(Player player) {
-        return wants.stream().mapToInt(wants -> getMaximumMultiplier(player)).min().orElse(0);
+        return wants.stream().mapToInt(commodity -> commodity.getMaximumMultiplier(player)).min().orElse(0);
     }
 
     @Override
     public Commodity multiply(double multiplier) {
-        return new CommodityMultiple(wants.stream().map(want->want.multiply(multiplier)).collect(Collectors.toList()));
+        return new CommodityMultiple(wants.stream().map(commodity -> commodity.multiply(multiplier)).collect(Collectors.toList()));
     }
 
     @Override
     public boolean canAfford(Player player) {
-        return wants.stream().allMatch(want->want.canAfford(player));
+        return wants.stream().allMatch(commodity -> commodity.canAfford(player));
     }
 
     @Override
     public void deduct(Player player) {
-        wants.forEach(want->want.deduct(player));
+        wants.forEach(commodity -> commodity.deduct(player));
     }
 
     @Override
@@ -84,8 +81,13 @@ public class CommodityMultiple extends Commodity implements IFlexibleCommodity {
         return 0;
     }
 
+    private RenderElement createRenderElement(SlotPos pos, ShopElement fake, ShopElement element, ShopRenderer renderer) {
+        return new RenderElement(fake, Collections.singletonList(pos),
+                element.getRenderElement(renderer).get(0).stack(),
+                e -> {}, ShopElement.DYNAMIC_FLAGS
+        );
+    }
 
-    private static final EnumSet<ShopRenderer.RenderingFlag> flags = EnumSet.of(ShopRenderer.RenderingFlag.UPDATE_NEXT_TICK);
     @Override
     public ShopElement createElement(TransactionType position) {
         if (wants.size() == 1) {
@@ -98,44 +100,31 @@ public class CommodityMultiple extends Commodity implements IFlexibleCommodity {
                 @Override
                 public List<RenderElement> getRenderElement(ShopRenderer renderer) {
                     return Arrays.asList(
-                            new RenderElement(this, Collections.singleton(pos1),
-                                    elem1.getRenderElement(renderer).get(0).stack(),
-                                    e -> {}, flags),
-                            new RenderElement(this, Collections.singleton(pos2),
-                                    elem2.getRenderElement(renderer).get(0).stack(),
-                                    e -> {}, flags)
+                            createRenderElement(pos1, this, elem1, renderer),
+                            createRenderElement(pos2, this, elem2, renderer)
                     );
                 }
             };
         } else {
-            // uhhhh
-            // TODO fix 3 or more commodities
-            return position.createElement(ItemBuilder.of(Material.BARRIER).name(ChatColor.RED + "WIP").build());
-//            SlotPos pos1 = SlotPos.of(position.pos.getRow() - 1, position.pos.getColumn()),
-//                    pos3 = SlotPos.of(position.pos.getRow() + 1, position.pos.getColumn());
-//            String self = UUID.randomUUID().toString();
-//            return new StaticShopElement() {
-//                @Override
-//                public void populateItems(Player player, InventoryContents contents, ElementContext pagination) {
-//                    int itemSequence = contents.property(self + "_shopWantsItemSequence", 0);
-//                    int nextItemSequence = wrapIndexOffset(itemSequence, 1);
-//
-//                    contents.setProperty(self + "_shopWantsItemSequence", nextItemSequence);
-//
-//                    ShopElement elem1 = wants.get(wrapIndexOffset(itemSequence, -1)).createElement(position),
-//                            elem2 = wants.get(itemSequence).createElement(position),
-//                            elem3 = wants.get(nextItemSequence).createElement(position);
-//                    // sanitize
-//                    elem1.filler = elem2.filler = elem3.filler = DefaultSlotFiller.NONE;
-//                    elem1.itemPositions = Collections.singletonList(pos1);
-//                    elem2.itemPositions = Collections.singletonList(position.pos);
-//                    elem3.itemPositions = Collections.singletonList(pos3);
-//
-//                    elem1.populateItems(player, contents, pagination);
-//                    elem2.populateItems(player, contents, pagination);
-//                    elem3.populateItems(player, contents, pagination);
-//                }
-//            };
+            SlotPos pos1 = SlotPos.of(position.pos.getRow() - 1, position.pos.getColumn()),
+                    pos3 = SlotPos.of(position.pos.getRow() + 1, position.pos.getColumn());
+            String self = UUID.randomUUID().toString();
+            return new ShopElement() {
+                @Override
+                public List<RenderElement> getRenderElement(ShopRenderer renderer) {
+                    int itemSequence = renderer.property(self + "_shopWantsItemSequence", 0);
+                    int nextItemSequence = wrapIndexOffset(itemSequence, 1);
+                    renderer.setProperty(self + "_shopWantsItemSequence", nextItemSequence);
+                    ShopElement elem1 = wants.get(wrapIndexOffset(itemSequence, -1)).createElement(position),
+                            elem2 = wants.get(itemSequence).createElement(position),
+                            elem3 = wants.get(nextItemSequence).createElement(position);
+                    return Arrays.asList(
+                            createRenderElement(pos1, this, elem1, renderer),
+                            createRenderElement(position.pos, this, elem2, renderer),
+                            createRenderElement(pos3, this, elem3, renderer)
+                    );
+                }
+            };
         }
     }
 
@@ -151,7 +140,7 @@ public class CommodityMultiple extends Commodity implements IFlexibleCommodity {
 
     @Override
     public Map<String, Object> toMap(Map<String, Object> map) {
-        // handled by Commodity.class
+        // handled by Commodity.toSerializable
         throw new UnsupportedOperationException();
     }
 

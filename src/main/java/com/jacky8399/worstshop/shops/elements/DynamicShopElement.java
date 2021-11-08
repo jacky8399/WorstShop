@@ -36,4 +36,9 @@ public class DynamicShopElement extends ShopElement {
     public ItemStack createStack(Player player) {
         return ItemBuilder.of(Material.BEDROCK).name(ChatColor.DARK_RED + "DYNAMIC").build();
     }
+
+    @Override
+    public String toString() {
+        return super.toString();
+    }
 }

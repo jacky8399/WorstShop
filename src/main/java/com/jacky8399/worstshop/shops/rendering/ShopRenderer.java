@@ -4,18 +4,17 @@ import com.google.common.collect.ImmutableList;
 import com.jacky8399.worstshop.shops.Shop;
 import com.jacky8399.worstshop.shops.ShopReference;
 import com.jacky8399.worstshop.shops.elements.ShopElement;
-import com.jacky8399.worstshop.shops.elements.StaticShopElement;
 import fr.minuskube.inv.ClickableItem;
 import fr.minuskube.inv.content.InventoryContents;
 import fr.minuskube.inv.content.InventoryProvider;
 import fr.minuskube.inv.content.SlotPos;
 import org.bukkit.entity.Player;
-import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 public class ShopRenderer implements InventoryProvider, RenderingLayer {
     public final Shop shop;
@@ -67,10 +66,10 @@ public class ShopRenderer implements InventoryProvider, RenderingLayer {
         paginationItems.clear();
     }
 
-    public void fillOutline() {
+    public void fillOutline(@Nullable ShopRenderer context) {
         initInventoryStructure();
         Consumer<ShopElement> addToOutline = element -> {
-            List<RenderElement> items = element.getRenderElement(this);
+            List<RenderElement> items = element.getRenderElement(context != null ? context : this);
             for (RenderElement item : items) {
                 Collection<SlotPos> slots = item.positions();
                 if (slots != null) {
@@ -82,14 +81,20 @@ public class ShopRenderer implements InventoryProvider, RenderingLayer {
                 }
             }
         };
-        shop.staticElements.forEach(addToOutline);
-        shop.dynamicElements.forEach(addToOutline);
+        shop.elements.forEach(addToOutline);
     }
 
     public transient int page, maxPage;
 
+    // temporary
+    @Nullable
+    public static ShopRenderer RENDERING;
 
-    public Map<SlotPos, RenderElement> render(int page) {
+    @Override
+    public Map<SlotPos, RenderElement> render(@Nullable ShopRenderer context, int page) {
+        if (context == null)
+            context = this;
+
         LinkedHashMap<SlotPos, RenderElement> elements = new LinkedHashMap<>();
         for (int row = 0; row < getRows(); row++) {
             for (int column = 0; column < getColumns(); column++) {
@@ -99,7 +104,7 @@ public class ShopRenderer implements InventoryProvider, RenderingLayer {
         // background layers
         addShopBackground();
         for (RenderingLayer layer : backgrounds) {
-            Map<SlotPos, RenderElement> layerItems = layer.render(page);
+            Map<SlotPos, RenderElement> layerItems = layer.render(context, page);
             layerItems.forEach((pos, stack) -> {
                 if (stack != null)
                     elements.put(pos, stack);
@@ -112,7 +117,7 @@ public class ShopRenderer implements InventoryProvider, RenderingLayer {
             elements.put(pos, element);
         };
 
-        fillOutline();
+        fillOutline(context);
         outline.forEach(addToElements);
         // pagination
         // find empty slots
@@ -136,24 +141,23 @@ public class ShopRenderer implements InventoryProvider, RenderingLayer {
                 }
             }
         }
-
         return elements;
     }
 
     public void apply(Player player, InventoryContents contents) {
-        Map<SlotPos, RenderElement> result = render(contents.pagination().getPage());
+        RENDERING = this;
+        Map<SlotPos, RenderElement> result = render(this, contents.pagination().getPage());
         result.forEach((var pos, @Nullable var info) -> {
             if (info == null || info.stack() == null) {
                 contents.set(pos, null); // to clear old pagination items
                 return;
             }
-            ItemStack stack = info.stack();
-            ItemStack stackWithPlaceholders = StaticShopElement.replacePlaceholders(player, stack, shop, this);
-            ClickableItem item = ClickableItem.of(stackWithPlaceholders, info.handler());
-            contents.set(pos, item);
-            if (info.flags().contains(RenderingFlag.UPDATE_NEXT_TICK))
+            contents.set(pos, info.clickableItem(this));
+            if (info.flags().contains(RenderingFlag.UPDATE_NEXT_TICK)) {
                 toUpdateNextTick.add(info);
+            }
         });
+        RENDERING = null;
     }
 
     public static void clearAll(InventoryContents contents) {
@@ -184,20 +188,82 @@ public class ShopRenderer implements InventoryProvider, RenderingLayer {
             updated = true;
         }
         if (!updated) {
-            toUpdateNextTick.removeIf(renderElement -> {
-                renderElement.update();
+            Map<ShopElement, List<RenderElement>> ownerToItemMap = toUpdateNextTick.stream()
+                    .collect(Collectors.groupingBy(RenderElement::owner, Collectors.toList()));
 
-                ItemStack stackWithPlaceholders = StaticShopElement.replacePlaceholders(player, renderElement.stack(), shop, this);
-                ClickableItem item = ClickableItem.of(stackWithPlaceholders, renderElement.handler());
-                Collection<SlotPos> positions = renderElement.positions();
-                for (SlotPos pos : positions)
-                    contents.set(pos, item);
-                return !renderElement.flags().contains(RenderingFlag.UPDATE_NEXT_TICK);
-            });
+            toUpdateNextTick.clear();
+
+            boolean shouldRefreshPagination = false;
+            for (Map.Entry<ShopElement, List<RenderElement>> entry : ownerToItemMap.entrySet()) {
+                ShopElement owner = entry.getKey();
+                List<RenderElement> items = entry.getValue();
+                // remove old items
+                for (RenderElement element : items) {
+                    if (element.positions() != null) {
+                        for (SlotPos pos : element.positions()) {
+                            contents.set(pos, null);
+                        }
+                    } else {
+                        shouldRefreshPagination = true;
+                    }
+                }
+                if (!shouldRefreshPagination) {
+                    List<RenderElement> newItems = owner.getRenderElement(this);
+                    for (RenderElement element : newItems) {
+                        if (element.positions() != null) {
+                            ClickableItem clickableItem = element.clickableItem(this);
+                            for (SlotPos pos : element.positions()) {
+                                contents.set(pos, clickableItem);
+                            }
+                            if (element.flags().contains(RenderingFlag.UPDATE_NEXT_TICK))
+                                toUpdateNextTick.add(element);
+                        } else {
+                            shouldRefreshPagination = true;
+                            break; // stop setting items since a full render is required anyway
+                        }
+                    }
+                }
+            }
+            if (shouldRefreshPagination) {
+                clearAll(contents);
+                apply(player, contents);
+            }
+            // remove old items
+//            toUpdateNextTick.removeIf(renderElement -> {
+//                renderElement.update();
+//
+//                ItemStack stackWithPlaceholders = StaticShopElement.replacePlaceholders(player, renderElement.stack(), shop, this);
+//                ClickableItem item = ClickableItem.of(stackWithPlaceholders, renderElement.handler());
+//                Collection<SlotPos> positions = renderElement.positions();
+//                for (SlotPos pos : positions)
+//                    contents.set(pos, item);
+//                return !renderElement.flags().contains(RenderingFlag.UPDATE_NEXT_TICK);
+//            });
         }
     }
 
     public enum RenderingFlag {
         UPDATE_NEXT_TICK
+    }
+
+    private final HashMap<String, Object> properties = new HashMap<>();
+    @SuppressWarnings("unchecked")
+    public <T> T property(String key) {
+        return (T) properties.get(key);
+    }
+
+    @SuppressWarnings("unchecked")
+    public <T> T property(String key, T def) {
+        return (T) properties.getOrDefault(key, def);
+    }
+
+    @SuppressWarnings("unchecked")
+    public <T> T setProperty(String key, Object value) {
+        return (T) properties.put(key, value);
+    }
+
+    @Override
+    public String toString() {
+        return "ShopRenderer{shop=" + shop + ", player=" + player.getName() + "}";
     }
 }

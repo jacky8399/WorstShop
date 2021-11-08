@@ -158,7 +158,7 @@ public abstract class ShopElement implements Cloneable, ParseContext.NamedContex
                 if (posString.contains(",")) {
                     // comma delimited x,y format
                     String[] posCoords = posString.split(",");
-                    list.add(new SlotPos(Integer.parseInt(posCoords[0].trim()), Integer.parseInt(posCoords[1].trim())));
+                    list.add(new SlotPos(Integer.parseInt(posCoords[1].trim()), Integer.parseInt(posCoords[0].trim())));
                 } else {
                     // assume normal integer format (0 - 54)
                     int posNum = Integer.parseInt(posString.trim());
@@ -205,7 +205,7 @@ public abstract class ShopElement implements Cloneable, ParseContext.NamedContex
 //        filler.fill(this, item, contents, pagination);
     }
 
-    private static final EnumSet<ShopRenderer.RenderingFlag> STATIC_FLAGS = EnumSet.noneOf(ShopRenderer.RenderingFlag.class),
+    public static final EnumSet<ShopRenderer.RenderingFlag> STATIC_FLAGS = EnumSet.noneOf(ShopRenderer.RenderingFlag.class),
             DYNAMIC_FLAGS = EnumSet.of(ShopRenderer.RenderingFlag.UPDATE_NEXT_TICK);
     public EnumSet<ShopRenderer.RenderingFlag> getRenderingFlags(ShopRenderer renderer) {
         return isDynamic() ? DYNAMIC_FLAGS : STATIC_FLAGS;
@@ -213,6 +213,11 @@ public abstract class ShopElement implements Cloneable, ParseContext.NamedContex
     
     public SlotFiller getFiller(ShopRenderer renderer) {
         return filler;
+    }
+
+    @Override
+    public String toString() {
+        return id + "@" + owner.id;
     }
 
     public ShopElement clone() {

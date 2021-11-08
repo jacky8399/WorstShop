@@ -53,9 +53,8 @@ public class ConditionPlaceholder extends Condition {
 
     @Override
     public boolean equals(Object obj) {
-        if (!(obj instanceof ConditionPlaceholder))
+        if (!(obj instanceof ConditionPlaceholder other))
             return false;
-        ConditionPlaceholder other = (ConditionPlaceholder) obj;
         return other.placeholderStr.equals(placeholderStr) && other.matcher.equals(matcher);
     }
 

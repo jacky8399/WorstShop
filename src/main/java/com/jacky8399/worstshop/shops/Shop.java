@@ -1,6 +1,5 @@
 package com.jacky8399.worstshop.shops;
 
-import com.google.common.collect.Streams;
 import com.jacky8399.worstshop.I18n;
 import com.jacky8399.worstshop.WorstShop;
 import com.jacky8399.worstshop.editor.Adaptor;
@@ -47,9 +46,7 @@ public class Shop implements ParseContext.NamedContext {
     public static final String SHOP_ID_PREFIX = "worstshop:shop/";
 
     @Property
-    public List<ShopElement> staticElements = new ArrayList<>();
-    @Property
-    public List<ShopElement> dynamicElements = new ArrayList<>();
+    public List<ShopElement> elements = new ArrayList<>();
 
     public Shop() { }
 
@@ -189,7 +186,7 @@ public class Shop implements ParseContext.NamedContext {
             config.getList("items", Config.class).forEach(itemConfig -> {
                 ShopElement element = ShopElement.fromConfig(itemConfig);
                 if (element != null)
-                    (element.isDynamic() ? inst.dynamicElements : inst.staticElements).add(element);
+                    inst.elements.add(element);
             });
 
             // commands
@@ -249,8 +246,7 @@ public class Shop implements ParseContext.NamedContext {
             yaml.set("alias", String.join(",", aliases));
         if (condition != ConditionConstant.TRUE)
             yaml.set("condition", condition.toMap(new HashMap<>()));
-        //noinspection UnstableApiUsage
-        yaml.set("items", Streams.concat(staticElements.stream(), dynamicElements.stream())
+        yaml.set("items", elements.stream()
                 .map(element -> element.toMap(new HashMap<>()))
                 .collect(Collectors.toList())
         );
@@ -302,7 +298,7 @@ public class Shop implements ParseContext.NamedContext {
             extendsFrom.get().populateElements(dynamic, player, contents, helper);
         }
 
-        List<ShopElement> elementList = dynamic ? dynamicElements : staticElements;
+        List<ShopElement> elementList = elements;
         ListIterator<ShopElement> iterator = elementList.listIterator();
         while (iterator.hasNext()) {
             int index = iterator.nextIndex();
@@ -394,6 +390,11 @@ public class Shop implements ParseContext.NamedContext {
         if (openNextTick != null) {
             Bukkit.getScheduler().runTask(WorstShop.get(), () -> openNextTick.open(p));
         }
+    }
+
+    @Override
+    public String toString() {
+        return "Shop{id=" + id + "}";
     }
 
     public class Adaptor extends EditableObjectAdaptor<Shop> {

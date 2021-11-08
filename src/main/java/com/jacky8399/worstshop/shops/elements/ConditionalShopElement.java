@@ -1,29 +1,22 @@
 package com.jacky8399.worstshop.shops.elements;
 
-import com.google.common.collect.Lists;
 import com.jacky8399.worstshop.helper.Config;
 import com.jacky8399.worstshop.helper.ConfigException;
-import com.jacky8399.worstshop.shops.ElementContext;
 import com.jacky8399.worstshop.shops.ParseContext;
 import com.jacky8399.worstshop.shops.Shop;
 import com.jacky8399.worstshop.shops.ShopReference;
 import com.jacky8399.worstshop.shops.actions.Action;
 import com.jacky8399.worstshop.shops.conditions.Condition;
 import com.jacky8399.worstshop.shops.rendering.DefaultSlotFiller;
+import com.jacky8399.worstshop.shops.rendering.RenderElement;
 import com.jacky8399.worstshop.shops.rendering.ShopRenderer;
-import com.jacky8399.worstshop.shops.rendering.SlotFiller;
-import fr.minuskube.inv.content.InventoryContents;
-import fr.minuskube.inv.content.SlotPos;
-import org.bukkit.entity.Player;
-import org.bukkit.event.inventory.InventoryClickEvent;
-import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
-import java.util.function.Consumer;
 
 public class ConditionalShopElement extends ShopElement {
     @NotNull
@@ -67,52 +60,36 @@ public class ConditionalShopElement extends ShopElement {
         return elementTrue.isDynamic() || (elementFalse != null && elementFalse.isDynamic());
     }
 
+    ShopElement cacheTrue, cacheFalse;
     @Override
-    public void populateItems(Player player, InventoryContents contents, ElementContext pagination) {
-        ShopElement toApply = condition.test(player) ? elementTrue : elementFalse;
+    public List<RenderElement> getRenderElement(ShopRenderer renderer) {
+        if (cacheTrue == null) {
+            sanitize();
+        }
+        ShopElement toApply = condition.test(renderer.player) ? cacheTrue : cacheFalse;
+        return toApply != null ? toApply.getRenderElement(renderer) : Collections.emptyList();
+    }
 
-        if (toApply != null) {
-            ShopElement clone = toApply.clone();
-            List<Action> newActions = Lists.newArrayList(actions);
-            newActions.addAll(clone.actions);
-            clone.actions = newActions;
+    public void sanitize() {
+        cacheTrue = elementTrue.clone();
+        sanitize(cacheTrue);
 
-            clone.populateItems(player, contents, pagination);
+        if (elementFalse != null) {
+            cacheFalse = elementFalse.clone();
+            sanitize(cacheFalse);
         }
     }
 
-    @Override
-    public ItemStack createStack(ShopRenderer renderer) {
-        Player player = renderer.player;
-        ShopElement toApply = condition.test(player) ? elementTrue : elementFalse;
-        if (toApply != null) {
-            ShopElement clone = toApply.clone();
-            return clone.createStack(renderer);
+    public void sanitize(ShopElement element) {
+        if (filler != DefaultSlotFiller.NONE || itemPositions != null) {
+            element.filler = filler;
+            element.itemPositions = itemPositions != null ? new ArrayList<>(itemPositions) : null;
         }
-        return null;
-    }
-
-    @Override
-    public Consumer<InventoryClickEvent> getClickHandler(ShopRenderer renderer) {
-        Player player = renderer.player;
-        ShopElement toApply = condition.test(player) ? elementTrue : elementFalse;
-        if (toApply != null) {
-            ShopElement clone = toApply.clone();
+        if (actions.size() != 0) {
             List<Action> newActions = new ArrayList<>(actions);
-            newActions.addAll(clone.actions);
-            clone.actions = newActions;
-
-            return clone.getClickHandler(renderer);
+            newActions.addAll(element.actions);
+            element.actions = newActions;
         }
-        return e->{};
-    }
-
-    @Override
-    public SlotFiller getFiller(ShopRenderer renderer) {
-        ShopElement toApply = condition.test(renderer.player) ? elementTrue : elementFalse;
-        return toApply != null ?
-                (ignored, ignored1) -> toApply.getFiller(renderer).fill(toApply, renderer) :
-                DefaultSlotFiller.NONE;
     }
 
     @Override

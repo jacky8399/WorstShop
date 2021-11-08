@@ -71,9 +71,11 @@ public class DefaultSlotFiller {
                     items.add(new SlotPos(i, j));
                 }
             }
-            renderer.backgrounds.add(ignored -> {
+            renderer.backgrounds.add((context, ignored) -> {
+                if (context == null)
+                    context = renderer;
                 if (element.condition.test(renderer.player)) {
-                    List<RenderElement> elements = element.getRenderElement(renderer);
+                    List<RenderElement> elements = element.getRenderElement(context);
                     if (elements.size() != 0)
                         return Maps.asMap(items, pos -> elements.get(0));
                 }

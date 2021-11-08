@@ -6,12 +6,11 @@ import com.jacky8399.worstshop.WorstShop;
 import com.jacky8399.worstshop.editor.Editable;
 import com.jacky8399.worstshop.editor.Property;
 import com.jacky8399.worstshop.helper.*;
-import com.jacky8399.worstshop.shops.ElementContext;
 import com.jacky8399.worstshop.shops.ParseContext;
 import com.jacky8399.worstshop.shops.Shop;
 import com.jacky8399.worstshop.shops.ShopReference;
+import com.jacky8399.worstshop.shops.rendering.RenderElement;
 import com.jacky8399.worstshop.shops.rendering.ShopRenderer;
-import fr.minuskube.inv.content.InventoryContents;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -79,7 +78,7 @@ public class StaticShopElement extends ShopElement {
             // try to assign random id
             Shop shop = ParseContext.findLatest(Shop.class);
             if (shop != null) {
-                return "index=" + (shop.staticElements.size() + shop.dynamicElements.size());
+                return "index=" + shop.elements.size();
             }
             return "???";
         });
@@ -335,33 +334,6 @@ public class StaticShopElement extends ShopElement {
         return map;
     }
 
-    @Override
-    public void populateItems(Player player, InventoryContents contents, ElementContext pagination) {
-        super.populateItems(player, contents, pagination);
-
-        if (async && pagination.getStage() == ElementContext.Stage.SKELETON) {
-            Bukkit.getScheduler().runTaskAsynchronously(WorstShop.get(), () -> {
-                try {
-                    asyncHack.put(player, createStack(player));
-                    if (!player.isOnline())
-                        return;
-                    Bukkit.getScheduler().runTask(WorstShop.get(), () -> {
-                        try {
-                            super.populateItems(player, contents, pagination);
-                        } catch (Exception e) {
-                            RuntimeException wrapped = new RuntimeException("Replacing asynchronous item for " + player.getName() + " (" + id + "@" + owner.id + ")");
-                            asyncHack.put(player, ItemUtils.getErrorItem(wrapped));
-                        }
-                    });
-                } catch (Exception e) {
-                    // error reporting
-                    RuntimeException wrapped = new RuntimeException("Fetching asynchronous item for " + player.getName() + " (" + id + "@" + owner.id + ")");
-                    asyncHack.put(player, ItemUtils.getErrorItem(wrapped));
-                }
-            });
-        }
-    }
-
     public ItemStack createPlaceholderStack(Player player) {
         if (!condition.test(player)) {
             return null;
@@ -388,25 +360,52 @@ public class StaticShopElement extends ShopElement {
     public static final ItemStack ASYNC_PLACEHOLDER = ItemBuilder.of(Material.BEDROCK)
             .name("" + ChatColor.RED + ChatColor.BOLD + "...").build();
     // use a map to prevent conflicts
-    private static final Map<Player, ItemStack> asyncHack = Collections.synchronizedMap(new WeakHashMap<>());
+    private static final Map<Player, ItemStack> asyncItemCache = Collections.synchronizedMap(new WeakHashMap<>());
+
+    private List<RenderElement> getAsyncPlaceholderElement(ShopRenderer renderer) {
+        ItemStack toReturn = asyncLoadingItem != null ?
+                replacePlaceholders(renderer.player, asyncLoadingItem) :
+                ASYNC_PLACEHOLDER.clone();
+        ItemMeta meta = toReturn.getItemMeta();
+        meta.getPersistentDataContainer().set(SAFETY_KEY, PersistentDataType.BYTE, (byte) 1);
+        toReturn.setItemMeta(meta);
+        return Collections.singletonList(new RenderElement(this, getFiller(renderer).fill(this, renderer),
+                toReturn, getClickHandler(renderer), DYNAMIC_FLAGS));
+    }
+
+    @Override
+    public List<RenderElement> getRenderElement(ShopRenderer renderer) {
+        if (async) {
+            Player player = renderer.player;
+            synchronized (asyncItemCache) {
+                if (asyncItemCache.containsKey(player)) {
+                    ItemStack stack = asyncItemCache.remove(player);
+                    if (stack != null) {
+                        return Collections.singletonList(
+                                new RenderElement(this, getFiller(renderer).fill(this, renderer),
+                                        stack, getClickHandler(renderer), STATIC_FLAGS)
+                        );
+                    } else {
+                        return getAsyncPlaceholderElement(renderer);
+                    }
+                } else {
+                    asyncItemCache.put(player, null);
+                    // schedule task
+                    Bukkit.getScheduler().runTaskAsynchronously(WorstShop.get(), () -> {
+                        ItemStack stack = createStack(renderer);
+                        asyncItemCache.put(player, stack);
+                    });
+                    return getAsyncPlaceholderElement(renderer);
+                }
+            }
+        }
+
+        return super.getRenderElement(renderer);
+    }
 
     @Override
     public ItemStack createStack(ShopRenderer renderer) {
         Player player = renderer.player;
-        if (async) {
-            ItemStack asyncHackResult = asyncHack.remove(player);
-            if (asyncHackResult != null) {
-                return asyncHackResult;
-            } else if (Bukkit.isPrimaryThread()) {
-                ItemStack toReturn = asyncLoadingItem != null ?
-                        replacePlaceholders(player, asyncLoadingItem) :
-                        ASYNC_PLACEHOLDER.clone();
-                ItemMeta meta = toReturn.getItemMeta();
-                meta.getPersistentDataContainer().set(SAFETY_KEY, PersistentDataType.BYTE, (byte) 1);
-                toReturn.setItemMeta(meta);
-                return toReturn;
-            }
-        }
 
         final ItemStack readonlyStack = createPlaceholderStack(player);
 
@@ -486,7 +485,7 @@ public class StaticShopElement extends ShopElement {
 
     @Override
     public String toString() {
-        return id + "@" + owner.id;
+        return "static " + super.toString() + "(stack=" + rawStack.getType() + ")";
     }
 
     @Override

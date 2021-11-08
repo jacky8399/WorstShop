@@ -86,7 +86,7 @@ public class CommandShop extends BaseCommand {
         // Statistics
         sender.sendMessage(GREEN + "Shops loaded: " + YELLOW + ShopManager.SHOPS.size());
         sender.sendMessage(GREEN + "Total shop elements: " + YELLOW + ShopManager.SHOPS.values()
-                .stream().mapToInt(shop -> shop.staticElements.size() + shop.dynamicElements.size()).sum());
+                .stream().mapToInt(shop -> shop.elements.size()).sum());
     }
 
     @Subcommand("discount")
