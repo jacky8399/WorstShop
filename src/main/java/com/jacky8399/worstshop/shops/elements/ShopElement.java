@@ -1,11 +1,10 @@
 package com.jacky8399.worstshop.shops.elements;
 
 import com.google.common.collect.Lists;
+import com.jacky8399.worstshop.editor.Property;
 import com.jacky8399.worstshop.helper.Config;
-import com.jacky8399.worstshop.helper.ItemUtils;
-import com.jacky8399.worstshop.shops.ElementContext;
+import com.jacky8399.worstshop.helper.ConfigHelper;
 import com.jacky8399.worstshop.shops.ParseContext;
-import com.jacky8399.worstshop.shops.Shop;
 import com.jacky8399.worstshop.shops.ShopReference;
 import com.jacky8399.worstshop.shops.actions.Action;
 import com.jacky8399.worstshop.shops.conditions.Condition;
@@ -16,15 +15,10 @@ import com.jacky8399.worstshop.shops.rendering.DefaultSlotFiller;
 import com.jacky8399.worstshop.shops.rendering.RenderElement;
 import com.jacky8399.worstshop.shops.rendering.ShopRenderer;
 import com.jacky8399.worstshop.shops.rendering.SlotFiller;
-import fr.minuskube.inv.ClickableItem;
-import fr.minuskube.inv.content.InventoryContents;
-import fr.minuskube.inv.content.InventoryProvider;
 import fr.minuskube.inv.content.SlotPos;
-import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.ItemMeta;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -44,16 +38,23 @@ public abstract class ShopElement implements Cloneable, ParseContext.NamedContex
 
     // populateItems properties
     @Nullable
+    @Property(nullable = true)
     public List<SlotPos> itemPositions = null;
     @NotNull
+    @Property
     public SlotFiller filler = DefaultSlotFiller.NONE;
 
     // common properties
     public transient ShopReference owner = null;
     @NotNull
+    @Property
     public Condition condition = ConditionConstant.TRUE;
     @NotNull
+    @Property
     public List<Action> actions = new ArrayList<>();
+
+    @Property
+    public final HashMap<String, Object> variables = new HashMap<>();
 
     public boolean isDynamic() {
         return this instanceof DynamicShopElement;
@@ -99,6 +100,11 @@ public abstract class ShopElement implements Cloneable, ParseContext.NamedContex
                         Action.fromConfig((Config) obj) :
                         Action.fromCommand(obj.toString()))
                 .filter(Objects::nonNull).collect(Collectors.toList());
+
+        // variables
+        config.find("variables", Config.class)
+                .map(ConfigHelper::parseVariables)
+                .ifPresent(element.variables::putAll);
 
         // pop context here
         ParseContext.popContext();
@@ -167,42 +173,6 @@ public abstract class ShopElement implements Cloneable, ParseContext.NamedContex
                 }
         }
         return list;
-    }
-
-    @Deprecated
-    public void populateItems(Player player, InventoryContents contents, ElementContext pagination) {
-        InventoryProvider provider = contents.inventory().getProvider();
-        String owner = provider instanceof Shop ? ((Shop) provider).id : provider.toString();
-        ItemStack stack;
-        try {
-            stack = createStack(player);
-            if (ItemUtils.isEmpty(stack))
-                return;
-
-            if (contents.property("debug", false)) {
-                // modify lore
-                ItemMeta meta = stack.getItemMeta();
-                List<String> lore = meta.hasLore() ? new ArrayList<>(meta.getLore()) : new ArrayList<>();
-                if (lore.size() != 0)
-                    lore.add("");
-                lore.add(ChatColor.YELLOW + id + "@" + owner);
-            }
-        } catch (Exception ex) {
-            // something has gone horribly wrong
-            RuntimeException wrapped = new RuntimeException("Populating item for " + player.getName() + " (" + id + "@" + owner + ")", ex);
-//            filler.fill(this, ItemUtils.getClickableErrorItem(wrapped), contents, pagination);
-            return;
-        }
-        ClickableItem item = ClickableItem.of(stack, e -> {
-            try {
-                onClick(e);
-            } catch (Exception ex) {
-                RuntimeException wrapped = new RuntimeException("Processing item click for " + e.getWhoClicked().getName() + " (" + id + "@" + owner + ")", ex);
-                ItemStack err = ItemUtils.getErrorItem(wrapped);
-                e.setCurrentItem(err);
-            }
-        });
-//        filler.fill(this, item, contents, pagination);
     }
 
     public static final EnumSet<ShopRenderer.RenderingFlag> STATIC_FLAGS = EnumSet.noneOf(ShopRenderer.RenderingFlag.class),

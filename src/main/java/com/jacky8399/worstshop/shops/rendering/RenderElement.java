@@ -1,7 +1,6 @@
 package com.jacky8399.worstshop.shops.rendering;
 
 import com.jacky8399.worstshop.shops.elements.ShopElement;
-import com.jacky8399.worstshop.shops.elements.StaticShopElement;
 import fr.minuskube.inv.ClickableItem;
 import fr.minuskube.inv.content.SlotPos;
 import org.bukkit.event.inventory.InventoryClickEvent;
@@ -24,7 +23,7 @@ public record RenderElement(ShopElement owner,
 
     public ItemStack actualStack(ShopRenderer renderer) {
         return shouldReplacePlaceholders ?
-                StaticShopElement.replacePlaceholders(renderer.player, stack, renderer.shop, renderer) :
+                Placeholders.setPlaceholders(stack, new PlaceholderContext(renderer)) :
                 stack;
     }
 

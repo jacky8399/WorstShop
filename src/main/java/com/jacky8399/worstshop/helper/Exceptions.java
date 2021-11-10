@@ -21,7 +21,7 @@ public class Exceptions {
         }
     }
 
-    public static final LinkedHashMap<String, ExceptionLog> exceptions = new LinkedHashMap<String, ExceptionLog>(26) {
+    public static final LinkedHashMap<String, ExceptionLog> exceptions = new LinkedHashMap<>(26) {
         @Override
         protected boolean removeEldestEntry(Map.Entry<String, ExceptionLog> eldest) {
             return size() > 25;
@@ -31,7 +31,7 @@ public class Exceptions {
         ExceptionLog log = new ExceptionLog(e);
         String id = UUID.randomUUID().toString().substring(0, 8);
         exceptions.put(id, log);
-        WorstShop.get().logger.severe("FATAL ERROR. For details run /worstshop log error show " + id);
+        WorstShop.get().logger.severe("ERROR: " + e.getMessage() + ". For details run /worstshop log error show " + id);
         return id;
     }
 }

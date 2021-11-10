@@ -6,6 +6,7 @@ import com.jacky8399.worstshop.helper.Config;
 import com.jacky8399.worstshop.shops.elements.ShopElement;
 import com.jacky8399.worstshop.shops.elements.StaticShopElement;
 import com.jacky8399.worstshop.shops.elements.dynamic.AnimationShopElement;
+import com.jacky8399.worstshop.shops.rendering.Placeholders;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
@@ -127,7 +128,7 @@ public class CommodityItem extends Commodity implements IFlexibleCommodity {
     @Override
     public Commodity adjustForPlayer(Player player) {
         // parse placeholders
-        return new CommodityItem(StaticShopElement.replacePlaceholders(player, stack), itemTag, tagAmount, multiplier)
+        return new CommodityItem(Placeholders.setPlaceholders(stack, player), itemTag, tagAmount, multiplier)
                 .setItemMatchers(itemMatchers);
     }
 

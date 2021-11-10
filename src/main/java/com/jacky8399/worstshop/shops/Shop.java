@@ -1,6 +1,5 @@
 package com.jacky8399.worstshop.shops;
 
-import com.jacky8399.worstshop.I18n;
 import com.jacky8399.worstshop.WorstShop;
 import com.jacky8399.worstshop.editor.Adaptor;
 import com.jacky8399.worstshop.editor.Editable;
@@ -12,13 +11,13 @@ import com.jacky8399.worstshop.helper.*;
 import com.jacky8399.worstshop.shops.conditions.Condition;
 import com.jacky8399.worstshop.shops.conditions.ConditionConstant;
 import com.jacky8399.worstshop.shops.elements.ShopElement;
-import com.jacky8399.worstshop.shops.elements.StaticShopElement;
+import com.jacky8399.worstshop.shops.rendering.PlaceholderContext;
+import com.jacky8399.worstshop.shops.rendering.Placeholders;
 import com.jacky8399.worstshop.shops.rendering.ShopRenderer;
 import fr.minuskube.inv.ClickableItem;
 import fr.minuskube.inv.InventoryListener;
 import fr.minuskube.inv.SmartInventory;
 import fr.minuskube.inv.content.InventoryContents;
-import fr.minuskube.inv.content.SlotIterator;
 import net.md_5.bungee.api.ChatColor;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
@@ -82,6 +81,7 @@ public class Shop implements ParseContext.NamedContext {
     public boolean aliasesIgnorePermission;
 
     // variables
+    @Property
     public final HashMap<String, Object> variables = new HashMap<>();
 
     @Override
@@ -106,12 +106,14 @@ public class Shop implements ParseContext.NamedContext {
                 && condition.test(player);
     }
 
+    @Nullable
     public Object getVariable(String key) {
         Object ret = variables.get(key);
-        if (ret == null && extendsFrom.find().isPresent() && !extendsFrom.refersTo(this)) {
-            ret = extendsFrom.get().getVariable(key);
-        }
-        return ret;
+        if (ret != null)
+            return ret;
+        if (!circularReferenceChecked)
+            checkCircularReference();
+        return extendsFrom.find().map(shop -> shop.getVariable(key)).orElse(null);
     }
 
     public SmartInventory getInventory(Player player) {
@@ -136,14 +138,13 @@ public class Shop implements ParseContext.NamedContext {
                 }
             });
         }
-        if (title == null) {
-            if (extendsFrom != ShopReference.EMPTY)
-                builder.title(I18n.doPlaceholders(player, extendsFrom.get().title, this, null));
-            else
-                builder.title("null");
+        String actualTitle = "null";
+        if (title == null && extendsFrom != ShopReference.EMPTY) {
+            actualTitle = extendsFrom.get().title;
         } else {
-            builder.title(I18n.doPlaceholders(player, title, this, null));
+            actualTitle = title;
         }
+        builder.title(Placeholders.setPlaceholders(actualTitle, new PlaceholderContext(player, this, null, null)));
         return builder.build();
     }
 
@@ -207,16 +208,9 @@ public class Shop implements ParseContext.NamedContext {
             });
 
             // variables
-            config.find("variables", Config.class).ifPresent(variables -> {
-                variables.getKeys().forEach(key -> {
-                    Optional<Config> complexConfig = variables.tryFind(key, Config.class);
-                    if (complexConfig.isPresent()) {
-                        WorstShop.get().logger.warning("Unsupported variable type: " + complexConfig.get().get("type", String.class));
-                    } else {
-                        inst.variables.put(key, variables.get(key, Object.class));
-                    }
-                });
-            });
+            config.find("variables", Config.class)
+                    .map(ConfigHelper::parseVariables)
+                    .ifPresent(inst.variables::putAll);
 
             // should be self
             if (ParseContext.popContext() != inst) {
@@ -252,7 +246,7 @@ public class Shop implements ParseContext.NamedContext {
         );
     }
 
-    boolean circularReferenceChecked = false;
+    public boolean circularReferenceChecked = false;
     public void checkCircularReference() {
         ShopReference template = extendsFrom;
         Set<String> traversed = new LinkedHashSet<>();
@@ -287,75 +281,6 @@ public class Shop implements ParseContext.NamedContext {
         }
         circularReferenceChecked = true;
     }
-
-    @Deprecated
-    public void populateElements(boolean dynamic,
-                                 Player player, InventoryContents contents, ElementContext helper) {
-        if (!circularReferenceChecked)
-            checkCircularReference();
-
-        if (extendsFrom.find().isPresent()) {
-            extendsFrom.get().populateElements(dynamic, player, contents, helper);
-        }
-
-        List<ShopElement> elementList = elements;
-        ListIterator<ShopElement> iterator = elementList.listIterator();
-        while (iterator.hasNext()) {
-            int index = iterator.nextIndex();
-            ShopElement element = iterator.next();
-            if (element == null)
-                continue;
-            try {
-                element.populateItems(player, contents, helper);
-            } catch (Exception ex) {
-                RuntimeException wrapped = new RuntimeException("Error while populating element [" + index + "] in " + id, ex);
-                ShopElement fakeElement = StaticShopElement.fromStack(ItemUtils.getErrorItem(wrapped));
-                // copy renderer
-                fakeElement.filler = element.filler;
-                fakeElement.itemPositions = element.itemPositions != null ? new ArrayList<>(element.itemPositions) : null;
-                fakeElement.populateItems(player, contents, helper);
-            }
-        }
-    }
-
-    @Deprecated
-    public void refreshItems(Player player, InventoryContents contents, boolean updateDynamic, boolean isOutline) {
-        // clear old items
-        SlotIterator it = contents.newIterator(SlotIterator.Type.HORIZONTAL, 0,0).allowOverride(true);
-        while (!it.ended()) {
-            it.next().set(null);
-        }
-        ElementContext helper = new ElementContext(contents,
-                isOutline ? ElementContext.Stage.SKELETON : ElementContext.Stage.STATIC);
-        populateElements(false, player, contents, helper);
-        helper.doPaginationNow();
-
-        if (updateDynamic)
-            populateElements(true, player, contents, new ElementContext(contents,
-                    isOutline ? ElementContext.Stage.SKELETON : ElementContext.Stage.DYNAMIC));
-    }
-//    @Deprecated
-//    @Override
-//    public void init(Player player, InventoryContents contents) {
-//        refreshItems(player, contents, false, true);
-//        refreshItems(player, contents, true, false);
-//    }
-//    @Deprecated
-//    @Override
-//    public void update(Player player, InventoryContents contents) {
-////        if (extendsFrom.find().isPresent() && !extendsFrom.refersTo(this)) {
-////            extendsFrom.get().update(player, contents);
-////        }
-//        populateElements(true, player, contents, null);
-//        if (updateInterval != 0) {
-//            Integer ticksSinceUpdate = contents.property("ticksSinceUpdate", 0);
-//            if (++ticksSinceUpdate == updateInterval) {
-//                refreshItems(player, contents, true, false);
-//                ticksSinceUpdate = 0;
-//            }
-//            contents.setProperty("ticksSinceUpdate", ticksSinceUpdate);
-//        }
-//    }
 
     public void close(InventoryCloseEvent e) {
         if (e == null) {

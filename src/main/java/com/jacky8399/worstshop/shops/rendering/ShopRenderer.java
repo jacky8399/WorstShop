@@ -26,11 +26,12 @@ public class ShopRenderer implements InventoryProvider, RenderingLayer {
 
     public HashMap<SlotPos, @Nullable RenderElement> outline = new HashMap<>();
     public List<RenderElement> toUpdateNextTick = new ArrayList<>();
-//    public HashMap<RenderElement, List<SlotPos>> toUpdateNextTick = new HashMap<>();
     public List<RenderElement> paginationItems = new ArrayList<>();
     public List<RenderingLayer> backgrounds = new ArrayList<>();
 
     public void addShopBackground() {
+        if (!shop.circularReferenceChecked)
+            shop.checkCircularReference();
         if (shop.extendsFrom != ShopReference.EMPTY) {
             ShopRenderer renderer = new ShopRenderer(shop.extendsFrom.get(), player);
             renderer.addShopBackground();
@@ -228,17 +229,6 @@ public class ShopRenderer implements InventoryProvider, RenderingLayer {
                 clearAll(contents);
                 apply(player, contents);
             }
-            // remove old items
-//            toUpdateNextTick.removeIf(renderElement -> {
-//                renderElement.update();
-//
-//                ItemStack stackWithPlaceholders = StaticShopElement.replacePlaceholders(player, renderElement.stack(), shop, this);
-//                ClickableItem item = ClickableItem.of(stackWithPlaceholders, renderElement.handler());
-//                Collection<SlotPos> positions = renderElement.positions();
-//                for (SlotPos pos : positions)
-//                    contents.set(pos, item);
-//                return !renderElement.flags().contains(RenderingFlag.UPDATE_NEXT_TICK);
-//            });
         }
     }
 
@@ -257,9 +247,8 @@ public class ShopRenderer implements InventoryProvider, RenderingLayer {
         return (T) properties.getOrDefault(key, def);
     }
 
-    @SuppressWarnings("unchecked")
-    public <T> T setProperty(String key, Object value) {
-        return (T) properties.put(key, value);
+    public void setProperty(String key, Object value) {
+        properties.put(key, value);
     }
 
     @Override

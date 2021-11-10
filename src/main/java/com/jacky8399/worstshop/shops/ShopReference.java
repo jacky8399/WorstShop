@@ -73,6 +73,11 @@ public class ShopReference {
     }
 
     @Override
+    public int hashCode() {
+        return id.hashCode();
+    }
+
+    @Override
     public boolean equals(Object obj) {
         return obj instanceof ShopReference && ((ShopReference) obj).id.equals(id);
     }
@@ -102,6 +107,11 @@ public class ShopReference {
         public boolean equals(Object obj) {
             return obj instanceof Empty;
         }
+
+        @Override
+        public int hashCode() {
+            return 0;
+        }
     }
 
     static class Adaptor extends GUIAdaptor<ShopReference> {
@@ -110,7 +120,7 @@ public class ShopReference {
         @Override
         public Collection<? extends ShopReference> getValues() {
             return Stream.concat(ShopManager.SHOPS.keySet().stream().map(ShopReference::of), Stream.of(EMPTY))
-                    .sorted(Comparator.comparing(ref -> ref.id))
+                    .sorted(Comparator.comparing(ref -> ref instanceof Empty ? "?" : ref.id))
                     .collect(Collectors.toList());
         }
 

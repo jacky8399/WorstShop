@@ -1,7 +1,6 @@
 package com.jacky8399.worstshop.shops.elements;
 
 import com.google.common.collect.ImmutableSet;
-import com.jacky8399.worstshop.I18n;
 import com.jacky8399.worstshop.WorstShop;
 import com.jacky8399.worstshop.editor.Editable;
 import com.jacky8399.worstshop.editor.Property;
@@ -9,6 +8,8 @@ import com.jacky8399.worstshop.helper.*;
 import com.jacky8399.worstshop.shops.ParseContext;
 import com.jacky8399.worstshop.shops.Shop;
 import com.jacky8399.worstshop.shops.ShopReference;
+import com.jacky8399.worstshop.shops.rendering.PlaceholderContext;
+import com.jacky8399.worstshop.shops.rendering.Placeholders;
 import com.jacky8399.worstshop.shops.rendering.RenderElement;
 import com.jacky8399.worstshop.shops.rendering.ShopRenderer;
 import org.bukkit.Bukkit;
@@ -35,7 +36,6 @@ import org.yaml.snakeyaml.Yaml;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.function.BiConsumer;
-import java.util.function.UnaryOperator;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -341,7 +341,7 @@ public class StaticShopElement extends ShopElement {
 
         // parse placeholders
         long start = System.currentTimeMillis();
-        ItemStack stack = replacePlaceholders(player, this.rawStack);
+        ItemStack stack = Placeholders.setPlaceholders(this.rawStack, player);
         long end = System.currentTimeMillis();
         if (!async && !hasRemindedAsync && end - start > 500) {
             WorstShop.get().logger.warning("Placeholders took " + (end - start) + "ms. Consider making this element async. (" + id + "@" + owner.id + ")\n" +
@@ -364,7 +364,7 @@ public class StaticShopElement extends ShopElement {
 
     private List<RenderElement> getAsyncPlaceholderElement(ShopRenderer renderer) {
         ItemStack toReturn = asyncLoadingItem != null ?
-                replacePlaceholders(renderer.player, asyncLoadingItem) :
+                Placeholders.setPlaceholders(asyncLoadingItem, new PlaceholderContext(renderer, this)) :
                 ASYNC_PLACEHOLDER.clone();
         ItemMeta meta = toReturn.getItemMeta();
         meta.getPersistentDataContainer().set(SAFETY_KEY, PersistentDataType.BYTE, (byte) 1);
@@ -407,10 +407,7 @@ public class StaticShopElement extends ShopElement {
     public ItemStack createStack(ShopRenderer renderer) {
         Player player = renderer.player;
 
-        final ItemStack readonlyStack = createPlaceholderStack(player);
-
-        if (readonlyStack == null)
-            return null;
+        final ItemStack readonlyStack = rawStack.clone();
         final ItemStack actualStack = readonlyStack.clone();
 
         // let actions influence item
@@ -425,55 +422,10 @@ public class StaticShopElement extends ShopElement {
     }
 
 
-    @Nullable
+    @Deprecated
     @Contract("_, null -> null; _, !null -> !null")
     public static ItemStack replacePlaceholders(Player player, @Nullable ItemStack stack) {
-        return replacePlaceholders(player, stack, null, null);
-    }
-
-    @Nullable
-    @Contract("_, null, _, _ -> null; _, !null, _, _ -> !null")
-    public static ItemStack replacePlaceholders(Player player, @Nullable ItemStack stack, @Nullable Shop shop, @Nullable ShopRenderer renderer) {
-        if (stack == null || stack.getType() == Material.AIR)
-            return stack;
-
-        UnaryOperator<String> placeholderReplacer = str -> I18n.doPlaceholders(player, str, shop, renderer);
-
-        stack = stack.clone();
-        ItemMeta meta = stack.getItemMeta();
-        if (meta.hasLore()) {
-            // noinspection ConstantConditions
-            meta.setLore(meta.getLore().stream()
-                    .map(placeholderReplacer)
-                    .collect(Collectors.toList())
-            );
-        }
-        if (meta.hasDisplayName()) {
-            meta.setDisplayName(placeholderReplacer.apply(meta.getDisplayName()));
-        }
-        // wow why didn't I think of this
-        // check for player skull
-        if (meta instanceof SkullMeta skullMeta) {
-            PaperHelper.GameProfile profile = PaperHelper.getSkullMetaProfile(skullMeta);
-            if (profile != null) {
-                if (profile.equals(VIEWER_SKULL)) {
-                    skullMeta.setOwningPlayer(player);
-                } else if (profile.getName() != null && (profile.getName().contains("%") || profile.getName().contains("!"))) {
-                    // replace placeholders too
-                    String newName = placeholderReplacer.apply(profile.getName());
-                    // check if the name is that of a online player
-                    Player newPlayer = Bukkit.getPlayer(newName);
-                    if (newPlayer != null && newPlayer.isOnline()) {
-                        skullMeta.setOwningPlayer(newPlayer);
-                    } else if (newName.length() != 0) {
-                        PaperHelper.GameProfile newProfile = PaperHelper.createProfile(null, newName);
-                        PaperHelper.setSkullMetaProfile(skullMeta, newProfile);
-                    }
-                }
-            }
-        }
-        stack.setItemMeta(meta);
-        return stack;
+        return Placeholders.setPlaceholders(stack, PlaceholderContext.guessContext(player));
     }
 
     public static boolean isShopItem(ItemStack stack) {
