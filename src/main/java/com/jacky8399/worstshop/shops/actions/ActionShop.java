@@ -12,6 +12,7 @@ import com.jacky8399.worstshop.shops.commodity.CommodityMultiple;
 import com.jacky8399.worstshop.shops.commodity.IFlexibleCommodity;
 import com.jacky8399.worstshop.shops.elements.ShopElement;
 import com.jacky8399.worstshop.shops.elements.StaticShopElement;
+import com.jacky8399.worstshop.shops.rendering.PlaceholderContext;
 import com.jacky8399.worstshop.shops.rendering.RenderElement;
 import com.jacky8399.worstshop.shops.rendering.ShopRenderer;
 import fr.minuskube.inv.ClickableItem;
@@ -408,7 +409,7 @@ public class ActionShop extends Action {
             if (renderer == null) {
                 renderer = new ShopRenderer(FAKE_SHOP, player);
             }
-            List<RenderElement> items = element.getRenderElement(renderer);
+            List<RenderElement> items = element.getRenderElement(renderer, new PlaceholderContext(renderer, element));
             for (RenderElement item : items) {
                 Collection<SlotPos> posList = item.positions();
                 if (posList != null) {

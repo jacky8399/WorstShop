@@ -75,7 +75,7 @@ public class DefaultSlotFiller {
                 if (context == null)
                     context = renderer;
                 if (element.condition.test(renderer.player)) {
-                    List<RenderElement> elements = element.getRenderElement(context);
+                    List<RenderElement> elements = element.getRenderElement(context, new PlaceholderContext(context));
                     if (elements.size() != 0)
                         return Maps.asMap(items, pos -> elements.get(0));
                 }

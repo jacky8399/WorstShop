@@ -11,10 +11,7 @@ import com.jacky8399.worstshop.shops.conditions.Condition;
 import com.jacky8399.worstshop.shops.conditions.ConditionAnd;
 import com.jacky8399.worstshop.shops.conditions.ConditionConstant;
 import com.jacky8399.worstshop.shops.conditions.ConditionPermission;
-import com.jacky8399.worstshop.shops.rendering.DefaultSlotFiller;
-import com.jacky8399.worstshop.shops.rendering.RenderElement;
-import com.jacky8399.worstshop.shops.rendering.ShopRenderer;
-import com.jacky8399.worstshop.shops.rendering.SlotFiller;
+import com.jacky8399.worstshop.shops.rendering.*;
 import fr.minuskube.inv.content.SlotPos;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.InventoryClickEvent;
@@ -56,6 +53,11 @@ public abstract class ShopElement implements Cloneable, ParseContext.NamedContex
     @Property
     public final HashMap<String, Object> variables = new HashMap<>();
 
+    @Nullable
+    public Object getVariable(String key, PlaceholderContext context) {
+        return variables.get(key);
+    }
+
     public boolean isDynamic() {
         return this instanceof DynamicShopElement;
     }
@@ -68,12 +70,18 @@ public abstract class ShopElement implements Cloneable, ParseContext.NamedContex
             element = DynamicShopElement.fromYaml(config);
         } else if (config.has("if")) {
             element = ConditionalShopElement.fromYaml(config);
+        } else if (config.has("use")) {
+            element = TemplateShopElement.fromYaml(config);
         } else {
             element = StaticShopElement.fromYaml(config);
         }
 
         if (element == null) {
             return null;
+        }
+        // check ParseContext
+        if (!(ParseContext.STACK.peek() instanceof ShopElement)) {
+            throw new IllegalStateException(element.getClass().getSimpleName() + " did not add itself to ParseContext!");
         }
 
         Optional<Object> fillOptional = config.find("fill", Boolean.class, String.class);
@@ -131,7 +139,7 @@ public abstract class ShopElement implements Cloneable, ParseContext.NamedContex
         return this::onClick;
     }
 
-    public List<RenderElement> getRenderElement(ShopRenderer renderer) {
+    public List<RenderElement> getRenderElement(ShopRenderer renderer, PlaceholderContext placeholder) {
         SlotFiller filler = getFiller(renderer);
         Collection<SlotPos> positions = filler.fill(this, renderer);
         return Collections.singletonList(new RenderElement(this, positions,

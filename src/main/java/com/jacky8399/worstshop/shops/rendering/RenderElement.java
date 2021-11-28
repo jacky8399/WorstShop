@@ -7,24 +7,33 @@ import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.ItemStack;
 
 import java.util.Collection;
-import java.util.EnumSet;
+import java.util.Set;
 import java.util.function.Consumer;
 
 public record RenderElement(ShopElement owner,
                             Collection<SlotPos> positions,
                             ItemStack stack,
-                            boolean shouldReplacePlaceholders,
+                            PlaceholderContext context,
                             Consumer<InventoryClickEvent> handler,
-                            EnumSet<ShopRenderer.RenderingFlag> flags) {
+                            Set<ShopRenderer.RenderingFlag> flags) {
 
-    public RenderElement(ShopElement owner, Collection<SlotPos> positions, ItemStack stack, Consumer<InventoryClickEvent> handler, EnumSet<ShopRenderer.RenderingFlag> flags) {
-        this(owner, positions, stack, true, handler, flags);
+    public RenderElement(ShopElement owner, Collection<SlotPos> positions, ItemStack stack, Consumer<InventoryClickEvent> handler, Set<ShopRenderer.RenderingFlag> flags) {
+        this(owner, positions, stack,
+                new PlaceholderContext(null, null, null, owner, null), handler, flags);
     }
 
     public ItemStack actualStack(ShopRenderer renderer) {
-        return shouldReplacePlaceholders ?
-                Placeholders.setPlaceholders(stack, new PlaceholderContext(renderer)) :
+        return context != PlaceholderContext.NO_CONTEXT ?
+                Placeholders.setPlaceholders(stack, context.andThen(new PlaceholderContext(renderer))) :
                 stack;
+    }
+
+    public RenderElement withOwner(ShopElement owner, PlaceholderContext context) {
+        return new RenderElement(owner, positions, stack, context, handler, flags);
+    }
+
+    public RenderElement withOwner(ShopElement owner) {
+        return withOwner(owner, context);
     }
 
     public ClickableItem clickableItem(ShopRenderer renderer) {

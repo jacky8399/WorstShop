@@ -8,6 +8,7 @@ import com.jacky8399.worstshop.shops.ShopReference;
 import com.jacky8399.worstshop.shops.actions.Action;
 import com.jacky8399.worstshop.shops.conditions.Condition;
 import com.jacky8399.worstshop.shops.rendering.DefaultSlotFiller;
+import com.jacky8399.worstshop.shops.rendering.PlaceholderContext;
 import com.jacky8399.worstshop.shops.rendering.RenderElement;
 import com.jacky8399.worstshop.shops.rendering.ShopRenderer;
 import org.jetbrains.annotations.NotNull;
@@ -17,6 +18,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 public class ConditionalShopElement extends ShopElement {
     @NotNull
@@ -62,12 +64,18 @@ public class ConditionalShopElement extends ShopElement {
 
     ShopElement cacheTrue, cacheFalse;
     @Override
-    public List<RenderElement> getRenderElement(ShopRenderer renderer) {
+    public List<RenderElement> getRenderElement(ShopRenderer renderer, PlaceholderContext placeholder) {
         if (cacheTrue == null) {
             sanitize();
         }
         ShopElement toApply = condition.test(renderer.player) ? cacheTrue : cacheFalse;
-        return toApply != null ? toApply.getRenderElement(renderer) : Collections.emptyList();
+        if (toApply == null)
+            return Collections.emptyList();
+        PlaceholderContext selfContext = placeholder.withElement(this);
+        return toApply.getRenderElement(renderer, selfContext)
+                .stream()
+                .map(renderElement -> renderElement.withOwner(this, selfContext))
+                .collect(Collectors.toList());
     }
 
     public void sanitize() {

@@ -1,6 +1,7 @@
 package com.jacky8399.worstshop.shops.commodity;
 
 import com.jacky8399.worstshop.shops.elements.ShopElement;
+import com.jacky8399.worstshop.shops.rendering.PlaceholderContext;
 import com.jacky8399.worstshop.shops.rendering.RenderElement;
 import com.jacky8399.worstshop.shops.rendering.ShopRenderer;
 import fr.minuskube.inv.content.SlotPos;
@@ -83,7 +84,7 @@ public class CommodityMultiple extends Commodity implements IFlexibleCommodity {
 
     private RenderElement createRenderElement(SlotPos pos, ShopElement fake, ShopElement element, ShopRenderer renderer) {
         return new RenderElement(fake, Collections.singletonList(pos),
-                element.getRenderElement(renderer).get(0).stack(),
+                element.getRenderElement(renderer, new PlaceholderContext(renderer, element)).get(0).stack(),
                 e -> {}, ShopElement.DYNAMIC_FLAGS
         );
     }
@@ -98,7 +99,7 @@ public class CommodityMultiple extends Commodity implements IFlexibleCommodity {
                     pos2 = SlotPos.of(position.pos.getRow() + 1, position.pos.getColumn());
             return new ShopElement() {
                 @Override
-                public List<RenderElement> getRenderElement(ShopRenderer renderer) {
+                public List<RenderElement> getRenderElement(ShopRenderer renderer, PlaceholderContext placeholder) {
                     return Arrays.asList(
                             createRenderElement(pos1, this, elem1, renderer),
                             createRenderElement(pos2, this, elem2, renderer)
@@ -111,7 +112,7 @@ public class CommodityMultiple extends Commodity implements IFlexibleCommodity {
             String self = UUID.randomUUID().toString();
             return new ShopElement() {
                 @Override
-                public List<RenderElement> getRenderElement(ShopRenderer renderer) {
+                public List<RenderElement> getRenderElement(ShopRenderer renderer, PlaceholderContext placeholder) {
                     int itemSequence = renderer.property(self + "_shopWantsItemSequence", 0);
                     int nextItemSequence = wrapIndexOffset(itemSequence, 1);
                     renderer.setProperty(self + "_shopWantsItemSequence", nextItemSequence);

@@ -14,17 +14,12 @@ import org.bukkit.inventory.ItemStack;
 
 public class DynamicShopElement extends ShopElement {
     public static DynamicShopElement fromYaml(Config config) {
-        DynamicShopElement inst;
         String preset = config.get("preset", String.class);
-        //noinspection SwitchStatementWithTooFewBranches
-        switch (preset) {
-            case "animation": {
-                inst = new AnimationShopElement(config);
-                break;
-            }
-            default:
-                throw new ConfigException(preset + " is not a valid preset!", config, "preset");
-        }
+        @SuppressWarnings("SwitchStatementWithTooFewBranches")
+        DynamicShopElement inst = switch (preset) {
+            case "animation" -> new AnimationShopElement(config);
+            default -> throw new ConfigException(preset + " is not a valid preset!", config, "preset");
+        };
         inst.owner = ShopReference.of(ParseContext.findLatest(Shop.class));
         ParseContext.pushContext(inst);
 

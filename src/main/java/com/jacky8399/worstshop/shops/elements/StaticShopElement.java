@@ -144,7 +144,7 @@ public class StaticShopElement extends ShopElement {
 
     public static ItemStack parseItemStack(Config yaml) {
         try {
-            Material material = Material.getMaterial(yaml.get("item", String.class).toUpperCase(Locale.ROOT).replace(' ', '_'));
+            Material material = Material.matchMaterial(yaml.get("item", String.class).replace(' ', '_'));
             if (material == null) {
                 throw new IllegalStateException("Illegal material " + yaml.get("item", String.class));
             } else if (material == Material.AIR || material == Material.CAVE_AIR || material == Material.VOID_AIR) {
@@ -362,9 +362,9 @@ public class StaticShopElement extends ShopElement {
     // use a map to prevent conflicts
     private static final Map<Player, ItemStack> asyncItemCache = Collections.synchronizedMap(new WeakHashMap<>());
 
-    private List<RenderElement> getAsyncPlaceholderElement(ShopRenderer renderer) {
+    private List<RenderElement> getAsyncPlaceholderElement(ShopRenderer renderer, PlaceholderContext placeholder) {
         ItemStack toReturn = asyncLoadingItem != null ?
-                Placeholders.setPlaceholders(asyncLoadingItem, new PlaceholderContext(renderer, this)) :
+                Placeholders.setPlaceholders(asyncLoadingItem, placeholder) :
                 ASYNC_PLACEHOLDER.clone();
         ItemMeta meta = toReturn.getItemMeta();
         meta.getPersistentDataContainer().set(SAFETY_KEY, PersistentDataType.BYTE, (byte) 1);
@@ -374,7 +374,7 @@ public class StaticShopElement extends ShopElement {
     }
 
     @Override
-    public List<RenderElement> getRenderElement(ShopRenderer renderer) {
+    public List<RenderElement> getRenderElement(ShopRenderer renderer, PlaceholderContext placeholder) {
         if (async) {
             Player player = renderer.player;
             synchronized (asyncItemCache) {
@@ -386,7 +386,7 @@ public class StaticShopElement extends ShopElement {
                                         stack, getClickHandler(renderer), STATIC_FLAGS)
                         );
                     } else {
-                        return getAsyncPlaceholderElement(renderer);
+                        return getAsyncPlaceholderElement(renderer, placeholder);
                     }
                 } else {
                     asyncItemCache.put(player, null);
@@ -395,12 +395,12 @@ public class StaticShopElement extends ShopElement {
                         ItemStack stack = createStack(renderer);
                         asyncItemCache.put(player, stack);
                     });
-                    return getAsyncPlaceholderElement(renderer);
+                    return getAsyncPlaceholderElement(renderer, placeholder);
                 }
             }
         }
 
-        return super.getRenderElement(renderer);
+        return super.getRenderElement(renderer, placeholder);
     }
 
     @Override

@@ -144,7 +144,7 @@ public class Shop implements ParseContext.NamedContext {
         } else {
             actualTitle = title;
         }
-        builder.title(Placeholders.setPlaceholders(actualTitle, new PlaceholderContext(player, this, null, null)));
+        builder.title(Placeholders.setPlaceholders(actualTitle, new PlaceholderContext(player, this, null, null, null)));
         return builder.build();
     }
 
@@ -214,7 +214,7 @@ public class Shop implements ParseContext.NamedContext {
 
             // should be self
             if (ParseContext.popContext() != inst) {
-                throw new IllegalStateException("Stack is broken??");
+                throw new IllegalStateException("Stack is broken?? " + ParseContext.getHierarchy());
             }
         } catch (Exception ex) {
             logger.severe("Error while parsing shop " + shopName + ", skipping.");

@@ -69,8 +69,9 @@ public class ShopRenderer implements InventoryProvider, RenderingLayer {
 
     public void fillOutline(@Nullable ShopRenderer context) {
         initInventoryStructure();
+        PlaceholderContext placeholder = new PlaceholderContext(context != null ? context : this);
         Consumer<ShopElement> addToOutline = element -> {
-            List<RenderElement> items = element.getRenderElement(context != null ? context : this);
+            List<RenderElement> items = element.getRenderElement(context != null ? context : this, placeholder);
             for (RenderElement item : items) {
                 Collection<SlotPos> slots = item.positions();
                 if (slots != null) {
@@ -154,6 +155,7 @@ public class ShopRenderer implements InventoryProvider, RenderingLayer {
                 return;
             }
             contents.set(pos, info.clickableItem(this));
+            // TODO do I really need to store the flags on each element??
             if (info.flags().contains(RenderingFlag.UPDATE_NEXT_TICK)) {
                 toUpdateNextTick.add(info);
             }
@@ -192,6 +194,8 @@ public class ShopRenderer implements InventoryProvider, RenderingLayer {
             Map<ShopElement, List<RenderElement>> ownerToItemMap = toUpdateNextTick.stream()
                     .collect(Collectors.groupingBy(RenderElement::owner, Collectors.toList()));
 
+            PlaceholderContext placeholder = new PlaceholderContext(this);
+
             toUpdateNextTick.clear();
 
             boolean shouldRefreshPagination = false;
@@ -209,7 +213,7 @@ public class ShopRenderer implements InventoryProvider, RenderingLayer {
                     }
                 }
                 if (!shouldRefreshPagination) {
-                    List<RenderElement> newItems = owner.getRenderElement(this);
+                    List<RenderElement> newItems = owner.getRenderElement(this, placeholder);
                     for (RenderElement element : newItems) {
                         if (element.positions() != null) {
                             ClickableItem clickableItem = element.clickableItem(this);

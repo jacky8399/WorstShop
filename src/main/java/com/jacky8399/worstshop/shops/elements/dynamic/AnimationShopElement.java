@@ -7,9 +7,11 @@ import com.jacky8399.worstshop.shops.actions.Action;
 import com.jacky8399.worstshop.shops.elements.DynamicShopElement;
 import com.jacky8399.worstshop.shops.elements.ShopElement;
 import com.jacky8399.worstshop.shops.rendering.DefaultSlotFiller;
+import com.jacky8399.worstshop.shops.rendering.PlaceholderContext;
 import com.jacky8399.worstshop.shops.rendering.RenderElement;
 import com.jacky8399.worstshop.shops.rendering.ShopRenderer;
 import org.apache.commons.lang.Validate;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -23,6 +25,7 @@ public class AnimationShopElement extends DynamicShopElement {
         ParseContext.pushContext(this);
         config.getList("elements", Config.class).stream()
                 .map(ShopElement::fromConfig)
+                .filter(Objects::nonNull)
                 .forEach(elements::add);
         ParseContext.popContext();
         Validate.notEmpty(elements, "Elements cannot be empty!");
@@ -70,7 +73,7 @@ public class AnimationShopElement extends DynamicShopElement {
     }
 
     @Override
-    public List<RenderElement> getRenderElement(ShopRenderer renderer) {
+    public List<RenderElement> getRenderElement(ShopRenderer renderer, PlaceholderContext placeholder) {
         if (elementsCache == null)
             sanitize();
 
@@ -86,11 +89,25 @@ public class AnimationShopElement extends DynamicShopElement {
             renderer.setProperty(self + "_ticksPassed", ticksPassed);
         }
         ShopElement current = elementsCache.get(animationSequence);
-        List<RenderElement> items = current.getRenderElement(renderer);
+        PlaceholderContext selfContext = placeholder.withElement(this);
+        List<RenderElement> items = current.getRenderElement(renderer, selfContext);
         return items.stream()
                 // hijack the render elements to reroute updates to animation
-                .map(item -> new RenderElement(this, item.positions(), item.stack(), item.handler(), ShopElement.DYNAMIC_FLAGS))
+                .map(item -> item.withOwner(this, selfContext))
                 .collect(Collectors.toList());
+    }
+
+    @Override
+    public @Nullable Object getVariable(String key, PlaceholderContext context) {
+        Object obj = super.getVariable(key, context);
+        if (obj != null)
+            return obj;
+        // try getting variable from current animation element
+//        if (context.renderer() != null) {
+//            int animationSequence = context.renderer().property(self + "_animationSequence", 0);
+//            return elementsCache.get(animationSequence).getVariable(key, context);
+//        }
+        return null;
     }
 
     @Override

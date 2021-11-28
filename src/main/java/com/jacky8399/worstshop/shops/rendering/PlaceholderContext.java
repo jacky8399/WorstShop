@@ -1,5 +1,6 @@
 package com.jacky8399.worstshop.shops.rendering;
 
+import com.jacky8399.worstshop.WorstShop;
 import com.jacky8399.worstshop.helper.InventoryUtils;
 import com.jacky8399.worstshop.shops.Shop;
 import com.jacky8399.worstshop.shops.elements.ShopElement;
@@ -8,30 +9,49 @@ import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.StringJoiner;
+
 public record PlaceholderContext(@Nullable Player player,
                                  @Nullable Shop shop,
                                  @Nullable ShopRenderer renderer,
-                                 @Nullable ShopElement element) {
+                                 @Nullable ShopElement element,
+                                 @Nullable PlaceholderContext additionalContext) {
     public PlaceholderContext(@NotNull ShopRenderer renderer) {
         this(renderer, null);
     }
 
     public PlaceholderContext(@NotNull ShopRenderer renderer, @Nullable ShopElement element) {
-        this(renderer.player, renderer.shop, renderer, element);
+        this(renderer.player, renderer.shop, renderer, element, null);
     }
 
+    public static final PlaceholderContext NO_CONTEXT = new PlaceholderContext(null, null, null, null, null);
 
     public Object getVariable(String key) {
+        WorstShop.get().logger.info("Looking for " + key + " in " + this);
         if (element != null) {
-            Object result = element.variables.get(key);
+            Object result = element.getVariable(key, this);
             if (result != null)
                 return result;
-        } else if (shop != null) {
+        }
+        if (shop != null) {
             Object result = shop.getVariable(key);
             if (result != null)
                 return result;
         }
+        if (additionalContext != null) {
+            return additionalContext.getVariable(key);
+        }
         return null;
+    }
+
+    public PlaceholderContext withElement(@NotNull ShopElement element) {
+        return new PlaceholderContext(null, null, null, element, this);
+    }
+
+    public PlaceholderContext andThen(@NotNull PlaceholderContext context) {
+        return new PlaceholderContext(player, shop, renderer, element,
+                additionalContext != null ? additionalContext.andThen(context) : context
+        );
     }
 
     public static PlaceholderContext guessContext(@NotNull Player player) {
@@ -45,6 +65,22 @@ public record PlaceholderContext(@Nullable Player player,
                 renderer = invRenderer;
             }
         }
-        return new PlaceholderContext(player, renderer != null ? renderer.shop : null, renderer, null);
+        return new PlaceholderContext(player, renderer != null ? renderer.shop : null, renderer, null, null);
+    }
+
+    @Override
+    public String toString() {
+        StringJoiner builder = new StringJoiner(",", "PlaceholderContext{", "}");
+        if (player != null)
+            builder.add("player=" + player.getName());
+        if (shop != null)
+            builder.add("shop=" + shop.id);
+        if (renderer != null)
+            builder.add("renderer=" + renderer);
+        if (element != null)
+            builder.add("element=" + element);
+        if (additionalContext != null)
+            builder.add("additional=" + additionalContext);
+        return builder.toString();
     }
 }
