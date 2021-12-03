@@ -24,6 +24,8 @@ public class ShopRenderer implements InventoryProvider, RenderingLayer {
         this.player = player;
     }
 
+    public boolean debug = false;
+
     public HashMap<SlotPos, @Nullable RenderElement> outline = new HashMap<>();
     public List<RenderElement> toUpdateNextTick = new ArrayList<>();
     public List<RenderElement> paginationItems = new ArrayList<>();

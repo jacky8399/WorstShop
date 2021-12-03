@@ -27,7 +27,8 @@ public record PlaceholderContext(@Nullable Player player,
     public static final PlaceholderContext NO_CONTEXT = new PlaceholderContext(null, null, null, null, null);
 
     public Object getVariable(String key) {
-        WorstShop.get().logger.info("Looking for " + key + " in " + this);
+        if (renderer != null && renderer.debug)
+            WorstShop.get().logger.info("Looking for " + key + " in " + this);
         if (element != null) {
             Object result = element.getVariable(key, this);
             if (result != null)

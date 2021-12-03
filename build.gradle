@@ -77,7 +77,7 @@ dependencies {
         transitive = false
     }
     // PaperLib
-    implementation "io.papermc:paperlib:1.0.6"
+    implementation "io.papermc:paperlib:1.0.7"
     // Annotations
     compileOnly 'org.jetbrains:annotations:22.0.0'
 

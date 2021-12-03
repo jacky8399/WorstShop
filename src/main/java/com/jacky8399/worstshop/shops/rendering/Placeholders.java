@@ -57,7 +57,7 @@ public class Placeholders {
 
     @Contract("null, _ -> null; !null, _ -> !null")
     public static ItemStack setPlaceholders(ItemStack stack, @NotNull PlaceholderContext context) {
-        if (stack == null || stack.getType() == Material.AIR)
+        if (stack == null || stack.getType() == Material.AIR || context == PlaceholderContext.NO_CONTEXT)
             return stack;
 
         UnaryOperator<String> placeholderReplacer = str -> setPlaceholders(str, context);
@@ -95,6 +95,10 @@ public class Placeholders {
             }
         }
         stack.setItemMeta(meta);
+
+        if (context.additionalContext() != null) {
+            return Placeholders.setPlaceholders(stack, context.additionalContext());
+        }
         return stack;
     }
 }
