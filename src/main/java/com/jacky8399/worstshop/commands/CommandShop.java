@@ -11,6 +11,7 @@ import com.jacky8399.worstshop.editor.EditorMainMenu;
 import com.jacky8399.worstshop.helper.DateTimeUtils;
 import com.jacky8399.worstshop.helper.EditorUtils;
 import com.jacky8399.worstshop.helper.ItemUtils;
+import com.jacky8399.worstshop.helper.TextUtils;
 import com.jacky8399.worstshop.shops.Shop;
 import com.jacky8399.worstshop.shops.ShopDiscount;
 import com.jacky8399.worstshop.shops.ShopManager;
@@ -35,6 +36,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 import static com.jacky8399.worstshop.I18n.translate;
@@ -126,41 +128,41 @@ public class CommandShop extends BaseCommand {
         }
 
         private BaseComponent[] stringifyDiscount(ShopDiscount.Entry discount, boolean putDetailsInHover) {
-            boolean expires = discount.expiry != null;
+            boolean expires = discount.expiry() != null;
             ComponentBuilder detailBuilder = new ComponentBuilder("Discount ID: ").color(GREEN)
-                    .append(discount.name).color(YELLOW)
+                    .append(discount.name()).color(YELLOW)
                     .append("\nExpiry: ").color(GREEN)
                     .append(!expires ? "never" :
-                            discount.expiry.atOffset(OffsetDateTime.now().getOffset())
+                            discount.expiry().atOffset(OffsetDateTime.now().getOffset())
                                     .format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))
                     ).color(expires ? YELLOW : BLUE);
             if (expires)
                 detailBuilder.append(" (expires in ").color(GOLD)
-                        .append(DateTimeUtils.formatTime(Duration.between(LocalDateTime.now(), discount.expiry))).color(GOLD)
+                        .append(DateTimeUtils.formatTime(Duration.between(LocalDateTime.now(), discount.expiry()))).color(GOLD)
                         .append(")").color(GOLD);
             detailBuilder.append("\nApplicable to:").color(GREEN);
             boolean hasCriteria = false;
-            if (discount.shop != null) {
-                detailBuilder.append("\nShop: ").append(discount.shop.id);
+            if (discount.shop() != null) {
+                detailBuilder.append("\nShop: ").append(discount.shop().id);
                 hasCriteria = true;
             }
-            if (discount.material != null) {
-                detailBuilder.append("\nMaterial: ").append(discount.material.name());
+            if (discount.material() != null) {
+                detailBuilder.append("\nMaterial: ").append(discount.material().name());
                 hasCriteria = true;
             }
-            if (discount.player != null) {
-                detailBuilder.append("\nPlayer: ").append(Bukkit.getOfflinePlayer(discount.player).getName());
+            if (discount.player() != null) {
+                detailBuilder.append("\nPlayer: ").append(Bukkit.getOfflinePlayer(discount.player()).getName());
                 hasCriteria = true;
             }
-            if (discount.permission != null) {
-                detailBuilder.append("\nPlayer w/ permission: ").append(discount.permission);
+            if (discount.permission() != null) {
+                detailBuilder.append("\nPlayer w/ permission: ").append(discount.permission());
                 hasCriteria = true;
             }
             if (!hasCriteria) {
                 detailBuilder.append("\nEveryone");
             }
-            ComponentBuilder actualComponent = new ComponentBuilder((1 - discount.percentage) * 100 + "% discount ").color(YELLOW)
-                    .append("(" + discount.name + ")").color(AQUA);
+            ComponentBuilder actualComponent = new ComponentBuilder((1 - discount.percentage()) * 100 + "% discount ").color(YELLOW)
+                    .append("(" + discount.name() + ")").color(AQUA);
             if (putDetailsInHover)
                 actualComponent.event(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new Text(detailBuilder.create())));
             else
@@ -174,45 +176,43 @@ public class CommandShop extends BaseCommand {
         public void createDiscount(CommandSender sender, String name, String expiry, double discount, String argString) {
             String[] args = argString.split(" ");
             LocalDateTime expiryTime = expiry.equals("permanent") ? null : LocalDateTime.now().plus(DateTimeUtils.parseTimeStr(expiry));
-            ShopDiscount.Entry entry = new ShopDiscount.Entry(name, expiryTime, discount);
+            ShopReference shop = null;
+            Material material = null;
+            UUID player = null;
+            String permission = null;
             for (String str : args) {
                 String[] strArgs = str.split("=");
                 String specifier = strArgs[0];
                 String value = strArgs[1];
                 switch (specifier) {
-                    case "shop": {
-                        entry.shop = ShopReference.of(value);
-                    }
-                    break;
-                    case "player": {
-                        Player player = Bukkit.getPlayer(value);
-                        if (player == null) {
-                            throw new InvalidCommandArgument(value + " is not online");
+                    case "shop" -> shop = ShopReference.of(value);
+                    case "player" -> {
+                        try {
+                            player = UUID.fromString(value);
+                        } catch (IllegalArgumentException e) {
+                            Player playerObj = Bukkit.getPlayer(value);
+                            if (playerObj == null) {
+                                throw new InvalidCommandArgument(value + " is an online player/valid UUID");
+                            }
+                            player = playerObj.getUniqueId();
                         }
-                        entry.player = player.getUniqueId();
                     }
-                    break;
-                    case "material": {
-                        Material material = Material.getMaterial(value);
+                    case "material" -> {
+                        material = Material.getMaterial(value);
                         if (material == null || ItemUtils.isAir(material)) {
                             throw new InvalidCommandArgument("Invalid material " + value);
                         }
-                        entry.material = material;
                     }
-                    break;
-                    case "permission": {
-                        entry.permission = value;
-                    }
-                    break;
-                    default:
-                        throw new InvalidCommandArgument("Unknown argument " + specifier);
+                    case "permission" -> permission = value;
+                    default -> throw new InvalidCommandArgument("Unknown argument " + specifier);
                 }
             }
+
+            ShopDiscount.Entry entry = new ShopDiscount.Entry(name, expiryTime, discount,
+                    shop, material, player, permission);
             ShopDiscount.addDiscountEntry(entry);
-            sender.spigot().sendMessage(
-                    new ComponentBuilder("Added new ").color(GREEN)
-                            .append(stringifyDiscount(entry, sender instanceof Player)).create()
-            );
+            sender.spigot().sendMessage(new ComponentBuilder("Added new ").color(GREEN)
+                    .append(stringifyDiscount(entry, sender instanceof Player)).create());
         }
 
         @Subcommand("list")
@@ -227,8 +227,8 @@ public class CommandShop extends BaseCommand {
                                 .append(components)
                                 .append(" ")
                                 .append("[Delete]").color(RED).bold(true)
-                                .event(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new Text(TextComponent.fromLegacyText(YELLOW + "Click here to delete the discount"))))
-                                .event(new ClickEvent(ClickEvent.Action.SUGGEST_COMMAND, "/worstshop discount delete " + entry.name))
+                                .event(TextUtils.showText(TextUtils.of(YELLOW + "Click here to delete the discount")))
+                                .event(TextUtils.suggestCommand("/worstshop discount delete " + entry.name()))
                                 .create();
                     }).forEach(sender.spigot()::sendMessage);
         }
@@ -242,7 +242,7 @@ public class CommandShop extends BaseCommand {
                 ShopDiscount.removeDiscountEntry(realEntry);
                 sender.spigot().sendMessage(
                         new ComponentBuilder("Successfully removed ").color(GREEN)
-                        .append(stringifyDiscount(realEntry, sender instanceof Player)).create()
+                                .append(stringifyDiscount(realEntry, sender instanceof Player)).create()
                 );
             }
         }

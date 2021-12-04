@@ -56,7 +56,7 @@ public class Shop implements ParseContext.NamedContext {
     @Representation(Material.CHEST)
     public InventoryType type;
     // not property - specially handled
-    public String id;
+    public transient String id;
     @Property
     public String title;
     @Property

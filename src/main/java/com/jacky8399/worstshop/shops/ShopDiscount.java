@@ -1,40 +1,26 @@
 package com.jacky8399.worstshop.shops;
 
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+import org.spongepowered.configurate.objectmapping.ConfigSerializable;
 
-import javax.annotation.Nullable;
 import java.time.LocalDateTime;
-import java.time.ZoneOffset;
 import java.util.*;
 import java.util.function.Predicate;
 
 public class ShopDiscount {
 
-    public static class Entry {
-
-        public Entry(String name, @Nullable LocalDateTime expiry, double percentage) {
-            this.name = name;
-            this.expiry = expiry;
-            this.percentage = percentage;
-        }
-        public String name;
-        @Nullable
-        public final LocalDateTime expiry;
-        public final double percentage;
-        public ShopReference shop;
-        public Material material;
-        public UUID player;
-        public String permission;
-
+    @ConfigSerializable
+    public record Entry(String name, @Nullable LocalDateTime expiry, double percentage,
+                        ShopReference shop, Material material,
+                        UUID player, String permission) {
         public boolean hasExpired() {
             return expiry != null && LocalDateTime.now().isAfter(expiry);
         }
 
-        public boolean isApplicableTo(Shop shop, Material material, Player player) {
+        public boolean isApplicableTo(@NotNull Shop shop, @NotNull Material material, @NotNull Player player) {
             if (this.shop != null && !this.shop.refersTo(shop)) {
                 return false;
             }
@@ -46,62 +32,14 @@ public class ShopDiscount {
             }
             return this.permission == null || player.hasPermission(permission);
         }
-
-        @Override
-        public int hashCode() {
-            return name.hashCode();
-        }
-
-        @Override
-        public boolean equals(Object obj) {
-            if (!(obj instanceof Entry)) {
-                return false;
-            }
-            Entry other = (Entry) obj;
-            return Objects.equals(expiry, other.expiry) && percentage == other.percentage &&
-                    Objects.equals(shop, other.shop) && Objects.equals(material, other.material) &&
-                    Objects.equals(player, other.player) && Objects.equals(permission, other.permission);
-        }
-
-        public Map<String, Object> toMap() {
-            Map<String, Object> map = Maps.newHashMap();
-            map.put("name", name);
-            map.put("expiry", expiry != null ? expiry.toEpochSecond(ZoneOffset.UTC) : -1); // doesn't matter, will be read as UTC too
-            map.put("percentage", percentage);
-            if (shop != null)
-                map.put("shop", shop.id);
-            if (material != null)
-                map.put("material", material.name());
-            if (player != null)
-                map.put("player", player.toString());
-            if (permission != null)
-                map.put("permission", permission);
-            return map;
-        }
-
-        public static Entry fromMap(Map<String, Object> map) {
-            String name = (String) map.get("name");
-            long expiry = ((Number) map.get("expiry")).longValue();
-            double percentage = ((Number) map.get("percentage")).doubleValue();
-            Entry entry = new Entry(name, expiry != -1 ? LocalDateTime.ofEpochSecond(expiry, 0, ZoneOffset.UTC) : null, percentage);
-            if (map.containsKey("shop"))
-                entry.shop = ShopReference.of((String) map.get("shop"));
-            if (map.containsKey("material"))
-                entry.material = Material.getMaterial((String) map.get("material"));
-            if (map.containsKey("player"))
-                entry.player = UUID.fromString((String) map.get("player"));
-            if (map.containsKey("permission"))
-                entry.permission = (String) map.get("permission");
-            return entry;
-        }
     }
 
-    public static final HashMap<ShopReference, Set<Entry>> BY_SHOP = Maps.newHashMap();
-    public static final EnumMap<Material, Set<Entry>> BY_MATERIAL = Maps.newEnumMap(Material.class);
-    public static final HashMap<UUID, Set<Entry>> BY_PLAYER = Maps.newHashMap();
-    public static final Set<Entry> NO_CRITERIA = Sets.newHashSet();
+    public static final HashMap<ShopReference, Set<Entry>> BY_SHOP = new HashMap<>();
+    public static final EnumMap<Material, Set<Entry>> BY_MATERIAL = new EnumMap<>(Material.class);
+    public static final HashMap<UUID, Set<Entry>> BY_PLAYER = new HashMap<>();
+    public static final Set<Entry> NO_CRITERIA = new HashSet<>();
 
-    public static final HashMap<String, Entry> ALL_DISCOUNTS = Maps.newHashMap();
+    public static final HashMap<String, Entry> ALL_DISCOUNTS = new HashMap<>();
 
     public static void clearDiscounts() {
         ALL_DISCOUNTS.clear();
@@ -115,10 +53,10 @@ public class ShopDiscount {
         Objects.requireNonNull(shop, "shop cannot be null");
         Objects.requireNonNull(material, "material cannot be null");
         Objects.requireNonNull(player, "player cannot be null");
-        List<Entry> all = Lists.newArrayList();
+        List<Entry> all = new ArrayList<>();
         Predicate<Entry> applicableCheck = entry -> entry.isApplicableTo(shop, material, player);
         // stale check
-        Set<Entry> obsoleteDiscounts = Sets.newHashSet();
+        Set<Entry> obsoleteDiscounts = new HashSet<>();
         Predicate<Entry> staleCheck = entry -> {
             if (entry.hasExpired()) {
                 obsoleteDiscounts.add(entry);
@@ -148,7 +86,7 @@ public class ShopDiscount {
      * @return a number to be multiplied to the price
      */
     public static double calcFinalPrice(List<Entry> entries) {
-        return entries.stream().mapToDouble(entry->entry.percentage).reduce(1, (d1, d2)->d1 * d2);
+        return entries.stream().mapToDouble(Entry::percentage).reduce(1, (d1, d2)->d1 * d2);
     }
 
     /**
@@ -159,15 +97,15 @@ public class ShopDiscount {
         boolean isNoCriteria = true;
         ALL_DISCOUNTS.put(entry.name, entry);
         if (entry.shop != null) {
-            BY_SHOP.computeIfAbsent(entry.shop, key->Sets.newHashSet()).add(entry);
+            BY_SHOP.computeIfAbsent(entry.shop, key->new HashSet<>()).add(entry);
             isNoCriteria = false;
         }
         if (entry.material != null) {
-            BY_MATERIAL.computeIfAbsent(entry.material, key->Sets.newHashSet()).add(entry);
+            BY_MATERIAL.computeIfAbsent(entry.material, key->new HashSet<>()).add(entry);
             isNoCriteria = false;
         }
         if (entry.player != null) {
-            BY_PLAYER.computeIfAbsent(entry.player, key->Sets.newHashSet()).add(entry);
+            BY_PLAYER.computeIfAbsent(entry.player, key->new HashSet<>()).add(entry);
             isNoCriteria = false;
         }
         // the entry cannot be discovered by other criteria

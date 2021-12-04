@@ -1,13 +1,28 @@
 package com.jacky8399.worstshop.helper;
 
+import com.jacky8399.worstshop.shops.ShopReference;
 import com.jacky8399.worstshop.shops.elements.ShopElement;
+import io.leangen.geantyref.TypeToken;
 import net.md_5.bungee.api.ChatColor;
 import net.md_5.bungee.api.chat.BaseComponent;
 import net.md_5.bungee.api.chat.TextComponent;
 import net.md_5.bungee.chat.ComponentSerializer;
+import org.spongepowered.configurate.ConfigurationOptions;
+import org.spongepowered.configurate.serialize.ScalarSerializer;
+import org.spongepowered.configurate.serialize.SerializationException;
+import org.spongepowered.configurate.serialize.TypeSerializer;
+import org.spongepowered.configurate.yaml.NodeStyle;
+import org.spongepowered.configurate.yaml.YamlConfigurationLoader;
 
+import java.io.File;
+import java.lang.reflect.Type;
+import java.nio.file.Path;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeParseException;
 import java.util.HashMap;
 import java.util.Optional;
+import java.util.function.Predicate;
 
 public final class ConfigHelper {
     private ConfigHelper() {}
@@ -52,4 +67,65 @@ public final class ConfigHelper {
         });
         return var;
     }
+
+    public static ConfigurationOptions applyDefaultOptions(ConfigurationOptions def) {
+        return def.serializers(builder -> builder
+                .register(new FlexibleEnumSerializer())
+                .register(LOCAL_DATE_TIME)
+                .register(ShopReference.Serializer.INSTANCE)
+        );
+    }
+
+    public static YamlConfigurationLoader createLoader(Path path) {
+        return YamlConfigurationLoader.builder()
+                .path(path)
+                .defaultOptions(ConfigHelper::applyDefaultOptions)
+                .nodeStyle(NodeStyle.BLOCK).indent(2)
+                .build();
+    }
+
+    public static YamlConfigurationLoader createLoader(File file) {
+        return createLoader(file.toPath());
+    }
+
+    private static class FlexibleEnumSerializer extends ScalarSerializer<Enum<?>> {
+        FlexibleEnumSerializer() {
+            super(new TypeToken<>() {});
+        }
+
+        @SuppressWarnings({"unchecked", "rawtypes"})
+        @Override
+        public Enum<?> deserialize(Type type, Object obj) throws SerializationException {
+            String enumConstant = obj.toString();
+            try {
+                return parseEnum(enumConstant, (Class) type);
+            } catch (IllegalArgumentException | NullPointerException e) {
+                throw new SerializationException(type, "Invalid enum constant provided, expected a value of enum, got " + enumConstant);
+            }
+        }
+
+        @Override
+        protected Object serialize(Enum<?> item, Predicate<Class<?>> typeSupported) {
+            return item.name();
+        }
+    }
+
+    private static final ScalarSerializer<LocalDateTime> LOCAL_DATE_TIME = TypeSerializer.of(LocalDateTime.class,
+            // serialize
+            (time, isNative) -> time.toString(),
+            // deserialize
+            input -> {
+                if (input == null) {
+                    return null;
+                } else if (input instanceof Integer num) {
+                    return num != -1 ? LocalDateTime.ofEpochSecond(num, 0, ZoneOffset.UTC) : null;
+                } else {
+                    try {
+                        return LocalDateTime.parse(input.toString());
+                    } catch (DateTimeParseException e) {
+                        throw new SerializationException(e);
+                    }
+                }
+            }
+    );
 }

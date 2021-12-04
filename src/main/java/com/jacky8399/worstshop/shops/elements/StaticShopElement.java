@@ -382,8 +382,8 @@ public class StaticShopElement extends ShopElement {
                     ItemStack stack = asyncItemCache.remove(player);
                     if (stack != null) {
                         return Collections.singletonList(
-                                new RenderElement(this, getFiller(renderer).fill(this, renderer),
-                                        stack, getClickHandler(renderer), STATIC_FLAGS)
+                                new RenderElement(this, getFiller(renderer).fill(this, renderer), stack,
+                                        PlaceholderContext.NO_CONTEXT, getClickHandler(renderer), STATIC_FLAGS)
                         );
                     } else {
                         return getAsyncPlaceholderElement(renderer, placeholder);

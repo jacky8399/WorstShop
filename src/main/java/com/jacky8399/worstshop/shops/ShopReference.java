@@ -10,11 +10,15 @@ import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.spongepowered.configurate.serialize.ScalarSerializer;
+import org.spongepowered.configurate.serialize.SerializationException;
 
+import java.lang.reflect.Type;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Optional;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -24,9 +28,7 @@ public class ShopReference {
     public static final Empty EMPTY = new Empty();
 
     public static final HashMap<String, ShopReference> REFERENCES = new HashMap<>();
-    /**
-     * Please don't modify this unless you are trying to rename the shop
-     */
+    // basically final
     public String id;
     private Shop ref;
     private ShopReference(String id) {
@@ -133,6 +135,23 @@ public class ShopReference {
                         .addLores(EditorUtils.getDesc(parentName, fieldName))
                         .build();
             return ItemBuilder.of(Material.EMERALD_BLOCK).name(ChatColor.GREEN + val.id).build();
+        }
+    }
+
+    public static class Serializer extends ScalarSerializer<ShopReference> {
+        public static Serializer INSTANCE = new Serializer();
+        private Serializer() {
+            super(ShopReference.class);
+        }
+
+        @Override
+        public ShopReference deserialize(Type type, Object obj) throws SerializationException {
+            return obj == null ? EMPTY : ShopReference.of(obj.toString());
+        }
+
+        @Override
+        protected Object serialize(ShopReference item, Predicate<Class<?>> typeSupported) {
+            return item.id;
         }
     }
 }

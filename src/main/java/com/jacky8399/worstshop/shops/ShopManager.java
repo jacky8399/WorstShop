@@ -4,15 +4,22 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.io.Files;
 import com.jacky8399.worstshop.WorstShop;
+import com.jacky8399.worstshop.helper.ConfigHelper;
 import fr.minuskube.inv.InventoryManager;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
-import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.permissions.Permissible;
+import org.spongepowered.configurate.CommentedConfigurationNode;
+import org.spongepowered.configurate.ConfigurateException;
+import org.spongepowered.configurate.ConfigurationNode;
+import org.spongepowered.configurate.yaml.YamlConfigurationLoader;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.*;
+import java.util.EnumMap;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Optional;
 
 public class ShopManager {
     public static final HashMap<String, Shop> SHOPS = Maps.newHashMap();
@@ -83,16 +90,17 @@ public class ShopManager {
     }
 
     public static void saveDiscounts() {
-        List<Map<String, Object>> discounts = Lists.newArrayList();
-        ShopDiscount.ALL_DISCOUNTS.values().stream().filter(entry -> !entry.hasExpired())
-                .map(ShopDiscount.Entry::toMap).forEach(discounts::add);
+        List<ShopDiscount.Entry> discounts = ShopDiscount.ALL_DISCOUNTS.values().stream()
+                .filter(entry -> !entry.hasExpired())
+                .toList();
         WorstShop.get().logger.info("Saving " + discounts.size() + " discounts");
-        YamlConfiguration yaml = new YamlConfiguration();
-        yaml.set("discounts", discounts);
+        YamlConfigurationLoader loader = ConfigHelper.createLoader(new File(WorstShop.get().getDataFolder(), "discounts.yml"));
+        ConfigurationNode node = loader.createNode();
         try {
-            yaml.save(new File(WorstShop.get().getDataFolder(), "discounts.yml"));
-        } catch (IOException e) {
-            WorstShop.get().logger.severe("Failed to save discounts");
+            node.node("discounts").setList(ShopDiscount.Entry.class, discounts);
+            loader.save(node);
+        } catch (ConfigurateException e) {
+            WorstShop.get().logger.severe("Failed to save discounts: " + e);
         }
     }
 
@@ -125,11 +133,20 @@ public class ShopManager {
         ShopDiscount.clearDiscounts();
         File discountFile = new File(plugin.getDataFolder(), "discounts.yml");
         if (discountFile.exists()) {
-            YamlConfiguration yaml = YamlConfiguration.loadConfiguration(discountFile);
-            yaml.getList("discounts").stream()
-                    .map(obj -> (Map<String, Object>) obj)
-                    .map(ShopDiscount.Entry::fromMap)
-                    .forEach(ShopDiscount::addDiscountEntry);
+//            YamlConfiguration yaml = YamlConfiguration.loadConfiguration(discountFile);
+            YamlConfigurationLoader loader = ConfigHelper.createLoader(discountFile);
+            CommentedConfigurationNode node;
+            try {
+                node = loader.load();
+                ConfigurationNode inner = node.node("discounts");
+                if (!inner.virtual()) {
+                    inner.getList(ShopDiscount.Entry.class).forEach(ShopDiscount::addDiscountEntry);
+                } else {
+                    plugin.logger.severe("Invalid discounts.yml structure");
+                }
+            } catch (IOException e) {
+                plugin.logger.severe("Failed to read discounts.yml: " + e);
+            }
             plugin.logger.info("Loaded " + ShopDiscount.ALL_DISCOUNTS.size() + " discounts");
         }
 
@@ -147,7 +164,6 @@ public class ShopManager {
                 }
 
                 currentShopId = shopPath.substring(shopsFolderPath.length() + 1, shopPath.length() - shopExt.length() - 1).replace('\\', '/');
-//                YamlConfiguration yaml = YamlConfiguration.loadConfiguration(shop);
 
                 SHOPS.put(currentShopId, Shop.fromYaml(currentShopId, shop));
                 plugin.logger.fine("Loaded " + currentShopId + ".yml");

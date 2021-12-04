@@ -2,10 +2,7 @@ package com.jacky8399.worstshop.helper;
 
 import com.jacky8399.worstshop.I18n;
 import net.md_5.bungee.api.ChatColor;
-import net.md_5.bungee.api.chat.BaseComponent;
-import net.md_5.bungee.api.chat.ComponentBuilder;
-import net.md_5.bungee.api.chat.HoverEvent;
-import net.md_5.bungee.api.chat.TextComponent;
+import net.md_5.bungee.api.chat.*;
 import net.md_5.bungee.api.chat.hover.content.Text;
 import org.bukkit.entity.Player;
 
@@ -17,6 +14,14 @@ public final class TextUtils {
 
     public static HoverEvent showText(BaseComponent[] components) {
         return new HoverEvent(HoverEvent.Action.SHOW_TEXT, new Text(components));
+    }
+
+    public static ClickEvent suggestCommand(String command) {
+        return new ClickEvent(ClickEvent.Action.SUGGEST_COMMAND, command);
+    }
+
+    public static ClickEvent runCommand(String command) {
+        return new ClickEvent(ClickEvent.Action.RUN_COMMAND, command);
     }
 
     public static BaseComponent[] of(String legacy) {
