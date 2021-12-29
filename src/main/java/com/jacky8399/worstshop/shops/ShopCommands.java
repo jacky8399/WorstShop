@@ -51,19 +51,15 @@ public class ShopCommands {
                 return;
             for (Iterator<Map.Entry<String, Command>> it = knownCommands.entrySet().iterator(); it.hasNext(); ) {
                 Map.Entry<String, Command> entry = it.next();
-                if (entry.getValue() instanceof ShopAliasCommand) {
-                    ShopAliasCommand c = (ShopAliasCommand) entry.getValue();
+                if (entry.getValue() instanceof ShopAliasCommand c) {
                     c.unregister(map);
                     it.remove();
                 }
             }
-        } catch (Exception ex) {
-            // ignore
-        }
+        } catch (Exception ignore) {}
     }
 
     public static class ShopAliasCommand extends BukkitCommand {
-
         private final String shopName;
 
         protected ShopAliasCommand(String shopName, List<String> aliases, boolean ignorePermission) {
@@ -78,8 +74,7 @@ public class ShopCommands {
 
         @Override
         public boolean execute(@NotNull CommandSender sender, @NotNull String commandLabel, @NotNull String[] args) {
-            if (sender instanceof Player) {
-                Player player = (Player)sender;
+            if (sender instanceof Player player) {
                 ShopManager.getShop(shopName)
                         .filter(shop -> shop.canPlayerView(player, true)) // check conditions
                         .ifPresent(shop -> shop.getInventory(player).open(player));

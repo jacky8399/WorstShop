@@ -165,9 +165,14 @@ public class ShopManager {
 
                 currentShopId = shopPath.substring(shopsFolderPath.length() + 1, shopPath.length() - shopExt.length() - 1).replace('\\', '/');
 
-                SHOPS.put(currentShopId, Shop.fromYaml(currentShopId, shop));
-                plugin.logger.fine("Loaded " + currentShopId + ".yml");
-                count++;
+                try {
+                    SHOPS.put(currentShopId, Shop.fromYaml(currentShopId, shop));
+                    plugin.logger.fine("Loaded " + currentShopId + ".yml");
+                    count++;
+                } catch (Exception e) {
+                    plugin.logger.severe("Error while loading " + currentShopId + ".yml");
+                    e.printStackTrace();
+                }
             }
             currentShop = null;
             currentShopId = null;

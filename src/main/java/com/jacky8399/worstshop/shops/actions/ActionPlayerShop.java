@@ -31,13 +31,13 @@ import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.scheduler.BukkitTask;
 import org.maxgamer.quickshop.QuickShop;
 import org.maxgamer.quickshop.api.QuickShopAPI;
-import org.maxgamer.quickshop.api.ShopAPI;
-import org.maxgamer.quickshop.event.ShopCreateEvent;
-import org.maxgamer.quickshop.event.ShopDeleteEvent;
-import org.maxgamer.quickshop.event.ShopItemChangeEvent;
-import org.maxgamer.quickshop.shop.Info;
-import org.maxgamer.quickshop.shop.Shop;
-import org.maxgamer.quickshop.shop.ShopAction;
+import org.maxgamer.quickshop.api.event.ShopCreateEvent;
+import org.maxgamer.quickshop.api.event.ShopDeleteEvent;
+import org.maxgamer.quickshop.api.event.ShopItemChangeEvent;
+import org.maxgamer.quickshop.api.shop.Shop;
+import org.maxgamer.quickshop.api.shop.ShopAction;
+import org.maxgamer.quickshop.shop.SimpleInfo;
+import org.maxgamer.quickshop.shop.SimpleShopManager;
 
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
@@ -48,8 +48,8 @@ public class ActionPlayerShop extends Action {
     public static final String I18N_KEY = "worstshop.messages.shops.player-shop.";
     static {
         try {
-            ShopAPI shopAPI = QuickShopAPI.getShopAPI();
-            cache = new ShopCache();
+            QuickShopAPI plugin = (QuickShopAPI) Bukkit.getPluginManager().getPlugin("QuickShop");
+            cache = new ShopCache(plugin);
         } catch (Throwable e) {
             throw new IllegalStateException("QuickShop is not loaded!", e);
         }
@@ -219,10 +219,10 @@ public class ActionPlayerShop extends Action {
         }
     }
 
-    private record PurchaseStrategy(Shop shop, int buyCount, Info info) {
+    private record PurchaseStrategy(Shop shop, int buyCount, SimpleInfo info) {
         PurchaseStrategy(Shop shop, int buyCount) {
-            this(shop, buyCount,
-                    new Info(shop.getLocation(), ShopAction.BUY, shop.getItem(), shop.getLocation().getBlock(), shop));
+            this(shop, buyCount, new SimpleInfo(shop.getLocation(),
+                    ShopAction.BUY, shop.getItem(), shop.getLocation().getBlock(), shop, false));
         }
 
         public double total() {
@@ -353,11 +353,12 @@ public class ActionPlayerShop extends Action {
                         PaperLib.getChunkAtAsync(qShop.getLocation(), false);
                 return future.thenCompose(ignored -> {
                     CompletableFuture<Void> future2 = new CompletableFuture<>();
+                    SimpleShopManager qsManager = (SimpleShopManager) qs.getShopManager();
                     Bukkit.getScheduler().runTask(WorstShop.get(), () -> {
                         if (isBuying)
-                            qs.getShopManager().actionSell(player.getUniqueId(), player.getInventory(), qs.getEconomy(), purchase.info, qShop, purchase.buyCount);
+                            qsManager.actionSell(player.getUniqueId(), player.getInventory(), qs.getEconomy(), purchase.info, qShop, purchase.buyCount);
                         else
-                            qs.getShopManager().actionBuy(player.getUniqueId(), player.getInventory(), qs.getEconomy(), purchase.info, qShop, purchase.buyCount);
+                            qsManager.actionBuy(player.getUniqueId(), player.getInventory(), qs.getEconomy(), purchase.info, qShop, purchase.buyCount);
                         future2.complete(null);
                     });
                     return future2;
@@ -372,15 +373,17 @@ public class ActionPlayerShop extends Action {
 
     private static final ShopCache cache;
     private static class ShopCache implements Listener {
-        ShopCache() {
+        private final QuickShopAPI api;
+        ShopCache(QuickShopAPI api) {
+            this.api = api;
             Bukkit.getScheduler().runTask(WorstShop.get(), this::refreshCache);
             Bukkit.getPluginManager().registerEvents(this, WorstShop.get());
         }
 
-        HashMap<Material, List<org.maxgamer.quickshop.shop.Shop>> shops = new HashMap<>();
+        HashMap<Material, List<Shop>> shops = new HashMap<>();
 
         public void refreshCache() {
-            List<Shop> shops = QuickShopAPI.getShopAPI().getAllShops();
+            List<Shop> shops = api.getShopManager().getAllShops();
             for (Shop shop : shops) {
                 ItemStack stack = shop.getItem();
                 Material mat = stack.getType();
@@ -391,9 +394,9 @@ public class ActionPlayerShop extends Action {
 
         @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
         void onShopItemChange(ShopItemChangeEvent e) {
-            org.maxgamer.quickshop.shop.Shop shop = e.getShop();
+            Shop shop = e.getShop();
             ItemStack oldStack = e.getOldItem(), newStack = e.getNewItem();
-            List<org.maxgamer.quickshop.shop.Shop> shopz = shops.get(oldStack.getType()),
+            List<Shop> shopz = shops.get(oldStack.getType()),
                     newShopz = shops.computeIfAbsent(newStack.getType(), key->new ArrayList<>());
             if (shopz != null) {
                 shopz.remove(shop);
@@ -403,15 +406,15 @@ public class ActionPlayerShop extends Action {
 
         @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
         void onShopCreate(ShopCreateEvent e) {
-            org.maxgamer.quickshop.shop.Shop shop = e.getShop();
-            List<org.maxgamer.quickshop.shop.Shop> shopz = shops.computeIfAbsent(shop.getItem().getType(), key->new ArrayList<>());
+            Shop shop = e.getShop();
+            List<Shop> shopz = shops.computeIfAbsent(shop.getItem().getType(), key->new ArrayList<>());
             shopz.add(shop);
         }
 
         @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
         void onShopDelete(ShopDeleteEvent e) {
-            org.maxgamer.quickshop.shop.Shop shop = e.getShop();
-            List<org.maxgamer.quickshop.shop.Shop> shopz = shops.get(shop.getItem().getType());
+            Shop shop = e.getShop();
+            List<Shop> shopz = shops.get(shop.getItem().getType());
             shopz.remove(shop);
         }
     }

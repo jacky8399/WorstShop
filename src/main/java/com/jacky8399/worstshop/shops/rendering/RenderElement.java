@@ -29,7 +29,7 @@ public record RenderElement(ShopElement owner,
     }
 
     public RenderElement withOwner(ShopElement owner, PlaceholderContext context) {
-        return new RenderElement(owner, positions, stack, context, handler, flags);
+        return new RenderElement(owner, positions, stack, context, handler.andThen(owner::onClick), flags);
     }
 
     public RenderElement withOwner(ShopElement owner) {

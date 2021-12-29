@@ -73,7 +73,7 @@ dependencies {
     // Placeholders
     compileOnly 'me.clip:placeholderapi:2.10.3'
     // QuickShop
-    compileOnly('org.maxgamer:QuickShop:4.0.8.0-SNAPSHOT') {
+    compileOnly('org.maxgamer:QuickShop:5.1.0.0-SNAPSHOT') {
         transitive = false
     }
     // PaperLib
