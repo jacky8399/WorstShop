@@ -77,6 +77,9 @@ public class AnimationShopElement extends DynamicShopElement {
         if (elementsCache == null)
             sanitize();
 
+        if (elements.size() == 0)
+            return Collections.emptyList();
+
         int animationSequence = renderer.property(self + "_animationSequence", 0);
         int ticksPassed = renderer.property(self + "_ticksPassed", 0);
 //        renderer.player.sendMessage("[Animation] #Seq: " + animationSequence + ", ticks: " + ticksPassed + "/" + intervalInTicks);

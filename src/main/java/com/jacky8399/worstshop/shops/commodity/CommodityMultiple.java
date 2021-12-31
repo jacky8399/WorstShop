@@ -115,7 +115,8 @@ public class CommodityMultiple extends Commodity implements IFlexibleCommodity {
                 public List<RenderElement> getRenderElement(ShopRenderer renderer, PlaceholderContext placeholder) {
                     int itemSequence = renderer.property(self + "_shopWantsItemSequence", 0);
                     int nextItemSequence = wrapIndexOffset(itemSequence, 1);
-                    renderer.setProperty(self + "_shopWantsItemSequence", nextItemSequence);
+                    if (wants.size() != 3) // don't animate when there's only 3 elements
+                        renderer.setProperty(self + "_shopWantsItemSequence", nextItemSequence);
                     ShopElement elem1 = wants.get(wrapIndexOffset(itemSequence, -1)).createElement(position),
                             elem2 = wants.get(itemSequence).createElement(position),
                             elem3 = wants.get(nextItemSequence).createElement(position);

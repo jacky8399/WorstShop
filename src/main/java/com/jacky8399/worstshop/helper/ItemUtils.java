@@ -2,11 +2,14 @@ package com.jacky8399.worstshop.helper;
 
 import com.jacky8399.worstshop.I18n;
 import com.jacky8399.worstshop.WorstShop;
+import com.jacky8399.worstshop.shops.elements.StaticShopElement;
 import fr.minuskube.inv.ClickableItem;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.EnumSet;
@@ -44,5 +47,14 @@ public class ItemUtils {
                         });
                     }
                 });
+    }
+
+    @NotNull
+    public static ItemStack removeSafetyKey(@NotNull ItemStack stack) {
+        ItemStack clone = stack.clone();
+        ItemMeta meta = clone.getItemMeta();
+        meta.getPersistentDataContainer().remove(StaticShopElement.SAFETY_KEY);
+        clone.setItemMeta(meta);
+        return clone;
     }
 }

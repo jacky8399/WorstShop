@@ -16,6 +16,7 @@ import com.jacky8399.worstshop.shops.Shop;
 import com.jacky8399.worstshop.shops.ShopDiscount;
 import com.jacky8399.worstshop.shops.ShopManager;
 import com.jacky8399.worstshop.shops.ShopReference;
+import com.jacky8399.worstshop.shops.commodity.CommodityItem;
 import com.jacky8399.worstshop.shops.conditions.Condition;
 import com.jacky8399.worstshop.shops.conditions.ConditionPermission;
 import com.jacky8399.worstshop.shops.elements.StaticShopElement;
@@ -28,6 +29,7 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
@@ -290,6 +292,22 @@ public class CommandShop extends BaseCommand {
         String str = temp.saveToString();
         for (String line : str.split("\n"))
             sender.sendMessage(line);
+    }
+
+    @Private
+    @Subcommand("debugmatcher")
+    @CommandPermission("worstshop.debug")
+    @CommandCompletion("* @nothing")
+    public void debugItemMatcher(Player player, Material material, String base64) {
+        ItemStack stack = player.getInventory().getItemInMainHand();
+        ItemMeta meta = StaticShopElement.deserializeBase64ItemMeta(base64);
+        ItemStack toCompare = new ItemStack(material, 1);
+        toCompare.setItemMeta(meta);
+
+        player.sendMessage(GREEN + "Testing held item against " + toCompare);
+        for (CommodityItem.ItemMatcher matcher : CommodityItem.ItemMatcher.ITEM_MATCHERS.values()) {
+            player.sendMessage(GREEN + matcher.name + ": " + matcher.test(stack, toCompare));
+        }
     }
 
     @Subcommand("open")
