@@ -81,7 +81,7 @@ dependencies {
     // Annotations
     compileOnly 'org.jetbrains:annotations:22.0.0'
     // Configurate
-    implementation 'org.spongepowered:configurate-yaml:4.1.2'
+//    implementation 'org.spongepowered:configurate-yaml:4.1.2'
 
     // Tests
     testImplementation "org.mockito:mockito-inline:3.6.0"

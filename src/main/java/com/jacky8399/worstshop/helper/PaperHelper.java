@@ -75,6 +75,7 @@ public class PaperHelper {
         }
     }
 
+    @SuppressWarnings("unchecked")
     public static Map<String, Command> getKnownCommands(CommandMap map) {
         if (isPaper) {
             return map.getKnownCommands();

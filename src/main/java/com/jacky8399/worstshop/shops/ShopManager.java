@@ -4,22 +4,15 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.io.Files;
 import com.jacky8399.worstshop.WorstShop;
-import com.jacky8399.worstshop.helper.ConfigHelper;
 import fr.minuskube.inv.InventoryManager;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
+import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.permissions.Permissible;
-import org.spongepowered.configurate.CommentedConfigurationNode;
-import org.spongepowered.configurate.ConfigurateException;
-import org.spongepowered.configurate.ConfigurationNode;
-import org.spongepowered.configurate.yaml.YamlConfigurationLoader;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.EnumMap;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 
 public class ShopManager {
     public static final HashMap<String, Shop> SHOPS = Maps.newHashMap();
@@ -64,12 +57,14 @@ public class ShopManager {
         int slash = newId.lastIndexOf('/');
         if (slash != -1) {
             File newFileDirectory = new File(shops, newId.substring(0, slash));
-            newFileDirectory.mkdirs();
+            if (!newFileDirectory.mkdirs())
+                WorstShop.get().logger.warning("Failed to rename shop " + oldId + " to " + newId + ": Unable to create directory");
         }
         try {
             // noinspection UnstableApiUsage
             Files.copy(oldFile, newFile);
-            oldFile.delete();
+            if (!oldFile.delete())
+                WorstShop.get().logger.warning("Failed to rename shop " + oldId + " to " + newId + ": Unable to delete old file");
 
             renameAllOccurrences(shop, newId);
         } catch (IOException ignored) {}
@@ -90,17 +85,16 @@ public class ShopManager {
     }
 
     public static void saveDiscounts() {
-        List<ShopDiscount.Entry> discounts = ShopDiscount.ALL_DISCOUNTS.values().stream()
-                .filter(entry -> !entry.hasExpired())
-                .toList();
+        List<Map<String, Object>> discounts = Lists.newArrayList();
+        ShopDiscount.ALL_DISCOUNTS.values().stream().filter(entry -> !entry.hasExpired())
+                .map(ShopDiscount.Entry::toMap).forEach(discounts::add);
         WorstShop.get().logger.info("Saving " + discounts.size() + " discounts");
-        YamlConfigurationLoader loader = ConfigHelper.createLoader(new File(WorstShop.get().getDataFolder(), "discounts.yml"));
-        ConfigurationNode node = loader.createNode();
+        YamlConfiguration yaml = new YamlConfiguration();
+        yaml.set("discounts", discounts);
         try {
-            node.node("discounts").setList(ShopDiscount.Entry.class, discounts);
-            loader.save(node);
-        } catch (ConfigurateException e) {
-            WorstShop.get().logger.severe("Failed to save discounts: " + e);
+            yaml.save(new File(WorstShop.get().getDataFolder(), "discounts.yml"));
+        } catch (IOException e) {
+            WorstShop.get().logger.severe("Failed to save discounts");
         }
     }
 
@@ -112,6 +106,7 @@ public class ShopManager {
         ITEM_SHOPS.clear();
     }
 
+    @SuppressWarnings("ConstantConditions")
     private static List<File> listFilesRecursively(File path, List<File> list) {
         for (File file : path.listFiles()) {
             if (file.isDirectory()) {
@@ -123,6 +118,7 @@ public class ShopManager {
         return list;
     }
 
+    @SuppressWarnings({"ConstantConditions", "unchecked"})
     public static void loadShops() {
         WorstShop plugin = WorstShop.get();
         plugin.logger.info("Loading shops");
@@ -133,20 +129,11 @@ public class ShopManager {
         ShopDiscount.clearDiscounts();
         File discountFile = new File(plugin.getDataFolder(), "discounts.yml");
         if (discountFile.exists()) {
-//            YamlConfiguration yaml = YamlConfiguration.loadConfiguration(discountFile);
-            YamlConfigurationLoader loader = ConfigHelper.createLoader(discountFile);
-            CommentedConfigurationNode node;
-            try {
-                node = loader.load();
-                ConfigurationNode inner = node.node("discounts");
-                if (!inner.virtual()) {
-                    inner.getList(ShopDiscount.Entry.class).forEach(ShopDiscount::addDiscountEntry);
-                } else {
-                    plugin.logger.severe("Invalid discounts.yml structure");
-                }
-            } catch (IOException e) {
-                plugin.logger.severe("Failed to read discounts.yml: " + e);
-            }
+            YamlConfiguration yaml = YamlConfiguration.loadConfiguration(discountFile);
+            yaml.getList("discounts").stream()
+                    .map(obj -> (Map<String, Object>) obj)
+                    .map(ShopDiscount.Entry::fromMap)
+                    .forEach(ShopDiscount::addDiscountEntry);
             plugin.logger.info("Loaded " + ShopDiscount.ALL_DISCOUNTS.size() + " discounts");
         }
 
@@ -156,7 +143,7 @@ public class ShopManager {
         if (shops.exists() && shops.isDirectory()) {
             // iterate through shops
             int count = 0;
-            for (File shop : listFilesRecursively(shops, Lists.newArrayList())) {
+            for (File shop : listFilesRecursively(shops, new ArrayList<>())) {
                 String shopPath = shop.getAbsolutePath();
                 String shopExt = shopPath.substring(shopPath.lastIndexOf('.') + 1);
                 if (!("yml".equals(shopExt) || "yaml".equals(shopExt))) {
@@ -182,8 +169,9 @@ public class ShopManager {
 
             plugin.logger.info("Loaded " + count + " shops");
         } else {
-            shops.mkdirs();
             plugin.logger.info("/shops/ folder does not exist. Creating");
+            if (!shops.mkdirs())
+                plugin.logger.warning("Failed to create /shops/ folder.");
         }
     }
 

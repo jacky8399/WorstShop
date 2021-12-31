@@ -1,18 +1,18 @@
 package com.jacky8399.worstshop.shops;
 
+import com.google.common.collect.Maps;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.spongepowered.configurate.objectmapping.ConfigSerializable;
 
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.*;
-import java.util.function.Predicate;
+import java.util.function.Consumer;
 
 public class ShopDiscount {
 
-    @ConfigSerializable
     public record Entry(String name, @Nullable LocalDateTime expiry, double percentage,
                         ShopReference shop, Material material,
                         UUID player, String permission) {
@@ -32,6 +32,36 @@ public class ShopDiscount {
             }
             return this.permission == null || player.hasPermission(permission);
         }
+
+        public Map<String, Object> toMap() {
+            Map<String, Object> map = Maps.newHashMap();
+            map.put("name", name);
+            if (expiry != null)
+                map.put("expiry", expiry.toEpochSecond(ZoneOffset.UTC)); // doesn't matter, will be read as UTC too
+            map.put("percentage", percentage);
+            if (shop != null)
+                map.put("shop", shop.id);
+            if (material != null)
+                map.put("material", material.name());
+            if (player != null)
+                map.put("player", player.toString());
+            if (permission != null)
+                map.put("permission", permission);
+            return map;
+        }
+
+        public static Entry fromMap(Map<String, Object> map) {
+            String name = (String) map.get("name");
+            Number expiry = ((Number) map.get("expiry"));
+            LocalDateTime expiryDateTime = expiry != null && expiry.longValue() != -1 ?
+                    LocalDateTime.ofEpochSecond(expiry.longValue(),0 ,ZoneOffset.UTC) : null;
+            double percentage = ((Number) map.get("percentage")).doubleValue();
+            ShopReference shop = map.containsKey("shop") ? ShopReference.of((String) map.get("shop")) : null;
+            Material material = map.containsKey("material") ? Material.getMaterial((String) map.get("material")) : null;
+            UUID player = map.containsKey("player") ? UUID.fromString((String) map.get("player")) : null;
+            String permission = map.containsKey("permission") ? (String) map.get("permission") : null;
+            return new Entry(name, expiryDateTime, percentage, shop, material, player, permission);
+        }
     }
 
     public static final HashMap<ShopReference, Set<Entry>> BY_SHOP = new HashMap<>();
@@ -49,34 +79,35 @@ public class ShopDiscount {
         NO_CRITERIA.clear();
     }
 
-    public static List<Entry> findApplicableEntries(Shop shop, Material material, Player player) {
+    public static Collection<Entry> findApplicableEntries(Shop shop, Material material, Player player) {
         Objects.requireNonNull(shop, "shop cannot be null");
         Objects.requireNonNull(material, "material cannot be null");
         Objects.requireNonNull(player, "player cannot be null");
-        List<Entry> all = new ArrayList<>();
-        Predicate<Entry> applicableCheck = entry -> entry.isApplicableTo(shop, material, player);
-        // stale check
+        Set<Entry> all = new HashSet<>();
         Set<Entry> obsoleteDiscounts = new HashSet<>();
-        Predicate<Entry> staleCheck = entry -> {
+        Consumer<Entry> checkAndAdd = entry -> {
+            if (!entry.isApplicableTo(shop, material, player))
+                return;
             if (entry.hasExpired()) {
                 obsoleteDiscounts.add(entry);
-                return false;
+                return;
             }
-            return true;
+            all.add(entry);
         };
-        // combine both
-        Predicate<Entry> check = applicableCheck.and(staleCheck);
         ShopReference shopRef = ShopReference.of(shop);
-        if (BY_SHOP.containsKey(shopRef)) {
-            BY_SHOP.get(shopRef).stream().filter(check).forEach(all::add);
+        Set<Entry> byShop = BY_SHOP.get(shopRef);
+        if (byShop != null) {
+            byShop.forEach(checkAndAdd);
         }
-        if (BY_MATERIAL.containsKey(material)) {
-            BY_MATERIAL.get(material).stream().filter(check).forEach(all::add);
+        Set<Entry> byMaterial = BY_MATERIAL.get(material);
+        if (byMaterial != null) {
+            byMaterial.forEach(checkAndAdd);
         }
-        if (BY_PLAYER.containsKey(player.getUniqueId())) {
-            BY_PLAYER.get(player.getUniqueId()).stream().filter(check).forEach(all::add);
+        Set<Entry> byPlayer = BY_PLAYER.get(player.getUniqueId());
+        if (byPlayer != null) {
+            byPlayer.forEach(checkAndAdd);
         }
-        NO_CRITERIA.stream().filter(check).forEach(all::add);
+        NO_CRITERIA.forEach(checkAndAdd);
         // remove stale discounts
         obsoleteDiscounts.forEach(ShopDiscount::removeDiscountEntry);
         return all;
@@ -85,7 +116,7 @@ public class ShopDiscount {
     /**
      * @return a number to be multiplied to the price
      */
-    public static double calcFinalPrice(List<Entry> entries) {
+    public static double calcFinalPrice(Collection<Entry> entries) {
         return entries.stream().mapToDouble(Entry::percentage).reduce(1, (d1, d2)->d1 * d2);
     }
 
