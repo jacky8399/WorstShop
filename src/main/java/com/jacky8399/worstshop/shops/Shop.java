@@ -177,7 +177,9 @@ public class Shop implements ParseContext.NamedContext {
             }
             inst.updateInterval = config.find("update-interval", Integer.class).orElse(0);
 
-            inst.condition = config.find("condition", Config.class).map(Condition::fromMap).orElse(ConditionConstant.TRUE);
+            inst.condition = config.find("condition", Config.class, String.class)
+                    .map(Condition::fromObject)
+                    .orElse(ConditionConstant.TRUE);
 
             inst.parentShop = config.find("parent", String.class).map(ShopReference::of).orElse(ShopReference.EMPTY);
             if ("auto".equals(inst.parentShop.id)) {
@@ -239,7 +241,7 @@ public class Shop implements ParseContext.NamedContext {
         if (aliases != null && aliases.size() != 0)
             yaml.set("alias", String.join(",", aliases));
         if (condition != ConditionConstant.TRUE)
-            yaml.set("condition", condition.toMap(new HashMap<>()));
+            yaml.set("condition", condition.toMapObject());
         yaml.set("items", elements.stream()
                 .map(element -> element.toMap(new HashMap<>()))
                 .collect(Collectors.toList())

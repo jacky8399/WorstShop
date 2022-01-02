@@ -8,6 +8,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Predicate;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class ConditionPlaceholder extends Condition {
@@ -24,6 +25,27 @@ public class ConditionPlaceholder extends Condition {
         }
     }
 
+    protected ConditionPlaceholder(String placeholderStr, Internal matcher) {
+        this.placeholderStr = placeholderStr;
+        this.matcher = matcher;
+    }
+
+    public static final Pattern SHORTHAND_PATTERN = Pattern.compile("^(.+?)\\s*(!)?(matches|=?=)\\s*(.*)$");
+    public static Condition fromShorthand(String shorthand) {
+        Matcher matcher = SHORTHAND_PATTERN.matcher(shorthand);
+        if (!matcher.matches()) {
+            throw new IllegalArgumentException("Invalid shorthand syntax");
+        }
+        String placeholderStr = matcher.group(1);
+        boolean isNegated = matcher.group(2) != null;
+        String format = matcher.group(4);
+        Internal internal = "matches".equals(matcher.group(3)) ? new CompareRegex(format) : new CompareString(format);
+        ConditionPlaceholder condition = new ConditionPlaceholder(placeholderStr, internal);
+        condition.isFromShorthand = true;
+        return isNegated ? condition.negate() : condition;
+    }
+    public transient boolean isFromShorthand = false;
+
     @Override
     public boolean test(Player player) {
         String replacedPlaceholderStr = I18n.doPlaceholders(player, placeholderStr);
@@ -32,7 +54,7 @@ public class ConditionPlaceholder extends Condition {
 
     @Override
     public String toString() {
-        return matcher.toString();
+        return "[\"" + placeholderStr + "\" " + matcher + "]";
     }
 
     @Override
@@ -63,7 +85,7 @@ public class ConditionPlaceholder extends Condition {
         public abstract String toString();
     }
 
-    private class CompareRegex extends Internal {
+    private static class CompareRegex extends Internal {
         private final Pattern pattern;
         CompareRegex(String pattern) {
             this.pattern = Pattern.compile(pattern, Pattern.UNICODE_CHARACTER_CLASS);
@@ -71,7 +93,7 @@ public class ConditionPlaceholder extends Condition {
 
         @Override
         public String toString() {
-            return "[\"" + placeholderStr + "\" matches \"" + pattern + "\"]";
+            return "matches \"" + pattern + "\"";
         }
 
         @Override
@@ -81,11 +103,11 @@ public class ConditionPlaceholder extends Condition {
 
         @Override
         public boolean equals(Object obj) {
-            return obj instanceof CompareRegex && ((CompareRegex) obj).pattern.toString().equals(pattern.toString());
+            return obj instanceof CompareRegex cmp && cmp.pattern.pattern().equals(pattern.pattern());
         }
     }
 
-    private class CompareString extends Internal {
+    private static class CompareString extends Internal {
         private final String string;
         CompareString(String string) {
             this.string = string;
@@ -93,7 +115,7 @@ public class ConditionPlaceholder extends Condition {
 
         @Override
         public String toString() {
-            return "[\"" + placeholderStr + "\" == \"" + string + "\"]";
+            return "== \"" + string + "\"";
         }
 
         @Override
@@ -103,7 +125,7 @@ public class ConditionPlaceholder extends Condition {
 
         @Override
         public boolean equals(Object obj) {
-            return obj instanceof CompareString && ((CompareString) obj).string.equals(string);
+            return obj instanceof CompareString cmp && cmp.string.equals(string);
         }
     }
 }

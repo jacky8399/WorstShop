@@ -7,6 +7,7 @@ import com.jacky8399.worstshop.shops.ParseContext;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -14,6 +15,25 @@ import java.util.function.BinaryOperator;
 import java.util.function.Predicate;
 
 public abstract class Condition implements Predicate<Player> {
+    public static final Class<?>[] CONDITION_CLASSES = {String.class, Config.class};
+
+    public static Condition fromObject(Object object) {
+        if (object instanceof String str) {
+            return fromShorthand(str);
+        } else if (object instanceof Config yaml) {
+            return fromMap(yaml);
+        } else {
+            throw new IllegalArgumentException("Invalid condition " + object);
+        }
+    }
+
+    public static Condition fromShorthand(String string) {
+        if (ConditionPlaceholder.SHORTHAND_PATTERN.matcher(string).matches()) {
+            return ConditionPlaceholder.fromShorthand(string);
+        }
+        return ConditionPermission.fromPermString(string);
+    }
+
     public static Condition fromMap(Config yaml) {
         Optional<String> logicOptional = yaml.find("logic", String.class);
         if (logicOptional.isPresent()) {
@@ -35,35 +55,56 @@ public abstract class Condition implements Predicate<Player> {
                     throw new RuntimeException("Logical " + logic.toUpperCase() + " condition must have an accompanying 'conditions' list", ex);
                 }
             }
+        } else if (yaml.has("not") || yaml.has("and") || yaml.has("or")) {
+            Optional<Config> notOptional = yaml.find("not", Config.class);
+            if (notOptional.isPresent()) {
+                try {
+                    Condition negate = fromMap(notOptional.get());
+                    return negate.negate();
+                } catch (IllegalArgumentException ex) {
+                    throw new ConfigException("Invalid 'not' block", yaml, "not", ex);
+                }
+            } else {
+                try {
+                    List<? extends Config> listOptional = yaml.getList(yaml.has("and") ? "and" : "or", Config.class);
+                    BinaryOperator<Condition> accumulator = yaml.has("and") ? Condition::and : Condition::or;
+                    return listOptional.stream().map(Condition::fromMap).reduce(accumulator).orElse(ConditionConstant.TRUE);
+                } catch (IllegalArgumentException ex) {
+                    String block = yaml.has("and") ? "and" : "or";
+                    throw new ConfigException("Invalid '" + block + "'", yaml, block, ex);
+                }
+            }
         }
         Optional<Object> preset = yaml.find("preset", String.class, Boolean.class);
-        if (!preset.isPresent()) {
+        if (preset.isEmpty()) {
             // compatibility with Commodity
             WorstShop.get().logger.warning("Using cost & rewards as conditions is deprecated. Please add 'preset: commodity' before it.");
             WorstShop.get().logger.warning("Offending condition is in " + ParseContext.getHierarchy());
             return new ConditionCommodity(yaml);
         }
         // thanks YAML
-        if (preset.get() instanceof Boolean) {
-             return ConditionConstant.valueOf((Boolean) preset.get());
+        if (preset.get() instanceof Boolean bool) {
+             return ConditionConstant.valueOf(bool);
         }
 
-        switch ((String) preset.get()) {
-            case "commodity":
-                return new ConditionCommodity(yaml);
-            case "placeholder":
-                return new ConditionPlaceholder(yaml);
-            case "permission":
-                return ConditionPermission.fromPermString(yaml.get("permission", String.class));
-            case "true":
-            case "false":
-                return ConditionConstant.valueOf(Boolean.parseBoolean((String) preset.get()));
-            default:
-                throw new IllegalArgumentException("Unknown condition preset " + preset);
-        }
+        return switch ((String) preset.get()) {
+            case "commodity" -> new ConditionCommodity(yaml);
+            case "placeholder" -> new ConditionPlaceholder(yaml);
+            case "permission" -> ConditionPermission.fromPermString(yaml.get("permission", String.class));
+            case "true", "false" -> ConditionConstant.valueOf(Boolean.parseBoolean((String) preset.get()));
+            default -> throw new IllegalArgumentException("Unknown condition preset " + preset);
+        };
     }
 
     public abstract Map<String, Object> toMap(Map<String, Object> map);
+
+    public final Object toMapObject() {
+        if (this instanceof ConditionShorthand shorthand) {
+            return shorthand.shorthand;
+        } else {
+            return toMap(new HashMap<>());
+        }
+    }
 
     @NotNull
     @Override

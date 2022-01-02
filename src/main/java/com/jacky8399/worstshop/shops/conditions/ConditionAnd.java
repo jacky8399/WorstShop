@@ -66,8 +66,9 @@ public class ConditionAnd extends Condition {
 
     @Override
     public Map<String, Object> toMap(Map<String, Object> map) {
-        map.put("logic", "and");
-        map.put("conditions", conditions.stream().map(condition->condition.toMap(new HashMap<>())).collect(Collectors.toList()));
+//        map.put("logic", "and");
+//        map.put("conditions", conditions.stream().map(condition->condition.toMap(new HashMap<>())).collect(Collectors.toList()));
+        map.put("and", conditions.stream().map(Condition::toMapObject).collect(Collectors.toList()));
         return map;
     }
 

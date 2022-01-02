@@ -116,9 +116,9 @@ public abstract class Action implements Cloneable {
                 throw new ConfigException(preset + " is not a valid preset!", yaml, preset);
             return constructor.apply(yaml);
         }).orElseGet(() -> new ActionCustom(yaml));
-        yaml.find("condition", Config.class)
-                .map(Condition::fromMap)
-                .ifPresent(cond -> action.condition = cond);
+        action.condition = yaml.find("condition", Config.class, String.class)
+                .map(Condition::fromObject)
+                .orElse(ConditionConstant.TRUE);
         return action;
     }
 

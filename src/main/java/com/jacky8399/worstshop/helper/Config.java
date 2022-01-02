@@ -49,9 +49,8 @@ public final class Config {
             if (obj instanceof Map<?, ?>) {
                 return (T) new Config((Map<String, Object>) obj, this, path);
             }
-        } else if (Number.class.isAssignableFrom(clazz) && obj instanceof Number) {
+        } else if (Number.class.isAssignableFrom(clazz) && obj instanceof Number num) {
             // numbers huh
-            Number num = (Number) obj;
             if (clazz == Integer.class) {
                 if (!(obj instanceof Integer))
                     logger.warning("number \"" + num + "\" (@" + this.path + " > " + path + ") was rounded down to an integer.");

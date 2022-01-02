@@ -3,7 +3,6 @@ package com.jacky8399.worstshop.shops.conditions;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.HashMap;
 import java.util.Map;
 
 public class ConditionNot extends Condition {
@@ -30,8 +29,9 @@ public class ConditionNot extends Condition {
 
     @Override
     public Map<String, Object> toMap(Map<String, Object> map) {
-        map.put("logic", "not");
-        map.put("condition", condition.toMap(new HashMap<>()));
+//        map.put("logic", "not");
+//        map.put("condition", condition.toMap(new HashMap<>()));
+        map.put("not", condition.toMapObject());
         return map;
     }
 

@@ -14,10 +14,7 @@ import com.jacky8399.worstshop.shops.rendering.ShopRenderer;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 import java.util.stream.Collectors;
 
 public class ConditionalShopElement extends ShopElement {
@@ -44,8 +41,8 @@ public class ConditionalShopElement extends ShopElement {
 
         ParseContext.pushContext(ret);
 
-        Config ifSection = config.get("if", Config.class);
-        ret.condition = Condition.fromMap(ifSection);
+        Object ifSection = config.get("if", Config.class, String.class);
+        ret.condition = Condition.fromObject(ifSection);
 
         Config thenSection = config.get("then", Config.class);
         ShopElement element = ShopElement.fromConfig(thenSection);
@@ -55,6 +52,15 @@ public class ConditionalShopElement extends ShopElement {
         ret.elementFalse = config.find("else", Config.class).map(ShopElement::fromConfig).orElse(null);
         ret.owner = ShopReference.of(ParseContext.findLatest(Shop.class));
         return ret;
+    }
+
+    @Override
+    public Map<String, Object> toMap(Map<String, Object> map) {
+        map.put("if", condition.toMapObject());
+        map.put("then", elementTrue.toMap(new HashMap<>()));
+        if (elementFalse != null)
+            map.put("else", elementFalse.toMap(new HashMap<>()));
+        return super.toMap(map);
     }
 
     @Override

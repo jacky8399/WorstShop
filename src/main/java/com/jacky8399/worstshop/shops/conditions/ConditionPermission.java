@@ -10,8 +10,15 @@ public class ConditionPermission extends Condition {
     public final String perm;
 
     public ConditionPermission(String permission) {
-        this.perm = permission;
+        this(permission, false);
     }
+
+    public ConditionPermission(String permission, boolean isFromShorthand) {
+        this.perm = permission;
+        this.isFromShorthand = isFromShorthand;
+    }
+
+    public transient boolean isFromShorthand;
 
     // i forgot to escape quotes lol
     public static ConditionPermission untangleQuotes(String permission) {
@@ -23,7 +30,7 @@ public class ConditionPermission extends Condition {
             else // remove unescaped quotation marks
                 builder.deleteCharAt(idx);
         }
-        return new ConditionPermission(builder.toString());
+        return new ConditionPermission(builder.toString(), true);
     }
 
     public static Condition fromPermString(String permRaw) {
@@ -53,7 +60,7 @@ public class ConditionPermission extends Condition {
             Condition p = fromPermString(notMatcher.group(1));
             return p.negate();
         }
-        throw new IllegalArgumentException("Invalid perm string " + perm);
+        throw new IllegalArgumentException("Invalid permission string " + perm);
     }
 
     @Override
@@ -85,9 +92,9 @@ public class ConditionPermission extends Condition {
 
     private static final Pattern BRACKETS = Pattern.compile("^\\(\\s*(.+)\\s*\\)$");
     //private static final String permsCriterion = "(?:[A-Za-z0-9.\\-_]|\"[A-Za-z0-9.\\-_\\s]+\")+";
-    private static final String permsCriterion = "(?:[A-Za-z0-9.\\-_]|(?<=[.\\s]|^)\".+?(?<!\\\\)\")+";
-    private static final Pattern AND = Pattern.compile("^(\\(.+\\)|" + permsCriterion + ")\\s*&\\s*(\\(.+\\)|" + permsCriterion + ")$");
-    private static final Pattern OR = Pattern.compile("^(\\(.+\\)|" + permsCriterion + ")\\s*\\|\\s*(\\(.+\\)|" + permsCriterion + ")$");
-    private static final Pattern NEGATE = Pattern.compile("^[!~](\\(.+\\)|" + permsCriterion + ")$");
-    private static final Pattern ONLY_PERMS = Pattern.compile("^" + permsCriterion + "$");
+    private static final String permRegex = "(?:[A-Za-z0-9.\\-_]|(?<=[.\\s]|^)\".+?(?<!\\\\)\")+";
+    private static final Pattern AND = Pattern.compile("^(\\(.+\\)|" + permRegex + ")\\s*&\\s*(\\(.+\\)|" + permRegex + ")$");
+    private static final Pattern OR = Pattern.compile("^(\\(.+\\)|" + permRegex + ")\\s*\\|\\s*(\\(.+\\)|" + permRegex + ")$");
+    private static final Pattern NEGATE = Pattern.compile("^[!~](\\(.+\\)|" + permRegex + ")$");
+    private static final Pattern ONLY_PERMS = Pattern.compile("^" + permRegex + "$");
 }

@@ -53,6 +53,16 @@ public final class ConfigHelper {
         return var;
     }
 
+    public static Object stringifyVariable(Object variable) {
+        if (variable instanceof ShopElement element) {
+            HashMap<String, Object> map = new HashMap<>();
+            map.put("type", "element");
+            map.put("value", element.toMap(new HashMap<>()));
+            return map;
+        }
+        return variable;
+    }
+
 //    public static ConfigurationOptions applyDefaultOptions(ConfigurationOptions def) {
 //        return def.serializers(builder -> builder
 //                .register(new FlexibleEnumSerializer())

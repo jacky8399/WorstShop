@@ -1,6 +1,7 @@
 package com.jacky8399.worstshop.shops.elements;
 
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import com.jacky8399.worstshop.editor.Property;
 import com.jacky8399.worstshop.helper.Config;
 import com.jacky8399.worstshop.helper.ConfigHelper;
@@ -99,7 +100,8 @@ public abstract class ShopElement implements Cloneable, ParseContext.NamedContex
 
         ConditionAnd instCondition = new ConditionAnd();
         config.find("view-perm", String.class).map(ConditionPermission::fromPermString).ifPresent(instCondition::mergeCondition);
-        config.find("condition", Config.class).map(Condition::fromMap).ifPresent(instCondition::mergeCondition);
+        config.find("condition", Config.class, String.class)
+                .map(Condition::fromObject).ifPresent(instCondition::mergeCondition);
         element.condition = instCondition;
 
         // Action parsing
@@ -107,7 +109,7 @@ public abstract class ShopElement implements Cloneable, ParseContext.NamedContex
                 .map(obj -> obj instanceof Config ?
                         Action.fromConfig((Config) obj) :
                         Action.fromCommand(obj.toString()))
-                .filter(Objects::nonNull).collect(Collectors.toList());
+                .collect(Collectors.toList());
 
         // variables
         config.find("variables", Config.class)
@@ -160,8 +162,10 @@ public abstract class ShopElement implements Cloneable, ParseContext.NamedContex
             map.put("dynamic", true);
         if (actions.size() != 0)
             map.put("actions", actions.stream().map(action -> action.toMap(new HashMap<>())).collect(Collectors.toList()));
-        if (!(condition instanceof ConditionAnd && ((ConditionAnd) condition).isEmpty()))
-            map.put("condition", condition.toMap(new HashMap<>()));
+        if (!(condition instanceof ConditionAnd and && and.isEmpty()))
+            map.put("condition", condition.toMapObject());
+        if (!variables.isEmpty())
+            map.put("variables", Maps.transformValues(variables, ConfigHelper::stringifyVariable));
         return map;
     }
 
