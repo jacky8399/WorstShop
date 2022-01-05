@@ -1,5 +1,5 @@
 name: WorstShop
-version: @version@
+version: '${version}'
 main: com.jacky8399.worstshop.WorstShop
 api-version: 1.17
 depend:

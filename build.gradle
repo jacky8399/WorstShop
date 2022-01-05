@@ -89,12 +89,12 @@ dependencies {
     testRuntimeOnly "org.junit.jupiter:junit-jupiter-engine:5.7.0"
 }
 
-import org.apache.tools.ant.filters.ReplaceTokens
-
 processResources {
-    from(sourceSets.main.resources.srcDirs) {
-        duplicatesStrategy = DuplicatesStrategy.WARN
-        filter ReplaceTokens, tokens: [version: version]
+    def props = [version: version]
+    inputs.properties props
+    filteringCharset 'UTF-8'
+    filesMatching('plugin.yml') {
+        expand props
     }
 }
 
