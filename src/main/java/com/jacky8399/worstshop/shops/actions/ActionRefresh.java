@@ -4,6 +4,7 @@ import com.jacky8399.worstshop.WorstShop;
 import com.jacky8399.worstshop.helper.Config;
 import com.jacky8399.worstshop.shops.rendering.ShopRenderer;
 import fr.minuskube.inv.SmartInventory;
+import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.InventoryClickEvent;
 
@@ -20,7 +21,7 @@ public class ActionRefresh extends Action {
         WorstShop.get().inventories.getContents(player).ifPresent(contents -> {
             SmartInventory inv = contents.inventory();
             if (inv.getProvider() instanceof ShopRenderer renderer) {
-                renderer.apply(player, contents);
+                Bukkit.getScheduler().runTaskLater(WorstShop.get(), ()->renderer.apply(player, contents), 1);
             }
         });
     }

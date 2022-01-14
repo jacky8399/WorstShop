@@ -125,15 +125,24 @@ public final class WorstShop extends JavaPlugin {
 
     @Override
     public void onDisable() {
-        // Unschedule all events
         Bukkit.getScheduler().cancelTasks(this);
 
         // Unload locales
         I18n.shutdown();
 
         // Remove shops
-        ShopManager.cleanUp();
-        ShopManager.saveDiscounts();
+        try {
+            ShopManager.cleanUp();
+        } catch (Throwable e) {
+            logger.severe("Failed to clean up!");
+            e.printStackTrace();
+        }
+        try {
+            ShopManager.saveDiscounts();
+        } catch (Throwable e) {
+            logger.severe("Failed to save discounts!");
+            e.printStackTrace();
+        }
     }
 
     private static WorstShop plugin;

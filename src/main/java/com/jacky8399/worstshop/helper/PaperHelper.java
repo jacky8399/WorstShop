@@ -107,10 +107,9 @@ public class PaperHelper {
         public abstract String getSkin();
         public abstract boolean hasSkin();
         public boolean equals(Object other) {
-            if (!(other instanceof GameProfile)) {
+            if (!(other instanceof GameProfile profile)) {
                 return false;
             }
-            GameProfile profile = (GameProfile) other;
             return Objects.equals(getUUID(), profile.getUUID()) && Objects.equals(getName(), profile.getName());
         }
     }
@@ -120,7 +119,7 @@ public class PaperHelper {
         private static final MinecraftSessionService session;
 
         static {
-            YggdrasilAuthenticationService auth = new YggdrasilAuthenticationService(Proxy.NO_PROXY);
+            YggdrasilAuthenticationService auth = new YggdrasilAuthenticationService(Proxy.NO_PROXY, null);
             repository = auth.createProfileRepository();
             session = auth.createMinecraftSessionService();
         }

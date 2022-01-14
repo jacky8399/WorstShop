@@ -2,7 +2,7 @@ package com.jacky8399.worstshop.shops.actions;
 
 import com.jacky8399.worstshop.WorstShop;
 import com.jacky8399.worstshop.helper.Config;
-import fr.minuskube.inv.InventoryManager;
+import com.jacky8399.worstshop.helper.InventoryUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.InventoryClickEvent;
@@ -21,12 +21,13 @@ public class ActionClose extends Action {
         this.noParent = noParent;
     }
 
-    private static final InventoryManager MANAGER = WorstShop.get().inventories;
     public static void closeInv(Player player, boolean noParent) {
-        MANAGER.getContents(player).ifPresent(inventory -> {
-            inventory.setProperty("noParent", noParent);
-            Bukkit.getScheduler().runTaskLater(WorstShop.get(), ()->inventory.inventory().close(player), 1);
-        });
+        Bukkit.getScheduler().runTaskLater(WorstShop.get(), () -> {
+            if (noParent)
+                InventoryUtils.closeWithoutParent(player);
+            else
+                player.closeInventory();
+        }, 1);
     }
 
     @Override

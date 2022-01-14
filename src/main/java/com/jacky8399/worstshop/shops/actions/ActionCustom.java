@@ -1,13 +1,14 @@
 package com.jacky8399.worstshop.shops.actions;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.jacky8399.worstshop.I18n;
 import com.jacky8399.worstshop.WorstShop;
 import com.jacky8399.worstshop.helper.Config;
 import com.jacky8399.worstshop.helper.ConfigHelper;
+import com.jacky8399.worstshop.helper.InventoryUtils;
 import com.jacky8399.worstshop.helper.PaperHelper;
 import com.jacky8399.worstshop.shops.ParseContext;
+import fr.minuskube.inv.content.InventoryContents;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.InventoryClickEvent;
@@ -29,8 +30,7 @@ public class ActionCustom extends Action {
         if (optional.isPresent()) {
             Object comms = optional.get();
             if (comms instanceof List) {
-                //noinspection UnstableApiUsage
-                commands = ((List<?>) comms).stream().map(Object::toString).collect(ImmutableList.toImmutableList());
+                commands = ((List<?>) comms).stream().map(Object::toString).toList();
             } else {
                 commands = Collections.singletonList(comms.toString());
             }
@@ -57,10 +57,20 @@ public class ActionCustom extends Action {
 
     @Override
     public void onClick(InventoryClickEvent e) {
-        if (delayInTicks > 0)
-            Bukkit.getScheduler().runTaskLater(WorstShop.get(), ()->commands.forEach(s -> parseCommand((Player)e.getWhoClicked(), s)), delayInTicks);
-        else
-            commands.forEach(s -> parseCommand((Player)e.getWhoClicked(), s));
+        Player player = (Player) e.getWhoClicked();
+        if (delayInTicks > 0) {
+            Bukkit.getScheduler().runTaskLater(WorstShop.get(),
+                    () -> commands.forEach(s -> parseCommand((Player) e.getWhoClicked(), s)), delayInTicks);
+        } else {
+            // set noParent to improve compatibility with commands that open inventories
+            InventoryContents contents = InventoryUtils.getContents(player);
+            boolean oldNoParent = contents != null ? contents.property(InventoryUtils.PROPERTY_NO_PARENT, false) : false;
+            if (contents != null)
+                contents.setProperty(InventoryUtils.PROPERTY_NO_PARENT, true);
+            commands.forEach(s -> parseCommand((Player) e.getWhoClicked(), s));
+            if (contents != null)
+                contents.setProperty(InventoryUtils.PROPERTY_NO_PARENT, oldNoParent);
+        }
     }
 
     public static void parseCommand(Player player, String in) {
@@ -105,7 +115,7 @@ public class ActionCustom extends Action {
                 p.chat("/" + in.trim());
                 p.setOp(oldOp);
             })
-            .put("chatas:", (p, in)->p.chat(in.trim()))
+            .put("chatas:", (p, in) -> p.chat(in.trim()))
             .put("console:", (p, in)-> Bukkit.dispatchCommand(Bukkit.getConsoleSender(), in.trim()))
             .build();
 

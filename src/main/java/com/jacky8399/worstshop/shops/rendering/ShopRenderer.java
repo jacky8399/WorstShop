@@ -180,7 +180,8 @@ public class ShopRenderer implements InventoryProvider, RenderingLayer {
         // shop global refresh
         if (shop.updateInterval != 0) {
             int ticksElapsed = contents.property("ticksSinceUpdate", 0);
-            if (++ticksElapsed == shop.updateInterval) {
+            if (++ticksElapsed >= shop.updateInterval) {
+                ticksElapsed = 0;
                 clearAll(contents);
                 apply(player, contents);
                 updated = true;

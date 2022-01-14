@@ -138,7 +138,7 @@ public class Shop implements ParseContext.NamedContext {
                 }
             });
         }
-        String actualTitle = "null";
+        String actualTitle;
         if (title == null && extendsFrom != ShopReference.EMPTY) {
             actualTitle = extendsFrom.get().title;
         } else {
@@ -289,25 +289,25 @@ public class Shop implements ParseContext.NamedContext {
             return;
         }
         Player p = (Player) e.getPlayer();
-        Optional<SmartInventory> of = WorstShop.get().inventories.getInventory(p);
-        if (!of.isPresent())
+        SmartInventory of = InventoryUtils.getInventory(p);
+        if (of == null)
             return;
 
-        Optional<InventoryContents> contents = WorstShop.get().inventories.getContents(p);
-
-        if (!contents.isPresent() || contents.get().property("hasClosed", false)
-                || contents.get().property("noParent", false))
+        InventoryContents contents = InventoryUtils.getContents(p);
+        if (contents == null)
             return;
-        contents.get().setProperty("hasClosed", true); // don't react when invoked by inventory opening
 
-        if (contents.get().property("skipOnce", false)) {
-            // skip once
-            contents.get().setProperty("skipOnce", false);
+        boolean skipOnce = InventoryUtils.getSkipOnce(contents);
+        if (skipOnce) {
+            contents.setProperty(InventoryUtils.PROPERTY_SKIP_ONCE, false);
             return;
         }
+        if (InventoryUtils.getHasClosed(contents) || InventoryUtils.getNoParent(contents))
+            return;
+        contents.setProperty(InventoryUtils.PROPERTY_HAS_CLOSED, true);
 
         // find parent
-        SmartInventory openNextTick = of.get().getParent()
+        SmartInventory openNextTick = of.getParent()
                 .orElseGet(()->
                         parentShop.find()
                                 .map(shop -> shop.getInventory(p, true))

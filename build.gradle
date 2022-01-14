@@ -7,8 +7,8 @@ plugins {
 group = pluginGroup
 version = pluginVersion
 
-sourceCompatibility = JavaVersion.VERSION_16
-targetCompatibility = JavaVersion.VERSION_16
+sourceCompatibility = JavaVersion.VERSION_17
+targetCompatibility = JavaVersion.VERSION_17
 
 repositories {
     mavenCentral()
@@ -48,8 +48,7 @@ dependencies {
     // BungeeCord Chat
     compileOnly 'net.md-5:bungeecord-chat:1.16-R0.4'
     // Paper API
-    compileOnly 'io.papermc.paper:paper-api:1.17.1-R0.1-SNAPSHOT'
-    compileOnly 'io.papermc.paper:paper:1.17.1-R0.1-SNAPSHOT'
+    compileOnly 'io.papermc.paper:paper-api:1.18.1-R0.1-SNAPSHOT'
     // Mojang AuthLib
     compileOnly('com.mojang:authlib:1.5.21') {
         transitive = false

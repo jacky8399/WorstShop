@@ -21,7 +21,7 @@ public class InventoryUtils extends InventoryListener<InventoryCloseEvent> {
      * Skips opening parent inventory while this property is true.
      */
     public static final String PROPERTY_NO_PARENT = "noParent";
-    private static final String PROPERTY_HAS_CLOSED = "hasClosed";
+    public static final String PROPERTY_HAS_CLOSED = "hasClosed";
 
     public InventoryUtils() {
         super(InventoryCloseEvent.class, e -> {
@@ -29,22 +29,24 @@ public class InventoryUtils extends InventoryListener<InventoryCloseEvent> {
                 return;
             }
             Player p = (Player) e.getPlayer();
-            Optional<SmartInventory> of = WorstShop.get().inventories.getInventory(p);
-            if (!of.isPresent())
+            SmartInventory of = getInventory(p);
+            if (of == null)
                 return;
 
-            InventoryContents contents = WorstShop.get().inventories.getContents(p).orElseThrow(()->new IllegalStateException(p.getName() + " is not in shop inventory?"));
+            InventoryContents contents = getContents(p);
+            if (contents == null)
+                return;
 
-            Boolean skipOnce = contents.<Boolean>property(PROPERTY_SKIP_ONCE);
-            if (skipOnce != null && skipOnce) {
+            boolean skipOnce = getSkipOnce(contents);
+            if (skipOnce) {
                 contents.setProperty(PROPERTY_SKIP_ONCE, false);
                 return;
             }
-            if (contents.property(PROPERTY_HAS_CLOSED, false) || contents.property(PROPERTY_NO_PARENT, false))
+            if (getHasClosed(contents) || getNoParent(contents))
                 return;
             contents.setProperty(PROPERTY_HAS_CLOSED, true);
 
-            Optional<SmartInventory> parent = of.get().getParent();
+            Optional<SmartInventory> parent = of.getParent();
 
             // return to parent
             Bukkit.getScheduler().runTask(WorstShop.get(), ()->
@@ -83,12 +85,28 @@ public class InventoryUtils extends InventoryListener<InventoryCloseEvent> {
         toOpen.open(player, page);
     }
 
-    public static Optional<InventoryContents> getContents(Player player) {
-        return inv.getContents(player);
+    @Nullable
+    public static InventoryContents getContents(Player player) {
+        return inv.getContents(player).orElse(null);
     }
 
     @Nullable
     public static SmartInventory getInventory(Player player) {
         return inv.getInventory(player).orElse(null);
+    }
+
+    public static boolean getHasClosed(InventoryContents contents) {
+        Boolean property = contents.property(PROPERTY_HAS_CLOSED);
+        return property != null ? property : false;
+    }
+
+    public static boolean getSkipOnce(InventoryContents contents) {
+        Boolean property = contents.property(PROPERTY_SKIP_ONCE);
+        return property != null ? property : false;
+    }
+
+    public static boolean getNoParent(InventoryContents contents) {
+        Boolean property = contents.property(PROPERTY_NO_PARENT);
+        return property != null ? property : false;
     }
 }

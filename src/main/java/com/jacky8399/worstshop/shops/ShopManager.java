@@ -99,9 +99,15 @@ public class ShopManager {
     }
 
     public static void cleanUp() {
-        closeAllShops();
-        ShopCommands.removeAliases();
-        ShopReference.REFERENCES.values().forEach(ShopReference::invalidate);
+        try {
+            closeAllShops();
+        } catch (Throwable ignored) {}
+        try {
+            ShopCommands.removeAliases();
+        } catch (Throwable ignored) {}
+        try {
+            ShopReference.REFERENCES.values().forEach(ShopReference::invalidate);
+        } catch (Throwable ignored) {}
         SHOPS.clear();
         ITEM_SHOPS.clear();
     }
