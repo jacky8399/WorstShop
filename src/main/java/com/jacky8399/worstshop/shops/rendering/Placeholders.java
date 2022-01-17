@@ -1,6 +1,7 @@
 package com.jacky8399.worstshop.shops.rendering;
 
 import com.jacky8399.worstshop.WorstShop;
+import com.jacky8399.worstshop.helper.ConfigHelper;
 import com.jacky8399.worstshop.helper.Exceptions;
 import com.jacky8399.worstshop.helper.PaperHelper;
 import com.jacky8399.worstshop.shops.elements.StaticShopElement;
@@ -23,11 +24,15 @@ public class Placeholders {
     public static final Pattern SHOP_VARIABLE_PATTERN = Pattern.compile("!([A-Za-z0-9_]+)!");
 
     public static String setPlaceholders(String input, @NotNull PlaceholderContext context) {
+        if (context.additionalContext() != null)
+            input = setPlaceholders(input, context.additionalContext());
+//        String orig = input;
+
         if (context.player() != null)
             input = input.replace("{player}", context.player().getName());
         if (context.renderer() != null && (input.contains("!page!") || input.contains("!max_page!")))
             input = input.replace("!page!", Integer.toString(context.renderer().page + 1))
-                    .replace("!max_page!", Integer.toString(context.renderer().maxPage + 1));
+                    .replace("!max_page!", Integer.toString(context.renderer().maxPage));
         // shop and element variables
         Matcher matcher = SHOP_VARIABLE_PATTERN.matcher(input);
         input = matcher.replaceAll(result -> {
@@ -48,7 +53,8 @@ public class Placeholders {
                 Exceptions.logException(wrapped);
             }
         }
-        return input;
+//        WorstShop.get().logger.info("[Placeholders] " + ConfigHelper.untranslateString(orig) + " -> " + input);
+        return ConfigHelper.translateString(input);
     }
 
     public static ItemStack setPlaceholders(ItemStack stack, Player player) {
@@ -95,10 +101,6 @@ public class Placeholders {
             }
         }
         stack.setItemMeta(meta);
-
-        if (context.additionalContext() != null) {
-            return Placeholders.setPlaceholders(stack, context.additionalContext());
-        }
         return stack;
     }
 }

@@ -190,18 +190,16 @@ public class StaticShopElement extends ShopElement {
                     })
             );
 
-            yaml.find("name", String.class).map(ConfigHelper::translateString).ifPresent(is::name);
+            yaml.find("name", String.class).ifPresent(is::name);
 
             yaml.find("loc-name", String.class).ifPresent(locName -> is.meta(meta -> meta.setLocalizedName(locName)));
 
             yaml.find("lore", List.class, String.class).ifPresent(loreObj -> {
                 if (loreObj instanceof List<?>) {
-                    List<String> lore = yaml.getList("lore", String.class).stream()
-                            .map(ConfigHelper::translateString)
-                            .collect(Collectors.toList());
+                    List<String> lore = new ArrayList<>(yaml.getList("lore", String.class));
                     is.lore(lore);
                 } else {
-                    is.lores(ConfigHelper.translateString(loreObj.toString()).split("\n"));
+                    is.lores(loreObj.toString().split("\n"));
                 }
             });
 
@@ -266,8 +264,7 @@ public class StaticShopElement extends ShopElement {
         if (stack.getAmount() != 1)
             map.put("amount", stack.getAmount());
         ItemMeta meta = stack.getItemMeta();
-        if (meta instanceof Damageable) {
-            Damageable damageable = (Damageable) meta;
+        if (meta instanceof Damageable damageable) {
             if (damageable.hasDamage()) {
                 map.put("damage", damageable.getDamage());
             }
@@ -300,8 +297,7 @@ public class StaticShopElement extends ShopElement {
                     .map(str -> str.toLowerCase().replace('_', ' ')) // to lowercase
                     .collect(Collectors.toList()));
         }
-        if (meta instanceof SkullMeta) {
-            SkullMeta skullMeta = (SkullMeta) meta;
+        if (meta instanceof SkullMeta skullMeta) {
             PaperHelper.GameProfile profile = PaperHelper.getSkullMetaProfile(skullMeta);
             if (profile != null) {
                 if (profile.skinNotLoaded) {
@@ -447,9 +443,8 @@ public class StaticShopElement extends ShopElement {
 
     @Override
     public boolean equals(Object obj) {
-        if (!(obj instanceof StaticShopElement))
+        if (!(obj instanceof StaticShopElement other))
             return false;
-        StaticShopElement other = (StaticShopElement) obj;
         return other.rawStack.equals(rawStack) && Objects.equals(other.skullCache, skullCache) && other.async == async;
     }
 

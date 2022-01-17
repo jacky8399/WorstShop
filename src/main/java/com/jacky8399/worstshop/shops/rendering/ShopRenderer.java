@@ -134,7 +134,7 @@ public class ShopRenderer implements InventoryProvider, RenderingLayer {
         }
         if (emptySlots.size() != 0) {
             this.page = page;
-            this.maxPage = (int) Math.ceil(((double) paginationItems.size()) / emptySlots.size());
+            this.maxPage = (int) Math.ceil((double) paginationItems.size() / emptySlots.size());
 
             int start = page * emptySlots.size(), end = Math.min(start + emptySlots.size(), paginationItems.size());
             if (start < end) {

@@ -8,10 +8,7 @@ import co.aikar.commands.bukkit.contexts.OnlinePlayer;
 import com.jacky8399.worstshop.I18n;
 import com.jacky8399.worstshop.WorstShop;
 import com.jacky8399.worstshop.editor.EditorMainMenu;
-import com.jacky8399.worstshop.helper.DateTimeUtils;
-import com.jacky8399.worstshop.helper.EditorUtils;
-import com.jacky8399.worstshop.helper.ItemUtils;
-import com.jacky8399.worstshop.helper.TextUtils;
+import com.jacky8399.worstshop.helper.*;
 import com.jacky8399.worstshop.shops.Shop;
 import com.jacky8399.worstshop.shops.ShopDiscount;
 import com.jacky8399.worstshop.shops.ShopManager;
@@ -20,6 +17,8 @@ import com.jacky8399.worstshop.shops.commodity.CommodityItem;
 import com.jacky8399.worstshop.shops.conditions.Condition;
 import com.jacky8399.worstshop.shops.conditions.ConditionPermission;
 import com.jacky8399.worstshop.shops.elements.StaticShopElement;
+import com.jacky8399.worstshop.shops.rendering.PlaceholderContext;
+import com.jacky8399.worstshop.shops.rendering.Placeholders;
 import net.md_5.bungee.api.chat.*;
 import net.md_5.bungee.api.chat.hover.content.Text;
 import org.apache.commons.lang.StringUtils;
@@ -310,6 +309,18 @@ public class CommandShop extends BaseCommand {
         }
     }
 
+    @Private
+    @Subcommand("debugplaceholder")
+    @CommandCompletion("* @nothing")
+    @CommandPermission("worstshop.debug")
+    public void debugPlaceholder(CommandSender sender, OnlinePlayer player, String str) {
+        PlaceholderContext context = PlaceholderContext.guessContext(player.player);
+
+        sender.sendMessage(GREEN + "Placeholder string: " + str);
+        String result = Placeholders.setPlaceholders(ConfigHelper.translateString(str), context);
+        sender.sendMessage(GREEN + "Result: " + ConfigHelper.untranslateString(result));
+    }
+
     @Subcommand("open")
     @CommandCompletion("* *")
     @CommandPermission("worstshop.shop.open.others")
@@ -331,6 +342,7 @@ public class CommandShop extends BaseCommand {
             throw new InvalidCommandArgument(ex.getMessage());
         }
     }
+
 
     @Subcommand("editor")
     @CommandCompletion("*")
