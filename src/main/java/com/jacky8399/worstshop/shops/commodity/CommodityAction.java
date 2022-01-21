@@ -91,7 +91,7 @@ public class CommodityAction extends Commodity implements IUnaffordableCommodity
             } catch (NullPointerException e) {
                 WorstShop.get().logger.severe("Action " + action.getClass().getSimpleName() + " is not compatible with CommodityAction!");
             } catch (Exception e) {
-                RuntimeException wrapped = new RuntimeException("Processing CommodityAction", e);
+                RuntimeException wrapped = new RuntimeException("Processing CommodityAction for player " + player.getName(), e);
                 Exceptions.logException(wrapped);
             }
         }

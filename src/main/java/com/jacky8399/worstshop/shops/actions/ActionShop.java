@@ -409,22 +409,16 @@ public class ActionShop extends Action {
             if (renderer == null) {
                 renderer = new ShopRenderer(FAKE_SHOP, player);
             }
-            List<RenderElement> items = element.getRenderElement(renderer, new PlaceholderContext(renderer, element));
+            PlaceholderContext context = new PlaceholderContext(renderer, element);
+            List<RenderElement> items = element.getRenderElement(renderer, context);
             for (RenderElement item : items) {
                 Collection<SlotPos> posList = item.positions();
                 if (posList != null) {
                     for (SlotPos pos : posList) {
-                        contents.set(pos, ClickableItem.empty(item.stack()));
+                        contents.set(pos, ClickableItem.empty(item.actualStack(renderer)));
                     }
                 }
             }
-//            SlotFiller filler = element.getFiller(fake);
-//            Collection<SlotPos> posList = filler.fill(element, fake);
-//            if (posList != null) {
-//                for (SlotPos pos : posList) {
-//                    contents.set(pos, ClickableItem.empty(element.createStack(fake, pos)));
-//                }
-//            }
         }
 
         protected void updateCommodities(Player player, InventoryContents contents, boolean dynamicOnly) {
