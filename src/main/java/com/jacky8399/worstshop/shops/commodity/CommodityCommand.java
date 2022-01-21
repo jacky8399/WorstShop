@@ -1,17 +1,17 @@
 package com.jacky8399.worstshop.shops.commodity;
 
+import com.jacky8399.worstshop.I18n;
 import com.jacky8399.worstshop.helper.Config;
 import com.jacky8399.worstshop.helper.ItemBuilder;
 import com.jacky8399.worstshop.shops.elements.ShopElement;
-import net.md_5.bungee.api.ChatColor;
+import com.jacky8399.worstshop.shops.rendering.PlaceholderContext;
+import com.jacky8399.worstshop.shops.rendering.Placeholders;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.Locale;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 
 public class CommodityCommand extends Commodity implements IUnaffordableCommodity {
 
@@ -19,18 +19,22 @@ public class CommodityCommand extends Commodity implements IUnaffordableCommodit
         PLAYER, PLAYER_OP, CONSOLE
     }
 
-    String command;
+    List<String> commands;
     CommandInvocationMethod method;
     int multiplier;
 
     public CommodityCommand(Config config) {
-        command = config.get("command", String.class);
+        if (config.has("commands")) {
+            commands = new ArrayList<>(config.getList("commands", String.class));
+        } else {
+            commands = Collections.singletonList(config.get("command", String.class));
+        }
         method = config.find("method", CommandInvocationMethod.class).orElse(CommandInvocationMethod.PLAYER);
         multiplier = config.find("multiplier", Integer.class).orElse(1);
     }
 
-    public CommodityCommand(String command, CommandInvocationMethod method, int multiplier) {
-        this.command = command;
+    public CommodityCommand(List<String> commands, CommandInvocationMethod method, int multiplier) {
+        this.commands = new ArrayList<>(commands);
         this.method = method;
         this.multiplier = multiplier;
     }
@@ -42,14 +46,17 @@ public class CommodityCommand extends Commodity implements IUnaffordableCommodit
 
     @Override
     public String getPlayerResult(@Nullable Player player, TransactionType position) {
-        return "[command]";
+        return I18n.translate("worstshop.messages.shops.wants.command", commands.size());
     }
 
     @Override
     public double grantOrRefund(Player player) {
-        String actualCommand = command.replace("{player}", player.getName());
+        PlaceholderContext context = PlaceholderContext.guessContext(player);
         for (int i = 0; i < multiplier; i++) {
-            doCommandOnce(player, actualCommand);
+            for (String command : commands) {
+                String actualCommand = Placeholders.setPlaceholders(command, context);
+                doCommandOnce(player, actualCommand);
+            }
         }
         return 0;
     }
@@ -81,19 +88,24 @@ public class CommodityCommand extends Commodity implements IUnaffordableCommodit
 
     @Override
     public ShopElement createElement(TransactionType pos) {
-        return pos.createElement(ItemBuilder.of(Material.COMMAND_BLOCK).name(ChatColor.GREEN + command).build());
+        return pos.createElement(ItemBuilder.of(Material.COMMAND_BLOCK)
+                .name(I18n.translate("worstshop.messages.shops.wants.command", commands.size()))
+                .build());
     }
 
     @Override
     public Commodity multiply(double multiplier) {
-        return new CommodityCommand(command, method, (int) (this.multiplier * multiplier));
+        return new CommodityCommand(commands, method, (int) (this.multiplier * multiplier));
     }
 
     @Override
     public Map<String, Object> toMap(Map<String, Object> map) {
         super.toMap(map);
         map.put("preset", "command");
-        map.put("command", command);
+        if (commands.size() == 1)
+            map.put("command", commands.get(0));
+        else
+            map.put("commands", commands);
         map.put("multiplier", multiplier);
         map.put("method", method.name().toLowerCase(Locale.ROOT).replace('_', ' '));
         return map;
@@ -101,19 +113,19 @@ public class CommodityCommand extends Commodity implements IUnaffordableCommodit
 
     @Override
     public int hashCode() {
-        return Objects.hash(command, method, multiplier);
+        return Objects.hash(commands, method, multiplier);
     }
 
     @Override
     public boolean equals(Object obj) {
-        if (!(obj instanceof CommodityCommand))
+        if (!(obj instanceof CommodityCommand other))
             return false;
-        CommodityCommand other = (CommodityCommand) obj;
-        return other.multiplier == multiplier && other.command.equals(command) && other.method == method;
+        return other.multiplier == multiplier && other.commands.equals(commands) && other.method == method;
     }
 
     @Override
     public String toString() {
-        return "[runs command \"" + command + "\n as " + (method == CommandInvocationMethod.PLAYER_OP ? "PLAYER (temporarily opped)" : method.name()) + "]";
+        return "[runs " + commands.size() + " commands as " +
+                (method == CommandInvocationMethod.PLAYER_OP ? "PLAYER (temporarily opped)" : method.name()) + "]";
     }
 }

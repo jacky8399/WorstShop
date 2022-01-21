@@ -54,6 +54,8 @@ worstshop:
         player-points: '{0} points'
         items: '&e{0}x {1}'
         free: '&dFree'
+        command: '&a{0} commands'
+        action: '&d{0} custom actions'
         permissions:
           permission: '&f{0}'
           group: '&fGroup {0}'

@@ -21,6 +21,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Logger;
@@ -58,7 +59,8 @@ public class CommoditySerializationTest {
     @Test
     public void testDeserialization() {
         List<Commodity> expected = Arrays.asList(
-                new CommodityCommand("/icanhasbukkit", CommodityCommand.CommandInvocationMethod.CONSOLE, 1),
+                new CommodityCommand(Collections.singletonList("/icanhasbukkit"),
+                        CommodityCommand.CommandInvocationMethod.CONSOLE, 1),
                 new CommodityExp(123, 456),
                 CommodityFree.INSTANCE,
                 new CommodityItem(ItemBuilder.of(Material.TNT).name("boom").amount(10).build())

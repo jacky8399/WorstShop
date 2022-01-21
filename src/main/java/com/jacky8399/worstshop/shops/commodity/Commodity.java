@@ -1,6 +1,7 @@
 package com.jacky8399.worstshop.shops.commodity;
 
 import com.jacky8399.worstshop.helper.Config;
+import com.jacky8399.worstshop.helper.ConfigException;
 import com.jacky8399.worstshop.helper.ItemBuilder;
 import com.jacky8399.worstshop.shops.conditions.Condition;
 import com.jacky8399.worstshop.shops.conditions.ConditionCommodity;
@@ -16,12 +17,19 @@ import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.lang.reflect.Constructor;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.stream.Collectors;
 
 public abstract class Commodity {
+    public static final HashMap<String, Class<? extends Commodity>> PRESETS = new HashMap<>();
+
+    static {
+        PRESETS.put("action", CommodityAction.class);
+    }
+
     public static Commodity fromMap(Config config) {
         String type = config.get("type", String.class);
         Commodity commodity;
@@ -51,8 +59,17 @@ public abstract class Commodity {
             case "free":
                 commodity = CommodityFree.INSTANCE;
                 break;
-            default:
-                throw new IllegalArgumentException("Invalid commodity type " + type);
+            default: {
+                Class<? extends Commodity> clazz = PRESETS.get(type);
+                if (clazz == null)
+                    throw new ConfigException("Invalid commodity type " + type, config, "type");
+                try {
+                    Constructor<? extends Commodity> ctor = clazz.getConstructor(Config.class);
+                    commodity = ctor.newInstance(config);
+                } catch (ReflectiveOperationException e) {
+                    throw new IllegalStateException("Failed to construct commodity type " + type, e);
+                }
+            }
         }
 
         // special case
