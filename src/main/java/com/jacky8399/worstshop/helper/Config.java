@@ -28,6 +28,14 @@ public final class Config {
         this(map, null, null);
     }
 
+    public String getPath() {
+        return path;
+    }
+
+    public String getPath(String key) {
+        return path + " > " + key;
+    }
+
     public Map<String, Object> getPrimitiveMap() {
         return backingMap;
     }

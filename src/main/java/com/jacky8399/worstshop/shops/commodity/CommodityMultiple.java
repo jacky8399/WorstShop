@@ -132,7 +132,7 @@ public class CommodityMultiple extends Commodity implements IFlexibleCommodity {
 
     @Override
     public String getPlayerTrait(Player player) {
-        return wants.stream().map(want->want.getPlayerTrait(player)).collect(Collectors.joining(", "));
+        return wants.stream().map(want->want.getPlayerTrait(player)).collect(Collectors.joining("\n"));
     }
 
     @Override

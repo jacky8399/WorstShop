@@ -17,6 +17,7 @@ import org.bukkit.configuration.InvalidConfigurationException;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -150,8 +151,9 @@ public class I18n {
         return nameStack(stack, stack.getAmount());
     }
     public static String nameStack(ItemStack stack, int amount) {
+        ItemMeta meta = stack.getItemMeta();
         return translate(Keys.ITEM_KEY, amount,
-                stack.getItemMeta().hasDisplayName() ? stack.getItemMeta().getDisplayName() : PaperHelper.getItemName(stack));
+                meta.hasDisplayName() ? meta.getDisplayName() : PaperHelper.getItemName(stack));
     }
 
     @SuppressWarnings("ConstantConditions")

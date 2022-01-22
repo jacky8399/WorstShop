@@ -5,6 +5,8 @@ import net.md_5.bungee.api.ChatColor;
 import net.md_5.bungee.api.chat.BaseComponent;
 import net.md_5.bungee.api.chat.TextComponent;
 import net.md_5.bungee.chat.ComponentSerializer;
+import org.bukkit.Material;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.HashMap;
 import java.util.Optional;
@@ -12,8 +14,17 @@ import java.util.Optional;
 public final class ConfigHelper {
     private ConfigHelper() {}
 
-    public static <T extends Enum<T>> T parseEnum(String input, Class<T> clazz) {
-        return Enum.valueOf(clazz, input.toUpperCase().replace(' ', '_'));
+    @NotNull
+    public static <T extends Enum<T>> T parseEnum(String input, Class<T> clazz) throws IllegalArgumentException {
+        input = input.toUpperCase().replace(' ', '_');
+        if (clazz == Material.class) { // ensure that legacy names are not used
+            @SuppressWarnings("unchecked")
+            T mat = (T) Material.matchMaterial(input);
+            if (mat == null)
+                throw new IllegalArgumentException(input + " is not a valid material");
+            return mat;
+        }
+        return Enum.valueOf(clazz, input);
     }
 
     public static String translateString(String input) {

@@ -19,7 +19,6 @@ import org.bukkit.command.CommandMap;
 import org.bukkit.command.SimpleCommandMap;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.SkullMeta;
 
 import javax.annotation.Nullable;
@@ -48,10 +47,6 @@ public class PaperHelper {
     }
 
     public static String getItemName(ItemStack stack) {
-        ItemMeta meta = stack.getItemMeta();
-        if (meta.hasDisplayName()) {
-            return meta.getDisplayName();
-        }
         if (isPaper) {
             return stack.getI18NDisplayName();
         } else {

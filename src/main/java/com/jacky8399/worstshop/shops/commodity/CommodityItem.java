@@ -1,10 +1,9 @@
 package com.jacky8399.worstshop.shops.commodity;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
 import com.jacky8399.worstshop.I18n;
-import com.jacky8399.worstshop.helper.Config;
-import com.jacky8399.worstshop.helper.ItemBuilder;
-import com.jacky8399.worstshop.helper.ItemUtils;
+import com.jacky8399.worstshop.helper.*;
 import com.jacky8399.worstshop.shops.elements.ShopElement;
 import com.jacky8399.worstshop.shops.elements.StaticShopElement;
 import com.jacky8399.worstshop.shops.elements.dynamic.AnimationShopElement;
@@ -16,6 +15,7 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.Damageable;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.SkullMeta;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
@@ -27,30 +27,51 @@ import java.util.stream.Collectors;
 public class CommodityItem extends Commodity implements IFlexibleCommodity {
 
     // at least one of them is not null
-    @Nullable
+    @NotNull
     ItemStack stack;
-    @Nullable
-    NamespacedKey itemTag;
-    int amount = 1;
+    /**
+     * Additional Materials/NamespacedKeys that would be accepted as cost
+     */
+    @NotNull
+    ImmutableList<NamespacedKey> accepted;
+    int amount;
     // never modify the stack directly
     public final double multiplier;
     public HashSet<ItemMatcher> itemMatchers = Sets.newHashSet(ItemMatcher.SIMILAR);
 
+    private static final Function<String, NamespacedKey> STRING_TO_KEY =
+            key -> NamespacedKey.fromString((key.startsWith("#") ? key.substring(1) : key).replace(' ', '_'));
+    private static final Function<NamespacedKey, String> KEY_TO_STRING =
+            key -> key.getNamespace().equals(NamespacedKey.MINECRAFT) ? key.getKey() : key.toString();
     public CommodityItem(Config config) {
-        // parse itemstack
+        // parse item stack
         String item = config.get("item", String.class);
         if (item.startsWith("#")) {
-            stack = null;
             // tag
-            itemTag = NamespacedKey.fromString(item.substring(1));
+            NamespacedKey key = NamespacedKey.fromString(item.substring(1));
+            if (key == null)
+                throw new ConfigException(item.substring(1) + " is not a valid namespaced key!", config, "item");
+            accepted = ImmutableList.of(key);
+            stack = new ItemStack(Material.AIR);
         } else {
-            stack = StaticShopElement.parseItemStack(config);
+            ItemStack stack = StaticShopElement.parseItemStack(config);
             if (stack != null)
-                stack = ItemUtils.removeSafetyKey(stack);
-            itemTag = config.find("accepts", String.class)
-                    .map(tag -> tag.startsWith("#") ? tag.substring(1) : tag)
-                    .map(NamespacedKey::fromString)
-                    .orElse(null);
+                this.stack = ItemUtils.removeSafetyKey(stack);
+            else
+                this.stack = new ItemStack(Material.AIR);
+
+            Optional<NamespacedKey> acceptedString = config.tryFind("accepts", String.class).map(STRING_TO_KEY);
+            if (acceptedString.isPresent()) {
+                accepted = ImmutableList.of(acceptedString.get());
+            } else {
+                Optional<List<? extends String>> acceptedList = config.findList("accepts", String.class);
+                if (acceptedList.isPresent())
+                    accepted = acceptedList.get().stream().map(STRING_TO_KEY)
+                            .filter(Objects::nonNull)
+                            .collect(ImmutableList.toImmutableList());
+                else
+                    accepted = ImmutableList.of();
+            }
         }
         amount = config.find("amount", Integer.class).orElseGet(()->config.find("count", Integer.class).orElse(1));
 
@@ -69,12 +90,12 @@ public class CommodityItem extends Commodity implements IFlexibleCommodity {
     }
 
     public CommodityItem(ItemStack stack, double multiplier) {
-        this(stack, null, 1, 1);
+        this(stack, ImmutableList.of(), 1, multiplier);
     }
 
-    public CommodityItem(@Nullable ItemStack stack, @Nullable NamespacedKey tag, int amount, double multiplier) {
+    public CommodityItem(@NotNull ItemStack stack, @NotNull List<NamespacedKey> accepted, int amount, double multiplier) {
         this.stack = stack;
-        this.itemTag = tag;
+        this.accepted = ImmutableList.copyOf(accepted);
         this.amount = amount;
         this.multiplier = multiplier;
     }
@@ -84,8 +105,8 @@ public class CommodityItem extends Commodity implements IFlexibleCommodity {
     }
 
     public CommodityItem(CommodityItem other, double multiplier) {
-        this.stack = other.stack != null ? other.stack.clone() : null;
-        this.itemTag = other.itemTag;
+        this.stack = other.stack.clone();
+        this.accepted = ImmutableList.copyOf(other.accepted);
         this.amount = other.amount;
         this.multiplier = other.multiplier * multiplier;
         setItemMatchers(other.itemMatchers);
@@ -97,10 +118,21 @@ public class CommodityItem extends Commodity implements IFlexibleCommodity {
         return this;
     }
 
-    private Tag<Material> getTag() {
-        if (itemTag == null)
-            throw new IllegalStateException("Item tag is null! (stack: " + stack + ")");
-        return Bukkit.getTag(Tag.REGISTRY_ITEMS, itemTag, Material.class);
+    @NotNull
+    public Set<Material> getExtraAcceptedItems() {
+        EnumSet<Material> materials = EnumSet.noneOf(Material.class);
+        for (NamespacedKey key : accepted) {
+            Material mat = Registry.MATERIAL.get(key);
+            if (mat != null) {
+                materials.add(mat);
+            } else {
+                Tag<Material> tag = Bukkit.getTag(Tag.REGISTRY_ITEMS, key, Material.class);
+                if (tag != null) {
+                    materials.addAll(tag.getValues());
+                }
+            }
+        }
+        return materials.size() == 0 ? Collections.emptySet() : materials;
     }
 
     public int getAmount() {
@@ -111,24 +143,34 @@ public class CommodityItem extends Commodity implements IFlexibleCommodity {
     @Override
     public ShopElement createElement(TransactionType position) {
         if (displayElem == null) {
-            if (stack != null && (itemTag == null || position != TransactionType.COST)) {
+            Set<Material> acceptedItems = getExtraAcceptedItems();
+            if (stack.getType() != Material.AIR && (acceptedItems.size() == 0 || position != TransactionType.COST)) {
                 ItemStack actualStack = stack.clone();
                 if (amount > actualStack.getMaxStackSize()) {
-                    actualStack = ItemBuilder.from(actualStack).amount(1)
+                    ItemBuilder.from(actualStack).amount(1)
                             .addLores(ChatColor.WHITE + "x" + amount)
                             .build();
                 }
                 displayElem = position.createElement(actualStack);
             } else {
-                Tag<Material> tag = getTag();
-                AnimationShopElement elem = new AnimationShopElement(1, tag.getValues().stream()
-                        .map(mat -> StaticShopElement.fromStack(
-                                amount > mat.getMaxStackSize() ?
-                                        ItemBuilder.of(mat).lores(ChatColor.WHITE + "x" + amount).build() :
-                                        new ItemStack(mat, amount)
-                        ))
-                        .collect(Collectors.toList())
-                );
+                List<StaticShopElement> displayedItems = new ArrayList<>(acceptedItems.size() + 1);
+                if (stack.getType() != Material.AIR) {
+                    ItemStack actualStack = stack.clone();
+                    if (amount > stack.getMaxStackSize()) {
+                        ItemBuilder.from(actualStack).amount(1)
+                                .addLores(ChatColor.WHITE + "x" + amount)
+                                .build();
+                    }
+                    displayedItems.add(StaticShopElement.fromStack(actualStack));
+                }
+                for (Material mat : acceptedItems) {
+                    ItemStack stack = amount > mat.getMaxStackSize() ?
+                            ItemBuilder.of(mat).lores(ChatColor.WHITE + "x" + amount).build() :
+                            new ItemStack(mat, amount);
+                    displayedItems.add(StaticShopElement.fromStack(stack));
+                }
+
+                AnimationShopElement elem = new AnimationShopElement(1, displayedItems);
                 displayElem = position.createElement(elem);
             }
         }
@@ -137,13 +179,13 @@ public class CommodityItem extends Commodity implements IFlexibleCommodity {
 
     @Override
     public boolean isElementDynamic() {
-        return itemTag != null;
+        return accepted.size() != 0;
     }
 
     @Override
     public Commodity adjustForPlayer(Player player) {
         // parse placeholders
-        return new CommodityItem(Placeholders.setPlaceholders(stack, player), itemTag, amount, multiplier)
+        return new CommodityItem(Placeholders.setPlaceholders(stack, player), accepted, amount, multiplier)
                 .setItemMatchers(itemMatchers);
     }
 
@@ -157,17 +199,21 @@ public class CommodityItem extends Commodity implements IFlexibleCommodity {
         return canAfford(player.getInventory());
     }
 
-    public boolean stackMatches(ItemStack stack) {
+    public boolean stackMatches(@Nullable ItemStack stack, @NotNull Set<Material> cache) {
         if (stack == null)
             return false;
-        if (this.stack == null)
-            return getTag().isTagged(stack.getType());
+        if (cache.contains(stack.getType()))
+            return true;
         for (ItemMatcher matcher : itemMatchers) {
             if (!matcher.test(this.stack, stack)) {
                 return false;
             }
         }
         return true;
+    }
+
+    public boolean stackMatches(ItemStack stack) {
+        return stackMatches(stack, getExtraAcceptedItems());
     }
 
     public boolean canAfford(Inventory inventory) {
@@ -194,7 +240,7 @@ public class CommodityItem extends Commodity implements IFlexibleCommodity {
 
     @Override
     public int getMaximumPurchase(Player player) {
-        return stack != null ? stack.getType().getMaxStackSize() * 36 : 64 * 36;
+        return stack.getType() != Material.AIR ? stack.getType().getMaxStackSize() * 36 : 64 * 36;
     }
 
     @Override
@@ -203,16 +249,31 @@ public class CommodityItem extends Commodity implements IFlexibleCommodity {
     }
 
     public String getInventoryMatchingFormatted(Inventory inventory) {
-        int matching = getInventoryMatching(inventory);
-        return stack != null ?
-                I18n.nameStack(stack, matching) :
-                I18n.translate(I18n.Keys.ITEM_KEY, matching, "#" + itemTag.asString());
+        StringJoiner joiner = new StringJoiner("\n");
+
+        Map<ItemStack, Integer> matching = new HashMap<>();
+        Set<Material> cache = getExtraAcceptedItems();
+        for (ItemStack playerStack : inventory.getContents()) {
+            if (playerStack != null && stackMatches(playerStack, cache)) {
+                ItemStack one = playerStack.clone();
+                one.setAmount(1);
+                matching.merge(one, playerStack.getAmount(), Integer::sum);
+            }
+        }
+        if (matching.size() == 0) {
+            return stack.getType() != Material.AIR ?
+                    I18n.nameStack(stack, 0) :
+                    I18n.translate(I18n.Keys.ITEM_KEY, amount, PaperHelper.getItemName(new ItemStack(cache.iterator().next())));
+        }
+        matching.forEach((is, amount) -> joiner.add(I18n.nameStack(is, amount)));
+        return joiner.toString();
     }
 
     public int getInventoryMatching(Inventory inventory) {
         int amount = 0;
+        Set<Material> cache = getExtraAcceptedItems();
         for (ItemStack playerStack : inventory.getContents()) {
-            if (playerStack != null && stackMatches(playerStack)) {
+            if (playerStack != null && stackMatches(playerStack, cache)) {
                 amount += playerStack.getAmount();
             }
         }
@@ -252,7 +313,7 @@ public class CommodityItem extends Commodity implements IFlexibleCommodity {
         int remaining = grant(player.getInventory());
         if (remaining != -1) {
             // get original amount for correct refund
-            refund = (double) remaining / (double) (stack != null ? stack.getAmount() : amount);
+            refund = (double) remaining / amount;
             player.sendMessage(I18n.translate(I18n.Keys.MESSAGES_KEY + "shops.transaction-inv-full"));
         }
         player.updateInventory();
@@ -261,9 +322,9 @@ public class CommodityItem extends Commodity implements IFlexibleCommodity {
 
     public int grant(Inventory inventory) {
         ItemStack stack = this.stack;
-        if (stack == null) {
+        if (stack.getType() != Material.AIR) {
             // find first item
-            stack = new ItemStack(getTag().getValues().iterator().next(), amount);
+            stack = new ItemStack(getExtraAcceptedItems().iterator().next(), amount);
         }
         // split into correct stack sizes
         int amount = getAmount(), maxStackSize = stack.getType().getMaxStackSize();
@@ -287,9 +348,7 @@ public class CommodityItem extends Commodity implements IFlexibleCommodity {
     @Override
     public String getPlayerResult(Player player, TransactionType position) {
         int amount = getAmount();
-        return stack != null ?
-                I18n.nameStack(stack, amount) :
-                I18n.translate(I18n.Keys.ITEM_KEY, amount, "#" + itemTag.asString());
+        return I18n.nameStack(stack, amount);
     }
 
     @Override
@@ -299,15 +358,15 @@ public class CommodityItem extends Commodity implements IFlexibleCommodity {
                 .map(matcher -> matcher.name)
                 .map(name -> name.toLowerCase(Locale.ROOT).replace('_', ' '))
                 .collect(Collectors.toList()));
-        if (stack != null) {
+        if (stack.getType() != Material.AIR) {
             StaticShopElement.serializeItemStack(stack, map);
-            if (itemTag != null)
-                map.put("accepts", itemTag.asString());
+            if (accepted.size() != 0)
+                map.put("accepts", accepted.stream().map(KEY_TO_STRING).collect(Collectors.toList()));
         } else {
-            map.put("item", "#" + itemTag.asString());
-            if (amount != 1)
-                map.put("amount", amount);
+            map.put("item", "#" + KEY_TO_STRING.apply(accepted.get(0)));
         }
+        if (amount != 1)
+            map.put("amount", amount);
         return map;
     }
 
@@ -322,7 +381,7 @@ public class CommodityItem extends Commodity implements IFlexibleCommodity {
             return false;
         return other.multiplier == multiplier &&
                 Objects.equals(other.stack, stack) &&
-                Objects.equals(other.itemTag, itemTag) && other.amount == amount &&
+                Objects.equals(other.accepted, accepted) && other.amount == amount &&
                 other.itemMatchers.equals(itemMatchers);
     }
 
@@ -338,7 +397,7 @@ public class CommodityItem extends Commodity implements IFlexibleCommodity {
                 "]";
     }
 
-    @SuppressWarnings({"StaticInitializerReferencesSubClass", "unused"})
+    @SuppressWarnings({"StaticInitializerReferencesSubClass", "unused", "deprecation"})
     public static abstract class ItemMatcher implements BiPredicate<ItemStack, ItemStack> {
         public static final HashMap<String, ItemMatcher> ITEM_MATCHERS = new HashMap<>();
 
