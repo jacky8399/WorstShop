@@ -98,51 +98,97 @@ public class ActionShop extends Action {
         return map;
     }
 
+    @Override
+    public String toString() {
+        return "ActionShop{cost=" + cost + ", reward=" + reward + "}";
+    }
+
+    private static Set<UUID> noReimbursements = new HashSet<>();
     public void doTransaction(Player player, double count) {
         if (count == 0) {
             player.sendMessage(formatPurchaseMessage(player, 0));
             return;
         }
-        ActionShop adjusted = adjustForPlayer(player);
-        Commodity multipliedCost = adjusted.cost.multiply(count);
-        int playerMaxPurchases = getPlayerMaxPurchase(player);
-        if (count > playerMaxPurchases) {
-            player.sendMessage(formatPurchaseLimitMessage(player));
-            return;
-        }
-        if (multipliedCost.canAfford(player)) {
-            multipliedCost.deduct(player);
-            double refund = adjusted.reward.multiply(count).grantOrRefund(player);
-            if (refund > 0) {
-                // refunds DO NOT allow refunding
-                adjusted.cost.multiply(refund).grantOrRefund(player);
-                player.sendMessage(formatRefundMessage(player, refund));
+        String stage = "Adjusting shop";
+        boolean shouldReimburse = false;
+        try {
+            ActionShop adjusted = adjustForPlayer(player);
+            stage = "Calculating cost";
+            Commodity multipliedCost = adjusted.cost.multiply(count);
+            int playerMaxPurchases = getPlayerMaxPurchase(player);
+            if (count > playerMaxPurchases) {
+                player.sendMessage(formatPurchaseLimitMessage(player));
+                return;
             }
-            // record the sale
-            if (purchaseLimitTemplate != null) {
-                PlayerPurchaseRecords records = PlayerPurchaseRecords.getCopy(player);
-                records.applyTemplate(purchaseLimitTemplate).addRecord(LocalDateTime.now(), (int) (count - refund));
-                records.updateFor(player);
+            if (multipliedCost.canAfford(player)) {
+                stage = "Deducting cost";
+                shouldReimburse = true;
+                multipliedCost.deduct(player);
+                stage = "Granting reward";
+                double refund = adjusted.reward.multiply(count).grantOrRefund(player);
+                if (refund > 0) {
+                    // refunds DO NOT allow refunding
+                    stage = "Processing refunds";
+                    adjusted.cost.multiply(refund).grantOrRefund(player);
+                    player.sendMessage(formatRefundMessage(player, refund));
+                }
+                // record the sale
+                if (purchaseLimitTemplate != null) {
+                    PlayerPurchaseRecords records = PlayerPurchaseRecords.getCopy(player);
+                    records.applyTemplate(purchaseLimitTemplate).addRecord(LocalDateTime.now(), (int) (count - refund));
+                    records.updateFor(player);
+                }
+                player.sendMessage(formatPurchaseMessage(player, count - refund));
+            } else {
+                player.sendMessage(formatPurchaseMessage(player, 0));
             }
-            player.sendMessage(formatPurchaseMessage(player, count - refund));
-        } else {
-            player.sendMessage(formatPurchaseMessage(player, 0));
+        } catch (Exception e) {
+            RuntimeException wrapped = new RuntimeException(stage + " for player " + player.getName() + " in shop " + this, e);
+            if (shouldReimburse && noReimbursements.add(player.getUniqueId())) {
+                try {
+                    adjustForPlayer(player).cost.multiply(count).grantOrRefund(player);
+                    player.sendMessage(I18n.translate(I18n.Keys.MESSAGES_KEY + "shops.transaction-reimbursement"));
+                    player.sendMessage(formatRefundMessage(player, count));
+                } catch (Exception notAgain) {
+                    wrapped.addSuppressed(new RuntimeException("Reimbursing player", notAgain));
+                }
+            }
+            String id = Exceptions.logException(wrapped);
+            player.sendMessage(I18n.translate(I18n.Keys.MESSAGES_KEY + "shops.transaction-error", id));
         }
     }
 
     public void sellAll(Player player) {
-        ActionShop adjusted = adjustForPlayer(player);
-        int transactionCount = Math.min(adjusted.cost.getMaximumMultiplier(player), getPlayerMaxPurchase(player));
-        adjusted.doTransaction(player, transactionCount);
+        ActionShop adjusted;
+        int transactionCount;
+        try {
+            adjusted = adjustForPlayer(player);
+            transactionCount = Math.min(adjusted.cost.getMaximumMultiplier(player), getPlayerMaxPurchase(player));
+            adjusted.doTransaction(player, transactionCount);
+        } catch (Exception e) {
+            RuntimeException wrapped = new RuntimeException("Sell all operation for player " + player.getName() + " in shop " + this, e);
+            String id = Exceptions.logException(wrapped);
+            player.sendMessage(I18n.translate(I18n.Keys.MESSAGES_KEY + "shops.transaction-error", id));
+        }
     }
 
     public ActionShop adjustForPlayer(Player player) {
-        return new ActionShop(
-                cost instanceof IFlexibleCommodity ?
-                        ((IFlexibleCommodity) cost).adjustForPlayer(player) : cost,
-                reward instanceof IFlexibleCommodity ?
-                        ((IFlexibleCommodity) reward).adjustForPlayer(player) : reward,
-                purchaseLimitTemplate, purchaseLimit);
+        Commodity newCost = cost, newReward = reward;
+        if (cost instanceof IFlexibleCommodity flexible) {
+            try {
+                newCost = flexible.adjustForPlayer(player);
+            } catch (Exception e) {
+                throw new RuntimeException("Adjusting COST " + flexible + " for player " + player.getName() + " in shop " + this, e);
+            }
+        }
+        if (reward instanceof IFlexibleCommodity flexible) {
+            try {
+                newReward = flexible.adjustForPlayer(player);
+            } catch (Exception e) {
+                throw new RuntimeException("Adjusting REWARD " + flexible + " for player " + player.getName() + " in shop " + this, e);
+            }
+        }
+        return new ActionShop(newCost, newReward, purchaseLimitTemplate, purchaseLimit);
     }
 
     public int getPlayerMaxPurchase(Player player) {

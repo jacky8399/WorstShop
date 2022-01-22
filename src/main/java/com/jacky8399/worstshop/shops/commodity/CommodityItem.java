@@ -387,9 +387,10 @@ public class CommodityItem extends Commodity implements IFlexibleCommodity {
 
     @Override
     public String toString() {
-        return "[give/take " + getPlayerResult(null, null) +
-                (itemMatchers.size() != 0 ?
-                        "by matching " + itemMatchers.stream()
+        return "[give/take " + ChatColor.stripColor(getPlayerResult(null, null)) +
+                // only display non default item matchers
+                (itemMatchers.size() != 0 && !(itemMatchers.size() == 1 && itemMatchers.contains(ItemMatcher.SIMILAR)) ?
+                        " by matching " + itemMatchers.stream()
                                 .map(matcher -> matcher.name)
                                 .collect(Collectors.joining(", ")) :
                         ""

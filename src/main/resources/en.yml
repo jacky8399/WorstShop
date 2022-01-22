@@ -105,9 +105,11 @@ worstshop:
       alias:
         description: 'Opens shop {0}'
 
-      transaction-message: '&eYou traded &7&o({0} times)&r&e {1} for {2}.'
+      transaction-message: '&eYou traded &7&o({0} trades)&r&e {1} for {2}.'
       transaction-nothing: '&eYou didn''t trade anything.'
       transaction-limit-reached: '&eYou can only purchase {0} every {1}. Please try again in {2}.'
       transaction-inv-full: '&cYour inventory cannot fit all the items!'
+      transaction-error: '&4An internal error occurred while processing your transaction: {0}. Please report this to an admin.'
+      transaction-reimbursement: '&cYou have been reimbursed the following: (No further reimbursement will occur)'
       transaction-refund: '&eYou were refunded &e{1} &7&o({0} trades)&r&e.'
     config-reloaded: 'Configuration reloaded!'
