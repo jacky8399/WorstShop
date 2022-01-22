@@ -322,7 +322,7 @@ public class CommodityItem extends Commodity implements IFlexibleCommodity {
 
     public int grant(Inventory inventory) {
         ItemStack stack = this.stack;
-        if (stack.getType() != Material.AIR) {
+        if (stack.getType() == Material.AIR) {
             // find first item
             stack = new ItemStack(getExtraAcceptedItems().iterator().next(), amount);
         }
