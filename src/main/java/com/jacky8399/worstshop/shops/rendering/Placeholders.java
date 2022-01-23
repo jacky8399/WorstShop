@@ -61,6 +61,7 @@ public class Placeholders {
         return setPlaceholders(stack, PlaceholderContext.guessContext(player));
     }
 
+    @SuppressWarnings("deprecation")
     @Contract("null, _ -> null; !null, _ -> !null")
     public static ItemStack setPlaceholders(ItemStack stack, @NotNull PlaceholderContext context) {
         if (stack == null || stack.getType() == Material.AIR || context == PlaceholderContext.NO_CONTEXT)
@@ -84,8 +85,9 @@ public class Placeholders {
         if (meta instanceof SkullMeta skullMeta) {
             PaperHelper.GameProfile profile = PaperHelper.getSkullMetaProfile(skullMeta);
             if (profile != null) {
-                if (profile.equals(StaticShopElement.VIEWER_SKULL) && context.player() != null) {
-                    skullMeta.setOwningPlayer(context.player());
+                Player player = context.getPlayer();
+                if (profile.equals(StaticShopElement.VIEWER_SKULL) && player != null) {
+                    skullMeta.setOwningPlayer(player);
                 } else if (profile.getName() != null && (profile.getName().contains("%") || profile.getName().contains("!"))) {
                     // replace placeholders too
                     String newName = placeholderReplacer.apply(profile.getName());

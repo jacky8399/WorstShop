@@ -25,6 +25,8 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryType;
+import org.bukkit.event.server.PluginDisableEvent;
+import org.bukkit.event.server.PluginEnableEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.persistence.PersistentDataType;
@@ -56,13 +58,13 @@ public class ActionPlayerShop extends Action {
     }
 
     ShopElement parentElement;
-    ActionItemShop fallback = null;
+    ActionItemShop fallback;
     public ActionPlayerShop(Config yaml) {
         super(yaml);
         ShopElement element = ParseContext.findLatest(ShopElement.class);
         if (element == null)
             throw new IllegalStateException("Couldn't find parent element! Not in parse context?");
-        yaml.find("fallback", Config.class).ifPresent(fallbackYaml -> fallback = new ActionItemShop(fallbackYaml));
+        fallback = yaml.find("fallback", Config.class).map(ActionItemShop::new).orElse(null);
         parentElement = element.clone();
     }
 
@@ -188,7 +190,9 @@ public class ActionPlayerShop extends Action {
             comparator = comparator.reversed();
         }
         return shops.stream()
-                .filter(shop -> (isBuying ? shop.isSelling() : shop.isBuying()) && shop.matches(stack))
+                .filter(shop -> (isBuying ? shop.isSelling() : shop.isBuying())) // correct shop type
+                .filter(shop -> (isBuying ? shop.getRemainingStock() : shop.getRemainingSpace()) > 0) // has stock
+                .filter(shop -> shop.matches(stack))
                 .sorted(comparator);
     }
 
@@ -215,7 +219,8 @@ public class ActionPlayerShop extends Action {
                     )
                     .addLores(unfulfilled == 0 ?
                             new String[] {grandTotalString} :
-                            new String[] {grandTotalString, I18n.translate(I18N_KEY + "failed-to-fulfill", unfulfilled)});
+                            new String[] {grandTotalString, I18n.translate(
+                                    I18N_KEY + "failed-to-fulfill." + (isBuying ? "buy" : "sell"), unfulfilled)});
         }
     }
 
@@ -264,12 +269,10 @@ public class ActionPlayerShop extends Action {
     private static final SlotPos[] checkMarkPos = {SlotPos.of(2, 3), SlotPos.of(3, 4), SlotPos.of(2, 5), SlotPos.of(1, 6)};
     class ShopGui extends ActionShop.ShopGui {
         boolean isBuying;
-        int maxBuyCount;
         protected ShopGui(Player player, boolean isBuying) {
             super(createFakeShop(player, isBuying));
             this.isBuying = isBuying;
             this.buyCount = 0;
-            this.maxBuyCount = getTargetItemStack(player).getMaxStackSize() * 36;
         }
 
         PurchaseStrategySummary purchaseSummary = null;
@@ -279,21 +282,9 @@ public class ActionPlayerShop extends Action {
 
         @Override
         public void update(Player player, InventoryContents contents) {
+            // Let parent handle animation while not confirmed
             if (purchaseSummary == null) {
                 super.update(player, contents);
-
-                if (super.animationSequence == 3) {
-                    // estimate cost and update accordingly
-                    PurchaseStrategySummary strategySummary = deviseStrategy(player, isBuying, buyCount);
-                    contents.set((isBuying ? Commodity.TransactionType.COST : Commodity.TransactionType.REWARD).pos,
-                            strategySummary.getDisplay(isBuying)
-                                    // remove references to confirmation
-                                    .type(Material.GOLD_INGOT)
-                                    .name(I18n.translate(I18N_KEY + (isBuying ? "buy" : "sell") + "-amount-prompt"))
-                                    .addLores(I18n.translate(I18N_KEY + "confirmation-info"))
-                                    .toEmptyClickable()
-                    );
-                }
             } else if (animationSequence != 0) {
                 // horrible code
                 if (++tick == 4) {
@@ -310,6 +301,32 @@ public class ActionPlayerShop extends Action {
                         contents.inventory().close(player);
                     }
                 }
+            }
+        }
+
+        // flash between BARRIER and GOLD_INGOT if anything is out of stock
+        boolean outOfStockBlink = false;
+        @Override
+        protected void updateCommodities(Player player, InventoryContents contents, boolean dynamicOnly) {
+            super.updateCommodities(player, contents, dynamicOnly);
+            // estimate cost and update accordingly
+            if (dynamicOnly) {
+                PurchaseStrategySummary strategySummary = deviseStrategy(player, isBuying, buyCount);
+                ItemStack displayStack = strategySummary.getDisplay(isBuying)
+                        // remove references to confirmation
+                        .type(outOfStockBlink && strategySummary.unfulfilled != 0 ?
+                                Material.BARRIER : Material.GOLD_INGOT)
+                        .name(I18n.translate(I18N_KEY + (isBuying ? "buy" : "sell") + "-amount-prompt"))
+                        .addLores(I18n.translate(I18N_KEY + "confirmation-info"))
+                        .build();
+                if (isBuying) {
+                    costElem = Commodity.TransactionType.COST.createElement(displayStack);
+                    populateItems(player, costElem, contents);
+                } else {
+                    rewardElem = Commodity.TransactionType.REWARD.createElement(displayStack);
+                    populateItems(player, rewardElem, contents);
+                }
+                outOfStockBlink = !outOfStockBlink;
             }
         }
 
@@ -373,7 +390,7 @@ public class ActionPlayerShop extends Action {
 
     private static final ShopCache cache;
     private static class ShopCache implements Listener {
-        private final QuickShopAPI api;
+        private QuickShopAPI api;
         ShopCache(QuickShopAPI api) {
             this.api = api;
             Bukkit.getScheduler().runTask(WorstShop.get(), this::refreshCache);
@@ -416,6 +433,22 @@ public class ActionPlayerShop extends Action {
             Shop shop = e.getShop();
             List<Shop> shopz = shops.get(shop.getItem().getType());
             shopz.remove(shop);
+        }
+
+        @EventHandler(priority = EventPriority.LOWEST)
+        void onPluginDisable(PluginDisableEvent e) {
+            if (e.getPlugin() instanceof QuickShopAPI) {
+                shops.clear();
+                api = null;
+            }
+        }
+
+        @EventHandler(priority = EventPriority.MONITOR)
+        void onPluginEnable(PluginEnableEvent e) {
+            if (e.getPlugin() instanceof QuickShopAPI qsAPI) {
+                api = qsAPI;
+                Bukkit.getScheduler().runTaskLater(WorstShop.get(), this::refreshCache, 1);
+            }
         }
     }
 }

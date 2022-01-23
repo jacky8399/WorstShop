@@ -20,7 +20,11 @@ repositories {
         name = 'sonatype'
         url = 'https://oss.sonatype.org/content/groups/public/'
     }
-    maven { url = 'https://jitpack.io' }
+//    maven { url = 'https://jitpack.io' }
+    maven {
+        // PlayerPoints
+        url = 'https://repo.rosewooddev.io/repository/public/'
+    }
     maven { url = "https://repo.aikar.co/content/groups/aikar/" }
     maven { url = 'https://repo.extendedclip.com/content/repositories/placeholderapi/' }
     maven {
@@ -65,8 +69,8 @@ dependencies {
     }
     // Commands
     api 'co.aikar:acf-paper:0.5.0-SNAPSHOT'
-    // PlayerPoints (use jitpack.io)
-    compileOnly('com.github.Mitsugaru:PlayerPoints:master-SNAPSHOT') {
+    // PlayerPoints
+    compileOnly('org.black_ixx:playerpoints:3.1.0') {
         transitive = false
     }
     // Placeholders

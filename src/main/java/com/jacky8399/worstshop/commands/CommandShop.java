@@ -6,6 +6,7 @@ import co.aikar.commands.InvalidCommandArgument;
 import co.aikar.commands.annotation.*;
 import co.aikar.commands.bukkit.contexts.OnlinePlayer;
 import com.jacky8399.worstshop.I18n;
+import com.jacky8399.worstshop.PluginConfig;
 import com.jacky8399.worstshop.WorstShop;
 import com.jacky8399.worstshop.editor.EditorMainMenu;
 import com.jacky8399.worstshop.helper.*;
@@ -367,7 +368,7 @@ public class CommandShop extends BaseCommand {
         if (shop != null && shop.canPlayerView(player))
             shop.getInventory(player).open(player);
         else {
-            Shop defaultShop = ShopManager.SHOPS.get("default");
+            Shop defaultShop = ShopManager.SHOPS.get(PluginConfig.defaultShop);
             if (defaultShop != null && defaultShop.canPlayerView(player)) {
                 defaultShop.getInventory(player).open(player);
             }

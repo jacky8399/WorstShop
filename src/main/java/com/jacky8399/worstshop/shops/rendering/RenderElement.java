@@ -5,12 +5,14 @@ import fr.minuskube.inv.ClickableItem;
 import fr.minuskube.inv.content.SlotPos;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.ItemStack;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.Collection;
 import java.util.Set;
 import java.util.function.Consumer;
 
 public record RenderElement(ShopElement owner,
+                            @Nullable
                             Collection<SlotPos> positions,
                             ItemStack stack,
                             PlaceholderContext context,

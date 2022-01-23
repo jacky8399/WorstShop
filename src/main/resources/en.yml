@@ -83,7 +83,9 @@ worstshop:
         confirmation-grand-total: '&6Grand total: {0}'
         buying-from: '&bBuying&e x{0} from {1} at {2}&e (={3}&e)'
         selling-to: '&bSelling&e x{0} to {1} at {2}&e (={3}&e)'
-        failed-to-fulfill: '&cCouldn''t fulfill x{0} of your request.'
+        failed-to-fulfill:
+          buy: '&cCouldn''t find sellers for x{0} of your request.'
+          sell: '&cCouldn''t find buyers for x{0} of your request.'
 
       buy-counts:
         increase-by: '&a+{0}'

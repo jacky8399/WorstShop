@@ -351,17 +351,24 @@ public class ActionShop extends Action {
                                 .name(I18n.translate(I18n.Keys.MESSAGES_KEY + "shops.buttons.maximize-purchase"))
                                 .build(),
                         e -> {
-                            buyCount = Math.min(
-                                    Math.min(cost.getMaximumMultiplier(player), reward.getMaximumPurchase(player)),
-                                    shop.getPlayerMaxPurchase(player)
-                            );
+                            buyCount = getMaxPurchase(player);
                             firstClick = false;
                         }
                 ));
         }
 
+        @Override
+        public void update(Player player, InventoryContents contents) {
+            if (lastBuyCount != buyCount) {
+                updateItemCount(player, contents);
+                updateCanAfford(player, contents);
+                populateBuyCountChangeButtons(player, contents);
+                lastBuyCount = buyCount;
+            }
+            updateAnimation(player, contents);
+        }
+
         // animation
-        protected int tickCounter = 4; // to display animation on init
         protected int animationSequence = 0;
         protected int buyCount = 1;
         protected int lastBuyCount = buyCount;
@@ -383,11 +390,20 @@ public class ActionShop extends Action {
             };
         }
 
+        protected int getMaxPurchase(Player player) {
+            // ensure that buyCount doesn't go below 1
+            return Math.max(1, Math.min(shop.getPlayerMaxPurchase(player),
+                    Math.min(cost.getMaximumMultiplier(player), reward.getMaximumPurchase(player))));
+        }
+
+        private static final I18n.Translatable
+                INCREASE_BUY_COUNT_BY = I18n.createTranslatable("worstshop.messages.shops.buy-counts.increase-by"),
+                DECREASE_BUY_COUNT_BY = I18n.createTranslatable("worstshop.messages.shops.buy-counts.decrease-by"),
+                BUY_COUNT_RESULT = I18n.createTranslatable("worstshop.messages.shops.buy-counts.change-result");
         // create button pairs
         protected void populateBuyCountChangeButtons(Player player, InventoryContents contents) {
             int oldCount = firstClick ? 0 : buyCount;
-            int maxPurchase = Math.min(shop.getPlayerMaxPurchase(player),
-                    Math.min(cost.getMaximumMultiplier(player), reward.getMaximumPurchase(player)));
+            int maxPurchase = getMaxPurchase(player);
             for (int i = 0; i < BUTTON_DELTA.length; i++) {
                 int index = i + 1;
                 int number = BUTTON_DELTA[i];
@@ -395,19 +411,15 @@ public class ActionShop extends Action {
                 // increase by x
                 if (oldCount + number <= maxPurchase) {
                     contents.set(4, 4 + index, ItemBuilder.of(Material.LIME_STAINED_GLASS)
-                            .name(I18n.translate("worstshop.messages.shops.buy-counts.increase-by", number))
-                            .lores(I18n.translate(
-                                    "worstshop.messages.shops.buy-counts.change-result", oldCount + number
-                            ))
+                            .name(INCREASE_BUY_COUNT_BY.apply(Integer.toString(number)))
+                            .lores(BUY_COUNT_RESULT.apply(Integer.toString(oldCount + number)))
                             .amount(number)
                             .toClickable(createBuyCountChanger(oldCount + number))
                     );
                 } else {
                     contents.set(4, 4 + index, ItemBuilder.of(Material.GRAY_STAINED_GLASS)
-                            .name(I18n.translate("worstshop.messages.shops.buy-counts.increase-by", number))
-                            .lores(I18n.translate(
-                                    "worstshop.messages.shops.buy-counts.change-result", maxPurchase
-                            ))
+                            .name(INCREASE_BUY_COUNT_BY.apply(Integer.toString(number)))
+                            .lores(BUY_COUNT_RESULT.apply(Integer.toString(maxPurchase)))
                             .amount(number)
                             .toClickable(createBuyCountChanger(maxPurchase))
                     );
@@ -415,19 +427,15 @@ public class ActionShop extends Action {
                 // decrease by x
                 if (oldCount - number >= 1) {
                     contents.set(4, 4 - index, ItemBuilder.of(Material.RED_STAINED_GLASS)
-                            .name(I18n.translate("worstshop.messages.shops.buy-counts.decrease-by", number))
-                            .lores(I18n.translate(
-                                    "worstshop.messages.shops.buy-counts.change-result", oldCount - number
-                            ))
+                            .name(DECREASE_BUY_COUNT_BY.apply(Integer.toString(number)))
+                            .lores(BUY_COUNT_RESULT.apply(Integer.toString(oldCount - number)))
                             .amount(number)
                             .toClickable(createBuyCountChanger(oldCount - number))
                     );
                 } else {
                     contents.set(4, 4 - index, ItemBuilder.of(Material.GRAY_STAINED_GLASS)
-                            .name(I18n.translate("worstshop.messages.shops.buy-counts.decrease-by", number))
-                            .lores(I18n.translate(
-                                    "worstshop.messages.shops.buy-counts.change-result", 1
-                            ))
+                            .name(DECREASE_BUY_COUNT_BY.apply(Integer.toString(number)))
+                            .lores(BUY_COUNT_RESULT.apply(Integer.toString(1)))
                             .amount(number)
                             .toClickable(createBuyCountChanger(1))
                     );
@@ -435,23 +443,12 @@ public class ActionShop extends Action {
             }
         }
 
-        @Override
-        public void update(Player player, InventoryContents contents) {
-            if (lastBuyCount != buyCount) {
-                updateItemCount(player, contents);
-                updateCanAfford(player, contents);
-                populateBuyCountChangeButtons(player, contents);
-                lastBuyCount = buyCount;
-            }
-            updateAnimation(player, contents);
-        }
-
         private static final Shop FAKE_SHOP = new Shop();
         static {
             FAKE_SHOP.id = "worstshop_internal:shop_gui";
         }
         private ShopRenderer renderer;
-        private void populateItems(Player player, ShopElement element, InventoryContents contents) {
+        protected void populateItems(Player player, ShopElement element, InventoryContents contents) {
             if (renderer == null) {
                 renderer = new ShopRenderer(FAKE_SHOP, player);
             }
@@ -489,8 +486,8 @@ public class ActionShop extends Action {
                 // guess parent
                 Optional<SmartInventory> parent = contents.inventory().getParent();
                 String parentShop = "???";
-                if (parent.isPresent() && parent.get().getProvider() instanceof Shop) {
-                    parentShop = ((Shop) parent.get().getProvider()).id;
+                if (parent.isPresent() && parent.get().getProvider() instanceof ShopRenderer renderer) {
+                    parentShop = renderer.toString();
                 }
                 RuntimeException wrapped = new RuntimeException("Rendering " + stage + " element for " + player.getName() + " (@" + parentShop + ")", ex);
                 // spam the player

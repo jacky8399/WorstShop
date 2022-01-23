@@ -26,7 +26,6 @@ import java.util.stream.Collectors;
 
 public class CommodityItem extends Commodity implements IFlexibleCommodity {
 
-    // at least one of them is not null
     @NotNull
     ItemStack stack;
     /**
@@ -139,34 +138,44 @@ public class CommodityItem extends Commodity implements IFlexibleCommodity {
         return (int) (amount * multiplier);
     }
 
+    @SuppressWarnings({"ConstantConditions", "deprecation"})
+    private void ensureStackSize(@NotNull ItemStack stack) {
+        if (amount > stack.getMaxStackSize()) {
+            stack.setAmount(1);
+            ItemMeta meta = stack.getItemMeta();
+            List<String> lore = meta.hasLore() ? new ArrayList<>(meta.getLore()) : new ArrayList<>();
+            lore.add(I18n.translate(I18n.Keys.ITEM_KEY, "", amount));
+            meta.setLore(lore);
+            stack.setItemMeta(meta);
+        } else {
+            stack.setAmount(amount);
+        }
+    }
+
     private transient ShopElement displayElem;
     @Override
     public ShopElement createElement(TransactionType position) {
         if (displayElem == null) {
             Set<Material> acceptedItems = getExtraAcceptedItems();
-            if (stack.getType() != Material.AIR && (acceptedItems.size() == 0 || position != TransactionType.COST)) {
-                ItemStack actualStack = stack.clone();
-                if (amount > actualStack.getMaxStackSize()) {
-                    ItemBuilder.from(actualStack).amount(1)
-                            .addLores(ChatColor.WHITE + "x" + amount)
-                            .build();
-                }
+            // only display one item if reward
+            if (position != TransactionType.COST) {
+                ItemStack actualStack;
+                if (stack.getType() != Material.AIR)
+                    actualStack = stack.clone();
+                else
+                    actualStack = new ItemStack(acceptedItems.iterator().next());
+                ensureStackSize(actualStack);
                 displayElem = position.createElement(actualStack);
             } else {
                 List<StaticShopElement> displayedItems = new ArrayList<>(acceptedItems.size() + 1);
                 if (stack.getType() != Material.AIR) {
                     ItemStack actualStack = stack.clone();
-                    if (amount > stack.getMaxStackSize()) {
-                        ItemBuilder.from(actualStack).amount(1)
-                                .addLores(ChatColor.WHITE + "x" + amount)
-                                .build();
-                    }
+                    ensureStackSize(actualStack);
                     displayedItems.add(StaticShopElement.fromStack(actualStack));
                 }
                 for (Material mat : acceptedItems) {
-                    ItemStack stack = amount > mat.getMaxStackSize() ?
-                            ItemBuilder.of(mat).lores(ChatColor.WHITE + "x" + amount).build() :
-                            new ItemStack(mat, amount);
+                    ItemStack stack = new ItemStack(mat, amount);
+                    ensureStackSize(stack);
                     displayedItems.add(StaticShopElement.fromStack(stack));
                 }
 
@@ -381,7 +390,8 @@ public class CommodityItem extends Commodity implements IFlexibleCommodity {
             return false;
         return other.multiplier == multiplier &&
                 Objects.equals(other.stack, stack) &&
-                Objects.equals(other.accepted, accepted) && other.amount == amount &&
+                Objects.equals(other.accepted, accepted) &&
+                other.amount == amount &&
                 other.itemMatchers.equals(itemMatchers);
     }
 

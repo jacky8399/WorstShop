@@ -1,2 +1,4 @@
 # Try to remove shop items in players' inventories
 advanced-protection: true
+# The default shop opened when running /worstshop
+default-shop: default

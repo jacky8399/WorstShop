@@ -55,6 +55,13 @@ public record PlaceholderContext(@Nullable Player player,
         );
     }
 
+    @Nullable
+    public Player getPlayer() {
+        if (player != null)
+            return player;
+        return additionalContext != null ? additionalContext.getPlayer() : null;
+    }
+
     public static PlaceholderContext guessContext(@NotNull Player player) {
         ShopRenderer renderer = null;
         if (ShopRenderer.RENDERING != null && ShopRenderer.RENDERING.player == player) {
