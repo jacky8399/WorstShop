@@ -1,8 +1,6 @@
 package com.jacky8399.worstshop.helper;
 
-import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import com.google.common.primitives.Longs;
 import com.jacky8399.worstshop.WorstShop;
 import org.bukkit.NamespacedKey;
 import org.bukkit.entity.Player;
@@ -17,11 +15,11 @@ import java.time.ZoneOffset;
 import java.util.*;
 import java.util.stream.Collectors;
 
-public class PlayerPurchaseRecords {
-    public static PlayerPurchaseRecords getCopy(Player player) {
+public class PlayerPurchases {
+    public static PlayerPurchases getCopy(Player player) {
         PersistentDataContainer container = player.getPersistentDataContainer();
         if (!container.has(PURCHASE_RECORD_KEY, PURCHASE_RECORD_STORAGE)) {
-            return new PlayerPurchaseRecords();
+            return new PlayerPurchases();
         }
         return container.get(PURCHASE_RECORD_KEY, PURCHASE_RECORD_STORAGE);
     }
@@ -40,7 +38,7 @@ public class PlayerPurchaseRecords {
     }
 
     public RecordStorage applyTemplate(@NotNull RecordTemplate template) {
-        return records.containsKey(template.id) ? get(template.id) : create(template.id, template.retentionTime, template.maxRecords);
+        return records.computeIfAbsent(template.id, key->create(template.id, template.retentionTime, template.maxRecords));
     }
 
     public RecordStorage create(@NotNull String id, @NotNull Duration retentionTime, int maxRecords) {
@@ -56,13 +54,7 @@ public class PlayerPurchaseRecords {
         });
     }
 
-    public static class RecordTemplate {
-        public RecordTemplate(String id, Duration retentionTime, int maxRecords) {
-            this.id = id;
-            this.retentionTime = retentionTime;
-            this.maxRecords = maxRecords;
-        }
-
+    public record RecordTemplate(String id, Duration retentionTime, int maxRecords) {
         public static RecordTemplate fromConfig(Config map) {
             return new RecordTemplate(
                     map.get("id", String.class),
@@ -78,10 +70,6 @@ public class PlayerPurchaseRecords {
                 map.put("max-records", maxRecords);
             return map;
         }
-
-        public final String id;
-        public final Duration retentionTime;
-        public final int maxRecords;
     }
 
     public static class RecordStorage {
@@ -106,7 +94,7 @@ public class PlayerPurchaseRecords {
             public final int amount;
         }
 
-        ArrayList<Record> records = Lists.newArrayList();
+        ArrayList<Record> records = new ArrayList<>();
         public void addRecord(LocalDateTime timeOfPurchase, int amount) {
             records.add(new Record(timeOfPurchase, amount));
             purgeOldRecords();
@@ -134,13 +122,14 @@ public class PlayerPurchaseRecords {
         }
     }
     // Actual fields
-    HashMap<String, RecordStorage> records = Maps.newHashMap();
+    HashMap<String, RecordStorage> records = new HashMap<>();
 
     // Storage
     private static final WorstShop PLUGIN = WorstShop.get();
     private static final NamespacedKey PURCHASE_RECORD_KEY = new NamespacedKey(PLUGIN, "purchase_record");
     private static final PurchaseRecordStorage PURCHASE_RECORD_STORAGE = new PurchaseRecordStorage();
-    private static class PurchaseRecordStorage implements PersistentDataType<PersistentDataContainer, PlayerPurchaseRecords> {
+    private static class PurchaseRecordStorage implements PersistentDataType<PersistentDataContainer, PlayerPurchases> {
+        // replace unicode characters
         private static String sanitizeKey(String key) {
             StringBuilder builder = new StringBuilder(key);
             for (int i = 0; i < builder.length(); i++) {
@@ -170,15 +159,15 @@ public class PlayerPurchaseRecords {
         }
         @NotNull
         @Override
-        public Class<PlayerPurchaseRecords> getComplexType() {
-            return PlayerPurchaseRecords.class;
+        public Class<PlayerPurchases> getComplexType() {
+            return PlayerPurchases.class;
         }
         private static final NamespacedKey RETENTION_TIME = makeKey("retention_time");
         private static final NamespacedKey MAX_RECORDS = makeKey("max_records");
         private static final NamespacedKey RECORDS = makeKey("records");
         @NotNull
         @Override
-        public PersistentDataContainer toPrimitive(@NotNull PlayerPurchaseRecords complex, @NotNull PersistentDataAdapterContext context) {
+        public PersistentDataContainer toPrimitive(@NotNull PlayerPurchases complex, @NotNull PersistentDataAdapterContext context) {
             PersistentDataContainer container = context.newPersistentDataContainer();
             complex.records.forEach((key, recordStorage)->{
                 // nest
@@ -188,12 +177,14 @@ public class PlayerPurchaseRecords {
                 nested.set(MAX_RECORDS, PersistentDataType.INTEGER, recordStorage.maxRecords);
                 // each record occupies 2 elements
                 // long array = [time1, amount1, time2, amount2, ...]
-                ArrayList<Long> longList = Lists.newArrayList();
-                recordStorage.records.forEach(record -> {
-                    longList.add(record.timeOfPurchase.toEpochSecond(ZoneOffset.UTC));
-                    longList.add((long) record.amount);
-                });
-                nested.set(RECORDS, PersistentDataType.LONG_ARRAY, Longs.toArray(longList));
+                long[] arr = new long[recordStorage.records.size() * 2];
+                for (var iterator = recordStorage.records.listIterator(); iterator.hasNext();) {
+                    int index = iterator.nextIndex();
+                    var record = iterator.next();
+                    arr[index * 2] = record.timeOfPurchase.toEpochSecond(ZoneOffset.UTC);
+                    arr[index * 2 + 1] = record.amount;
+                }
+                nested.set(RECORDS, PersistentDataType.LONG_ARRAY, arr);
 
                 container.set(makeKey(key), PersistentDataType.TAG_CONTAINER, nested);
             });
@@ -202,9 +193,9 @@ public class PlayerPurchaseRecords {
         @NotNull
         @Override
         @SuppressWarnings({"null", "ConstantConditions"})
-        public PlayerPurchaseRecords fromPrimitive(@NotNull PersistentDataContainer primitive, @NotNull PersistentDataAdapterContext context) {
+        public PlayerPurchases fromPrimitive(@NotNull PersistentDataContainer primitive, @NotNull PersistentDataAdapterContext context) {
             // get keys
-            PlayerPurchaseRecords records = new PlayerPurchaseRecords();
+            PlayerPurchases records = new PlayerPurchases();
             Set<NamespacedKey> keys = primitive.getKeys();
             keys.forEach(key -> {
                 try {

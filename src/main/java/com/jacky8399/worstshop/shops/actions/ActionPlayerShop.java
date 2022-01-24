@@ -160,9 +160,7 @@ public class ActionPlayerShop extends Action {
     public ActionShop createFakeShop(Player player, boolean isBuyingItem) {
         Commodity fakeCost = createDynamicCommodity(isBuyingItem),
                 item = new CommodityItem(getTargetItemStack(player));
-        return isBuyingItem ?
-                new ActionShop(fakeCost, item, null, 0) :
-                new ActionShop(item, fakeCost, null, 0);
+        return isBuyingItem ? new ActionShop(fakeCost, item) : new ActionShop(item, fakeCost);
     }
 
     @Override

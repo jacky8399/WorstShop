@@ -6,7 +6,6 @@ import com.jacky8399.worstshop.helper.ConfigException;
 import com.jacky8399.worstshop.shops.ParseContext;
 import com.jacky8399.worstshop.shops.conditions.Condition;
 import com.jacky8399.worstshop.shops.elements.ShopElement;
-import com.jacky8399.worstshop.shops.elements.StaticShopElement;
 import com.jacky8399.worstshop.shops.rendering.DefaultSlotFiller;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
@@ -42,10 +41,10 @@ public final class CommodityCustomizable extends Commodity implements IFlexibleC
 
     public CommodityCustomizable(@NotNull Commodity base, @NotNull Config config) {
         this.base = base;
-        ShopElement element = fromYaml(config.get("display", Config.class));
-        this.element = element != null ? element : StaticShopElement.fromStack(Commodity.UNDEFINED);
+        this.element = fromYaml(config.get("display", Config.class));
     }
 
+    @NotNull
     public ShopElement fromYaml(Config config) {
         return config.find("from", String.class)
                 .map(from -> {
@@ -58,7 +57,12 @@ public final class CommodityCustomizable extends Commodity implements IFlexibleC
                     }
                     throw new ConfigException("Unsupported source " + from, config, "from");
                 })
-                .orElseGet(() -> ShopElement.fromConfig(config));
+                .orElseGet(() -> {
+                    ShopElement element = ShopElement.fromConfig(config);
+                    if (element == null)
+                        throw new ConfigException("Invalid shop element", config);
+                    return element;
+                });
     }
 
     @Override

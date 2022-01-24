@@ -52,7 +52,7 @@ public class ItemShop {
     }
 
     public int getSellAmount(Player player, ItemStack stack) {
-        return Math.min(shop.buildSellShop(player).getPlayerMaxPurchase(player), getSellCost(player).getMaximumMultiplier(stack));
+        return Math.min(shop.buildSellShop(player).getShopMaxPurchase(player), getSellCost(player).getMaximumMultiplier(stack));
     }
 
     public void sell(ItemStack stack, Player player) {

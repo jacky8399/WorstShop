@@ -1,6 +1,5 @@
 package com.jacky8399.worstshop.shops.actions;
 
-import com.google.common.collect.Lists;
 import com.jacky8399.worstshop.I18n;
 import com.jacky8399.worstshop.WorstShop;
 import com.jacky8399.worstshop.helper.*;
@@ -35,8 +34,10 @@ import java.util.stream.Collectors;
 
 public class ActionShop extends Action {
     public Commodity cost, reward;
-    public PlayerPurchaseRecords.RecordTemplate purchaseLimitTemplate;
+    public PlayerPurchases.RecordTemplate purchaseLimitTemplate;
     public int purchaseLimit;
+    // Maximum purchase per UI interaction
+    public int maxPurchase;
 
     public ActionShop(Config yaml) {
         super(yaml);
@@ -65,9 +66,11 @@ public class ActionShop extends Action {
                 );
 
         yaml.find("purchase-limit", Config.class).ifPresent(purchaseLimitYaml -> {
-            purchaseLimitTemplate = PlayerPurchaseRecords.RecordTemplate.fromConfig(purchaseLimitYaml);
+            purchaseLimitTemplate = PlayerPurchases.RecordTemplate.fromConfig(purchaseLimitYaml);
             purchaseLimit = purchaseLimitYaml.get("limit", Integer.class);
         });
+
+        this.maxPurchase = yaml.find("max-puchase", Integer.class).orElse(Integer.MAX_VALUE);
     }
 
     private static Commodity findParent() {
@@ -75,12 +78,17 @@ public class ActionShop extends Action {
         return element != null ? new CommodityItem(element.rawStack.clone()) : null;
     }
 
-    public ActionShop(Commodity cost, Commodity reward, PlayerPurchaseRecords.RecordTemplate purchaseLimitTemplate, int purchaseLimit) {
+    public ActionShop(Commodity cost, Commodity reward) {
+        this(cost, reward, null, 0, Integer.MAX_VALUE);
+    }
+
+    public ActionShop(Commodity cost, Commodity reward, PlayerPurchases.RecordTemplate purchaseLimitTemplate, int purchaseLimit, int maxPurchase) {
         super(null);
         this.cost = cost;
         this.reward = reward;
         this.purchaseLimitTemplate = purchaseLimitTemplate;
         this.purchaseLimit = purchaseLimit;
+        this.maxPurchase = maxPurchase;
     }
 
     @Override
@@ -95,6 +103,9 @@ public class ActionShop extends Action {
             purchaseLimitTemplate.toMap(limitMap);
             map.put("purchase-limit", limitMap);
         }
+        if (maxPurchase != Integer.MAX_VALUE) {
+            map.put("max-purchase", maxPurchase);
+        }
         return map;
     }
 
@@ -103,7 +114,7 @@ public class ActionShop extends Action {
         return "ActionShop{cost=" + cost + ", reward=" + reward + "}";
     }
 
-    private static Set<UUID> noReimbursements = new HashSet<>();
+    private static final Set<UUID> noReimbursements = new HashSet<>();
     public void doTransaction(Player player, double count) {
         if (count == 0) {
             player.sendMessage(formatPurchaseMessage(player, 0));
@@ -115,7 +126,7 @@ public class ActionShop extends Action {
             ActionShop adjusted = adjustForPlayer(player);
             stage = "Calculating cost";
             Commodity multipliedCost = adjusted.cost.multiply(count);
-            int playerMaxPurchases = getPlayerMaxPurchase(player);
+            int playerMaxPurchases = getShopMaxPurchase(player);
             if (count > playerMaxPurchases) {
                 player.sendMessage(formatPurchaseLimitMessage(player));
                 return;
@@ -134,7 +145,7 @@ public class ActionShop extends Action {
                 }
                 // record the sale
                 if (purchaseLimitTemplate != null) {
-                    PlayerPurchaseRecords records = PlayerPurchaseRecords.getCopy(player);
+                    PlayerPurchases records = PlayerPurchases.getCopy(player);
                     records.applyTemplate(purchaseLimitTemplate).addRecord(LocalDateTime.now(), (int) (count - refund));
                     records.updateFor(player);
                 }
@@ -163,7 +174,7 @@ public class ActionShop extends Action {
         int transactionCount;
         try {
             adjusted = adjustForPlayer(player);
-            transactionCount = Math.min(adjusted.cost.getMaximumMultiplier(player), getPlayerMaxPurchase(player));
+            transactionCount = Math.min(adjusted.cost.getMaximumMultiplier(player), getShopMaxPurchase(player));
             adjusted.doTransaction(player, transactionCount);
         } catch (Exception e) {
             RuntimeException wrapped = new RuntimeException("Sell all operation for player " + player.getName() + " in shop " + this, e);
@@ -188,17 +199,23 @@ public class ActionShop extends Action {
                 throw new RuntimeException("Adjusting REWARD " + flexible + " for player " + player.getName() + " in shop " + this, e);
             }
         }
-        return new ActionShop(newCost, newReward, purchaseLimitTemplate, purchaseLimit);
+        return new ActionShop(newCost, newReward, purchaseLimitTemplate, purchaseLimit, maxPurchase);
     }
 
-    public int getPlayerMaxPurchase(Player player) {
+    public int getShopMaxPurchase(Player player) {
         if (purchaseLimitTemplate == null) {
-            return Integer.MAX_VALUE;
+            return maxPurchase;
         }
-        PlayerPurchaseRecords records = PlayerPurchaseRecords.getCopy(player);
-        PlayerPurchaseRecords.RecordStorage storage = records.applyTemplate(purchaseLimitTemplate);
+        PlayerPurchases records = PlayerPurchases.getCopy(player);
+        PlayerPurchases.RecordStorage storage = records.applyTemplate(purchaseLimitTemplate);
         int totalPurchases = storage.getTotalPurchases();
-        return purchaseLimit - totalPurchases;
+        return Math.max(1, Math.min(maxPurchase, purchaseLimit - totalPurchases));
+    }
+
+    // The overall
+    public int getMaxPurchase(Player player) {
+        return Math.max(1, Math.min(getShopMaxPurchase(player),
+                Math.min(cost.getMaximumMultiplier(player), reward.getMaximumMultiplier(player))));
     }
 
     @Override
@@ -229,8 +246,8 @@ public class ActionShop extends Action {
     }
 
     public String formatPurchaseLimitMessage(Player player) {
-        PlayerPurchaseRecords records = PlayerPurchaseRecords.getCopy(player);
-        PlayerPurchaseRecords.RecordStorage storage = records.applyTemplate(purchaseLimitTemplate);
+        PlayerPurchases records = PlayerPurchases.getCopy(player);
+        PlayerPurchases.RecordStorage storage = records.applyTemplate(purchaseLimitTemplate);
         List<Map.Entry<LocalDateTime, Integer>> entries = storage.getEntries();
         Duration wait;
         if (entries.size() == 0) {
@@ -242,7 +259,7 @@ public class ActionShop extends Action {
         }
         return I18n.translate("worstshop.messages.shops.transaction-limit-reached",
                 purchaseLimit,
-                DateTimeUtils.formatTime(purchaseLimitTemplate.retentionTime),
+                DateTimeUtils.formatTime(purchaseLimitTemplate.retentionTime()),
                 DateTimeUtils.formatTime(wait)
         );
     }
@@ -279,18 +296,17 @@ public class ActionShop extends Action {
                     .build();
         }
 
-        protected static final ClickableItem FILLER = ClickableItem
-                .empty(ItemBuilder.of(Material.BLACK_STAINED_GLASS_PANE)
-                        .amount(1).name(ChatColor.BLACK.toString()).build());
-        protected static final ClickableItem ARROW = ClickableItem
-                .empty(ItemBuilder.of(Material.YELLOW_STAINED_GLASS_PANE)
-                        .amount(1).name(ChatColor.BLACK.toString()).build());
-        protected static final ClickableItem GREEN = ClickableItem
-                .empty(ItemBuilder.of(Material.LIME_STAINED_GLASS_PANE)
-                        .amount(1).name(ChatColor.BLACK.toString()).build());
-        protected static final ClickableItem RED = ClickableItem
-                .empty(ItemBuilder.of(Material.RED_STAINED_GLASS_PANE)
-                        .amount(1).name(ChatColor.BLACK.toString()).build());
+        protected static final ClickableItem FILLER = ItemBuilder.of(Material.BLACK_STAINED_GLASS_PANE)
+                .name(ChatColor.BLACK.toString()).toEmptyClickable();
+        protected static final ClickableItem ARROW = ItemBuilder.of(Material.YELLOW_STAINED_GLASS_PANE)
+                .name(ChatColor.BLACK.toString()).toEmptyClickable();
+        protected static final ClickableItem GREEN = ItemBuilder.of(Material.LIME_STAINED_GLASS_PANE)
+                .name(ChatColor.BLACK.toString()).toEmptyClickable();
+        protected static final ClickableItem RED = ItemBuilder.of(Material.RED_STAINED_GLASS_PANE)
+                .name(ChatColor.BLACK.toString()).toEmptyClickable();
+
+        protected static final I18n.Translatable PREVIOUS_PURCHASE_ENTRY = I18n.createTranslatable(
+                I18n.Keys.MESSAGES_KEY + "shops.buttons.purchase-limit.previous-purchase-entry");
 
         @Override
         public void init(Player player, InventoryContents contents) {
@@ -299,7 +315,7 @@ public class ActionShop extends Action {
             updateCommodities(player, contents, false);
 
             updateItemCount(player, contents);
-            if (cost.canMultiply() && reward.canMultiply())
+            if (cost.canMultiply() && reward.canMultiply() && shop.maxPurchase != 1)
                 populateBuyCountChangeButtons(player, contents);
             updateCanAfford(player, contents);
             updateAnimation(player, contents);
@@ -325,36 +341,34 @@ public class ActionShop extends Action {
             ));
             // purchase limit
             if (shop.purchaseLimitTemplate != null) {
-                List<String> lore = Lists.newArrayList(I18n.translate(
-                        I18n.Keys.MESSAGES_KEY + "shops.buttons.purchase-limit.limit",
-                        shop.purchaseLimit, DateTimeUtils.formatTime(shop.purchaseLimitTemplate.retentionTime)
-                ), I18n.translate(I18n.Keys.MESSAGES_KEY + "shops.buttons.purchase-limit.previous-purchases"));
-                PlayerPurchaseRecords.RecordStorage records = PlayerPurchaseRecords.getCopy(player).applyTemplate(shop.purchaseLimitTemplate);
+                List<String> lore = new ArrayList<>();
+                // header
+                lore.add(I18n.translate(I18n.Keys.MESSAGES_KEY + "shops.buttons.purchase-limit.limit",
+                        shop.purchaseLimit, DateTimeUtils.formatTime(shop.purchaseLimitTemplate.retentionTime())));
+                lore.add(I18n.translate(I18n.Keys.MESSAGES_KEY + "shops.buttons.purchase-limit.previous-purchases"));
+                var records = PlayerPurchases.getCopy(player).applyTemplate(shop.purchaseLimitTemplate);
 
+                // entries
                 LocalDateTime now = LocalDateTime.now();
                 records.getEntries().stream()
-                        .map(entry ->
-                                I18n.translate(I18n.Keys.MESSAGES_KEY + "shops.buttons.purchase-limit.previous-purchase-entry",
-                                        entry.getValue(), DateTimeUtils.formatTime(Duration.between(entry.getKey(), now)))
-                        )
+                        .map(entry -> PREVIOUS_PURCHASE_ENTRY.apply(
+                                Integer.toString(entry.getValue()),
+                                DateTimeUtils.formatTime(Duration.between(entry.getKey(), now))
+                        ))
                         .forEach(lore::add);
-                contents.set(5, 0, ClickableItem.empty(
-                        ItemBuilder.of(Material.CLOCK)
-                                .name(I18n.translate(I18n.Keys.MESSAGES_KEY + "shops.buttons.purchase-limit.name"))
-                                .lore(lore).build()
-                ));
+                contents.set(5, 0, ItemBuilder.of(Material.CLOCK)
+                        .name(I18n.translate(I18n.Keys.MESSAGES_KEY + "shops.buttons.purchase-limit.name"))
+                        .lore(lore).toEmptyClickable()
+                );
             }
             // maximize purchase button
-            if (cost.canMultiply() && reward.canMultiply())
-                contents.set(5, 8, ClickableItem.of(
-                        ItemBuilder.of(Material.HOPPER)
-                                .name(I18n.translate(I18n.Keys.MESSAGES_KEY + "shops.buttons.maximize-purchase"))
-                                .build(),
-                        e -> {
+            if (cost.canMultiply() && reward.canMultiply() && shop.maxPurchase != 1)
+                contents.set(5, 8, ItemBuilder.of(Material.HOPPER)
+                        .name(I18n.translate(I18n.Keys.MESSAGES_KEY + "shops.buttons.maximize-purchase"))
+                        .toClickable(e -> {
                             buyCount = getMaxPurchase(player);
                             firstClick = false;
-                        }
-                ));
+                        }));
         }
 
         @Override
@@ -392,8 +406,7 @@ public class ActionShop extends Action {
 
         protected int getMaxPurchase(Player player) {
             // ensure that buyCount doesn't go below 1
-            return Math.max(1, Math.min(shop.getPlayerMaxPurchase(player),
-                    Math.min(cost.getMaximumMultiplier(player), reward.getMaximumPurchase(player))));
+            return shop.getMaxPurchase(player);
         }
 
         private static final I18n.Translatable
@@ -511,7 +524,7 @@ public class ActionShop extends Action {
         }
 
         protected void updateCanAfford(Player player, InventoryContents contents) {
-            if (cost.multiply(buyCount).canAfford(player) && buyCount <= shop.getPlayerMaxPurchase(player)) {
+            if (cost.multiply(buyCount).canAfford(player) && buyCount <= shop.getShopMaxPurchase(player)) {
                 // green
                 contents.fillRow(3, GREEN);
             } else {

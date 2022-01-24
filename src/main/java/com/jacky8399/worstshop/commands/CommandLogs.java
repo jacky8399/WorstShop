@@ -5,7 +5,7 @@ import co.aikar.commands.annotation.*;
 import co.aikar.commands.bukkit.contexts.OnlinePlayer;
 import com.jacky8399.worstshop.WorstShop;
 import com.jacky8399.worstshop.helper.Exceptions;
-import com.jacky8399.worstshop.helper.PlayerPurchaseRecords;
+import com.jacky8399.worstshop.helper.PlayerPurchases;
 import com.jacky8399.worstshop.helper.TextUtils;
 import net.md_5.bungee.api.ChatColor;
 import net.md_5.bungee.api.chat.*;
@@ -102,7 +102,7 @@ public class CommandLogs extends BaseCommand {
             public InspectPurchases() {
                 WorstShop.get().commands.getCommandCompletions().registerCompletion("@purchase_record_ids", ctx -> {
                     OnlinePlayer player = ctx.getContextValue(OnlinePlayer.class);
-                    PlayerPurchaseRecords record = PlayerPurchaseRecords.getCopy(player.player);
+                    PlayerPurchases record = PlayerPurchases.getCopy(player.player);
                     return record.getKeys();
                 });
             }
@@ -111,7 +111,7 @@ public class CommandLogs extends BaseCommand {
             @CommandCompletion("* @purchase_record_ids")
             public void showPlayerPurchaseRecords(CommandSender sender, OnlinePlayer onlinePlayer, @Optional String recordId) {
                 Player player = onlinePlayer.player;
-                PlayerPurchaseRecords record = PlayerPurchaseRecords.getCopy(player);
+                PlayerPurchases record = PlayerPurchases.getCopy(player);
                 if (recordId == null) {
                     record.purgeOldRecords();
                     Set<String> keys = record.getKeys();
@@ -128,7 +128,7 @@ public class CommandLogs extends BaseCommand {
                         }
                     }
                 } else {
-                    PlayerPurchaseRecords.RecordStorage purchases = record.get(recordId);
+                    PlayerPurchases.RecordStorage purchases = record.get(recordId);
                     if (purchases == null) {
                         throw new InvalidCommandArgument(recordId + " is not a valid record ID!", false);
                     }

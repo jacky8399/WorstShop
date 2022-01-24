@@ -6,7 +6,7 @@ import com.jacky8399.worstshop.I18n;
 import com.jacky8399.worstshop.WorstShop;
 import com.jacky8399.worstshop.helper.Config;
 import com.jacky8399.worstshop.helper.ItemBuilder;
-import com.jacky8399.worstshop.helper.PlayerPurchaseRecords;
+import com.jacky8399.worstshop.helper.PlayerPurchases;
 import com.jacky8399.worstshop.shops.*;
 import com.jacky8399.worstshop.shops.commodity.CommodityItem;
 import com.jacky8399.worstshop.shops.commodity.CommodityMoney;
@@ -32,7 +32,7 @@ public class ActionItemShop extends Action {
     boolean canSellAll;
     public double buyPrice, sellPrice;
     @Nullable
-    public PlayerPurchaseRecords.RecordTemplate buyLimitTemplate, sellLimitTemplate;
+    public PlayerPurchases.RecordTemplate buyLimitTemplate, sellLimitTemplate;
     public int buyLimit, sellLimit;
     public HashSet<CommodityItem.ItemMatcher> itemMatchers = Sets.newHashSet(CommodityItem.ItemMatcher.SIMILAR);
 
@@ -93,16 +93,16 @@ public class ActionItemShop extends Action {
         yaml.find("purchase-limits", Config.class).ifPresent(purchaseLimitsYaml -> {
             Optional<Config> both = purchaseLimitsYaml.find("both", Config.class);
             if (both.isPresent()) {
-                buyLimitTemplate = sellLimitTemplate = PlayerPurchaseRecords.RecordTemplate.fromConfig(both.get());
+                buyLimitTemplate = sellLimitTemplate = PlayerPurchases.RecordTemplate.fromConfig(both.get());
                 buyLimit = sellLimit = both.get().get("limit", Integer.class);
                 usedLimitShortcut = true;
             } else {
                 purchaseLimitsYaml.find("buy", Config.class).ifPresent(purchaseLimitYaml -> {
-                    buyLimitTemplate = PlayerPurchaseRecords.RecordTemplate.fromConfig(purchaseLimitYaml);
+                    buyLimitTemplate = PlayerPurchases.RecordTemplate.fromConfig(purchaseLimitYaml);
                     buyLimit = purchaseLimitYaml.get("limit", Integer.class);
                 });
                 purchaseLimitsYaml.find("sell", Config.class).ifPresent(purchaseLimitYaml -> {
-                    sellLimitTemplate = PlayerPurchaseRecords.RecordTemplate.fromConfig(purchaseLimitYaml);
+                    sellLimitTemplate = PlayerPurchases.RecordTemplate.fromConfig(purchaseLimitYaml);
                     sellLimit = purchaseLimitYaml.get("limit", Integer.class);
                 });
             }
@@ -212,7 +212,7 @@ public class ActionItemShop extends Action {
                 new ActionShop(
                         new CommodityMoney(buyPrice * discount),
                         new CommodityItem(getTargetItemStack(player)).setItemMatchers(itemMatchers),
-                        buyLimitTemplate, buyLimit
+                        buyLimitTemplate, buyLimit, Integer.MAX_VALUE
                 ) : null;
     }
 
@@ -222,7 +222,7 @@ public class ActionItemShop extends Action {
                 new ActionShop(
                         new CommodityItem(getTargetItemStack(player)).setItemMatchers(itemMatchers),
                         new CommodityMoney(sellPrice * discount),
-                        sellLimitTemplate, sellLimit
+                        sellLimitTemplate, sellLimit, Integer.MAX_VALUE
                 ) : null;
     }
 

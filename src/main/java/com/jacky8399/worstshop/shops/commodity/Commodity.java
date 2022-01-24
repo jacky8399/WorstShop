@@ -205,15 +205,14 @@ public abstract class Commodity {
         }
 
         @NotNull
-        public ShopElement createElement(ShopElement element) {
-            ShopElement clone = element == null ? StaticShopElement.fromStack(UNDEFINED) : element.clone();
+        public ShopElement createElement(@NotNull ShopElement element) {
+            ShopElement clone = element.clone();
             clone.filler = DefaultSlotFiller.NONE;
             clone.itemPositions = Collections.singletonList(pos);
             return clone;
         }
     }
 
-    public static final ItemStack UNDEFINED = ItemBuilder.of(Material.BEDROCK).name(ChatColor.DARK_RED + "???").build();
     /**
      * Create a ShopElement to be displayed in ActionShop GUIs. Only called once per ActionShop GUI.
      * <p>
@@ -222,7 +221,7 @@ public abstract class Commodity {
      * @return the ShopElement to be displayed
      */
     public ShopElement createElement(TransactionType position) {
-        return position.createElement(UNDEFINED);
+        return position.createElement(ItemBuilder.of(Material.BEDROCK).name(ChatColor.DARK_RED + "???").build());
     }
 
     /**
