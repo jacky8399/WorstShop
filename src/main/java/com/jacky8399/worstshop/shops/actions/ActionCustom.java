@@ -7,7 +7,6 @@ import com.jacky8399.worstshop.helper.Config;
 import com.jacky8399.worstshop.helper.ConfigHelper;
 import com.jacky8399.worstshop.helper.InventoryUtils;
 import com.jacky8399.worstshop.helper.PaperHelper;
-import com.jacky8399.worstshop.shops.ParseContext;
 import fr.minuskube.inv.content.InventoryContents;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
@@ -40,11 +39,12 @@ public class ActionCustom extends Action {
         delayInTicks = yaml.find("delay", Integer.class).map(num -> {
             Logger logger = WorstShop.get().logger;
             logger.warning("'delay' on commands is deprecated. Please use 'preset: delay' instead");
-            logger.warning("Offending action: " + ParseContext.getHierarchy());
-            logger.warning("Equivalent code:\n" +
-                    "  preset: delay\n" +
-                    "  actions:\n" +
-                    "  - commands: ...");
+            logger.warning("Offending action: " + yaml.getPath("delay"));
+            logger.warning("""
+                    Equivalent code:
+                      preset: delay
+                      actions:
+                      - commands: ...""");
             return num;
         }).orElse(0);
     }

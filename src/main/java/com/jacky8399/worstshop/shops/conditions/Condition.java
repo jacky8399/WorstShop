@@ -3,7 +3,6 @@ package com.jacky8399.worstshop.shops.conditions;
 import com.jacky8399.worstshop.WorstShop;
 import com.jacky8399.worstshop.helper.Config;
 import com.jacky8399.worstshop.helper.ConfigException;
-import com.jacky8399.worstshop.shops.ParseContext;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 
@@ -79,7 +78,7 @@ public abstract class Condition implements Predicate<Player> {
         if (preset.isEmpty()) {
             // compatibility with Commodity
             WorstShop.get().logger.warning("Using cost & rewards as conditions is deprecated. Please add 'preset: commodity' before it.");
-            WorstShop.get().logger.warning("Offending condition is in " + ParseContext.getHierarchy());
+            WorstShop.get().logger.warning("Offending condition is in " + yaml.getPath());
             return new ConditionCommodity(yaml);
         }
         // thanks YAML

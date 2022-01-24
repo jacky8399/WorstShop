@@ -2,7 +2,6 @@ package com.jacky8399.worstshop.shops.conditions;
 
 import com.jacky8399.worstshop.WorstShop;
 import com.jacky8399.worstshop.helper.Config;
-import com.jacky8399.worstshop.shops.ParseContext;
 import com.jacky8399.worstshop.shops.commodity.Commodity;
 import com.jacky8399.worstshop.shops.commodity.IUnaffordableCommodity;
 import org.bukkit.entity.Player;
@@ -15,7 +14,7 @@ public class ConditionCommodity extends Condition {
         this(Commodity.fromMap(config));
         if (want instanceof IUnaffordableCommodity) {
             WorstShop.get().logger.warning("Using " + want.getClass().getSimpleName() + " makes the condition always fail!");
-            WorstShop.get().logger.warning("Offending condition: " + ParseContext.getHierarchy());
+            WorstShop.get().logger.warning("Offending condition: " + config.getPath());
         }
     }
 

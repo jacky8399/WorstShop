@@ -199,7 +199,7 @@ public class Shop implements ParseContext.NamedContext {
                             if (ALIAS_PATTERN.matcher(alias).matches())
                                 return true;
                             logger.warning("Invalid shop alias '" + alias + "'");
-                            logger.warning("Stack: " + ParseContext.getHierarchy());
+                            logger.warning("At " + config.getPath("alias"));
                             return false;
                         })
                         .collect(Collectors.toList());

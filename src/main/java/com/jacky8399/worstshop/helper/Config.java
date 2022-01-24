@@ -40,7 +40,7 @@ public final class Config {
         return backingMap;
     }
 
-    public final Set<String> getKeys() {
+    public Set<String> getKeys() {
         return backingMap.keySet();
     }
 
@@ -193,7 +193,7 @@ public final class Config {
                         Object child = listIterator.next();
                         T newChild = null;
                         for (Class<? extends T> clazz : classes) {
-                            newChild = handleObj("[" + index + "]", child, clazz);
+                            newChild = handleObj(key + "[" + index + "]", child, clazz);
                             if (newChild != null) {
                                 newList.add(newChild);
                                 break;

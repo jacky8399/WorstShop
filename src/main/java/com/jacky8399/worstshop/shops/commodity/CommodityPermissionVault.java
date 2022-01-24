@@ -5,7 +5,6 @@ import com.jacky8399.worstshop.WorstShop;
 import com.jacky8399.worstshop.helper.Config;
 import com.jacky8399.worstshop.helper.ConfigHelper;
 import com.jacky8399.worstshop.helper.ItemBuilder;
-import com.jacky8399.worstshop.shops.ParseContext;
 import com.jacky8399.worstshop.shops.elements.ShopElement;
 import net.md_5.bungee.api.ChatColor;
 import net.milkbowl.vault.chat.Chat;
@@ -113,7 +112,7 @@ public class CommodityPermissionVault extends Commodity {
         // expiry
         config.find("duration", Integer.class, String.class).ifPresent(obj -> {
             WorstShop.get().logger.warning("Vault does not support temporary permissions.");
-            WorstShop.get().logger.warning("Offending commodity: " + ParseContext.getHierarchy());
+            WorstShop.get().logger.warning("Offending commodity: " + config.getPath("duration"));
         });
         revokePermission = config.find("revoke", Boolean.class).orElse(false);
     }
