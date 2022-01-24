@@ -4,7 +4,6 @@ import com.jacky8399.worstshop.WorstShop;
 import com.jacky8399.worstshop.helper.ConfigHelper;
 import com.jacky8399.worstshop.helper.Exceptions;
 import com.jacky8399.worstshop.helper.PaperHelper;
-import com.jacky8399.worstshop.shops.elements.StaticShopElement;
 import me.clip.placeholderapi.PlaceholderAPI;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
@@ -86,7 +85,7 @@ public class Placeholders {
             PaperHelper.GameProfile profile = PaperHelper.getSkullMetaProfile(skullMeta);
             if (profile != null) {
                 Player player = context.getPlayer();
-                if (profile.equals(StaticShopElement.VIEWER_SKULL) && player != null) {
+                if ("{player}".equals(profile.getName()) && player != null) {
                     skullMeta.setOwningPlayer(player);
                 } else if (profile.getName() != null && (profile.getName().contains("%") || profile.getName().contains("!"))) {
                     // replace placeholders too

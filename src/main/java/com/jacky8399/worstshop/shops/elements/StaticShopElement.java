@@ -58,8 +58,6 @@ public class StaticShopElement extends ShopElement {
     @Nullable
     private PaperHelper.GameProfile skullCache;
 
-    public static final PaperHelper.GameProfile VIEWER_SKULL = PaperHelper.createProfile(null, "{player}");
-
     public static StaticShopElement fromStack(ItemStack stack) {
         StaticShopElement inst = new StaticShopElement();
         if (stack != null)
@@ -224,13 +222,8 @@ public class StaticShopElement extends ShopElement {
                 final UUID finalUuid = uuid;
                 final String finalName = uuidOrName;
                 is.meta(meta -> {
-                    if (meta instanceof SkullMeta) {
-                        if ("{player}".equals(finalName)) {
-                            PaperHelper.setSkullMetaProfile((SkullMeta) meta, VIEWER_SKULL);
-                        } else {
-                            PaperHelper.setSkullMetaProfile((SkullMeta) meta,
-                                    PaperHelper.createProfile(finalUuid, finalName));
-                        }
+                    if (meta instanceof SkullMeta skullMeta) {
+                        PaperHelper.setSkullMetaProfile(skullMeta, PaperHelper.createProfile(finalUuid, finalName));
                     } else {
                         throw new IllegalArgumentException("skull can only be used on player heads!");
                     }

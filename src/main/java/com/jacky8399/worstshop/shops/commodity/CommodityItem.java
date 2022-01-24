@@ -85,11 +85,7 @@ public class CommodityItem extends Commodity implements IFlexibleCommodity {
     }
 
     public CommodityItem(ItemStack stack) {
-        this(stack, 1);
-    }
-
-    public CommodityItem(ItemStack stack, double multiplier) {
-        this(stack, ImmutableList.of(), 1, multiplier);
+        this(stack, ImmutableList.of(), stack.getAmount(), 1);
     }
 
     public CommodityItem(@NotNull ItemStack stack, @NotNull List<NamespacedKey> accepted, int amount, double multiplier) {
@@ -397,7 +393,14 @@ public class CommodityItem extends Commodity implements IFlexibleCommodity {
 
     @Override
     public String toString() {
-        return "[give/take " + ChatColor.stripColor(getPlayerResult(null, null)) +
+        ItemStack fakeStack = stack.clone();
+        fakeStack.setAmount(1);
+        return "[give/take " + fakeStack + "x" + getAmount() +
+                (accepted.size() != 0 ?
+                        "accepting extra [" + accepted.stream()
+                                .map(NamespacedKey::asString)
+                                .collect(Collectors.joining(",")) + "]" :
+                        "") +
                 // only display non default item matchers
                 (itemMatchers.size() != 0 && !(itemMatchers.size() == 1 && itemMatchers.contains(ItemMatcher.SIMILAR)) ?
                         " by matching " + itemMatchers.stream()

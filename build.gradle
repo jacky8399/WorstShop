@@ -20,7 +20,10 @@ repositories {
         name = 'sonatype'
         url = 'https://oss.sonatype.org/content/groups/public/'
     }
-//    maven { url = 'https://jitpack.io' }
+    maven {
+        // Vault
+        url = 'https://jitpack.io'
+    }
     maven {
         // PlayerPoints
         url = 'https://repo.rosewooddev.io/repository/public/'
@@ -34,12 +37,6 @@ repositories {
     maven { url = "https://repo.codemc.io/repository/maven-public/" }
 
     mavenLocal()
-}
-
-configurations {
-    // wow! gradle magic!
-    // makes test have the same sourceSet as main
-    testImplementation.extendsFrom compileOnly
 }
 
 compileJava {
@@ -68,7 +65,7 @@ dependencies {
         transitive = false
     }
     // Commands
-    api 'co.aikar:acf-paper:0.5.0-SNAPSHOT'
+    api 'co.aikar:acf-paper:0.5.1-SNAPSHOT'
     // PlayerPoints
     compileOnly('org.black_ixx:playerpoints:3.1.0') {
         transitive = false
@@ -85,11 +82,6 @@ dependencies {
     compileOnly 'org.jetbrains:annotations:22.0.0'
     // Configurate
 //    implementation 'org.spongepowered:configurate-yaml:4.1.2'
-
-    // Tests
-    testImplementation "org.mockito:mockito-inline:3.6.0"
-    testImplementation "org.junit.jupiter:junit-jupiter-api:5.7.0"
-    testRuntimeOnly "org.junit.jupiter:junit-jupiter-engine:5.7.0"
 }
 
 processResources {
@@ -110,9 +102,5 @@ shadowJar {
     relocate 'net.jodah.expiringmap', 'com.jacky8399.worstshop.acf.expiringmap'
     relocate "io.papermc.lib", "com.jacky8399.worstshop.paperlib"
 }
-
-//test {
-//    useJUnitPlatform()
-//}
 
 build.dependsOn shadowJar
