@@ -38,7 +38,7 @@ public class PlayerPurchases {
     }
 
     public RecordStorage applyTemplate(@NotNull RecordTemplate template) {
-        return records.computeIfAbsent(template.id, key->create(template.id, template.retentionTime, template.maxRecords));
+        return records.computeIfAbsent(template.id, key -> new RecordStorage(template.retentionTime, template.maxRecords));
     }
 
     public RecordStorage create(@NotNull String id, @NotNull Duration retentionTime, int maxRecords) {

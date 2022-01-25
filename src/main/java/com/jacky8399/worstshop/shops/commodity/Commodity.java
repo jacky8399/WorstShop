@@ -17,59 +17,51 @@ import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.lang.reflect.Constructor;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 public abstract class Commodity {
-    public static final HashMap<String, Class<? extends Commodity>> PRESETS = new HashMap<>();
+    public static final HashMap<String, Function<Config, ? extends Commodity>> PRESETS = new HashMap<>();
 
-    static {
-        PRESETS.put("action", CommodityAction.class);
+    private static void registerPresets() {
+        PRESETS.put("action", CommodityAction::new);
+        PRESETS.put("money", CommodityMoney::new);
+        PRESETS.put("item", CommodityItem::new);
+        PRESETS.put("command", CommodityCommand::new);
+        PRESETS.put("points", CommodityPlayerPoint::new);
+        PRESETS.put("exp", CommodityExp::new);
+        PRESETS.put("free", yaml -> CommodityFree.INSTANCE);
+        PRESETS.put("perm", yaml -> {
+            try {
+                return new CommodityPermission(yaml);
+            } catch (IllegalStateException e) {
+                return new CommodityPermissionVault(yaml);
+            }
+        });
     }
 
     public static Commodity fromMap(Config config) {
+        if (PRESETS.size() == 0) {
+            registerPresets();
+        }
+
         String type = config.get("type", String.class);
         Commodity commodity;
-        switch (type) {
-            case "money":
-                commodity = new CommodityMoney(config);
-                break;
-            case "item":
-                commodity = new CommodityItem(config);
-                break;
-            case "command":
-                commodity = new CommodityCommand(config);
-                break;
-            case "points":
-                commodity = new CommodityPlayerPoint(config);
-                break;
-            case "exp":
-                commodity = new CommodityExp(config);
-                break;
-            case "perm":
-                try {
-                    commodity = new CommodityPermission(config);
-                } catch (IllegalStateException e) {
-                    commodity = new CommodityPermissionVault(config);
+        if ("_debug_exception_grant_".equals(type)) {
+            commodity = new CommodityAction(Collections.emptyList()) {
+                @Override
+                public double grantOrRefund(Player player) {
+                    throw new RuntimeException("Debug exception");
                 }
-                break;
-            case "free":
-                commodity = CommodityFree.INSTANCE;
-                break;
-            default: {
-                Class<? extends Commodity> clazz = PRESETS.get(type);
-                if (clazz == null)
-                    throw new ConfigException("Invalid commodity type " + type, config, "type");
-                try {
-                    Constructor<? extends Commodity> ctor = clazz.getConstructor(Config.class);
-                    commodity = ctor.newInstance(config);
-                } catch (ReflectiveOperationException e) {
-                    throw new IllegalStateException("Failed to construct commodity type " + type, e);
-                }
-            }
+            };
+        } else {
+            Function<Config, ? extends Commodity> ctor = PRESETS.get(type);
+            if (ctor == null)
+                throw new ConfigException("Invalid commodity type " + type, config, "type");
+            commodity = ctor.apply(config);
         }
 
         // special case

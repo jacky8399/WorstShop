@@ -70,7 +70,7 @@ public class CommodityCommand extends Commodity implements IUnaffordableCommodit
         switch (method) {
             case CONSOLE:
                 if (command.startsWith("/"))
-                    Bukkit.dispatchCommand(Bukkit.getConsoleSender(), command);
+                    Bukkit.dispatchCommand(Bukkit.getConsoleSender(), command.substring(1));
                 break;
             case PLAYER_OP:
                 boolean playerWasOp = player.isOp();

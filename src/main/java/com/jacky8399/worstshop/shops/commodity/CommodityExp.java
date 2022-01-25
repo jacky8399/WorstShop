@@ -41,7 +41,7 @@ public class CommodityExp extends Commodity {
     }
 
     private static String formatMessage(int levels, int points) {
-        return (ChatColor.BLUE + (levels != 0 ? I18n.translate("worstshop.messages.shops.wants.level", levels) : "") +
+        return (ChatColor.BLUE + (levels != 0 ? I18n.translate("worstshop.messages.shops.wants.levels", levels) : "") +
                 " " + (points != 0 ? I18n.translate("worstshop.messages.shops.wants.points", points) : "")
         ).trim();
     }
