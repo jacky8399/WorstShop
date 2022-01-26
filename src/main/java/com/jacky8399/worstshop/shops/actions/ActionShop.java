@@ -215,7 +215,7 @@ public class ActionShop extends Action {
     // The overall
     public int getMaxPurchase(Player player) {
         return Math.max(1, Math.min(getShopMaxPurchase(player),
-                Math.min(cost.getMaximumMultiplier(player), reward.getMaximumMultiplier(player))));
+                Math.min(cost.getMaximumMultiplier(player), reward.getMaximumPurchase(player))));
     }
 
     @Override
