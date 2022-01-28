@@ -73,8 +73,8 @@ public abstract class Action implements Cloneable {
         }
     }
 
-    public static ActionCustom fromCommand(String command) {
-        return new ActionCustom(Collections.singletonList(command));
+    public static ActionCommand fromCommand(String command) {
+        return new ActionCommand(Collections.singletonList(command));
     }
 
     public static final HashMap<String, Function<Config, Action>> PRESETS = new HashMap<>();
@@ -95,7 +95,7 @@ public abstract class Action implements Cloneable {
         PRESETS.put("refresh", ActionRefresh::new);
         PRESETS.put("delay", ActionDelay::new);
         PRESETS.put("book", ActionBook::new);
-        PRESETS.put("commands", ActionCustom::new);
+        PRESETS.put("commands", ActionCommand::new);
     }
 
     public static Action fromConfig(Config yaml) {
@@ -115,7 +115,7 @@ public abstract class Action implements Cloneable {
             if (constructor == null)
                 throw new ConfigException(preset + " is not a valid preset!", yaml, preset);
             return constructor.apply(yaml);
-        }).orElseGet(() -> new ActionCustom(yaml));
+        }).orElseGet(() -> new ActionCommand(yaml));
         action.condition = yaml.find("condition", Config.class, String.class)
                 .map(Condition::fromObject)
                 .orElse(ConditionConstant.TRUE);

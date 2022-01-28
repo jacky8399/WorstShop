@@ -10,6 +10,7 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.HashMap;
 import java.util.Optional;
+import java.util.regex.Pattern;
 
 public final class ConfigHelper {
     private ConfigHelper() {}
@@ -27,8 +28,12 @@ public final class ConfigHelper {
         return Enum.valueOf(clazz, input);
     }
 
+    public static final Pattern HEX_COLOR = Pattern.compile("&#([A-Za-z0-9]{6})");
     public static String translateString(String input) {
-        return input != null ? ChatColor.translateAlternateColorCodes('&', input) : null;
+        if (input == null)
+            return null;
+        input = HEX_COLOR.matcher(input).replaceAll(result -> ChatColor.of("#" + result.group(1)).toString());
+        return ChatColor.translateAlternateColorCodes('&', input);
     }
 
     public static String untranslateString(String input) {

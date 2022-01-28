@@ -14,7 +14,6 @@ import java.util.function.BinaryOperator;
 import java.util.function.Predicate;
 
 public abstract class Condition implements Predicate<Player> {
-    public static final Class<?>[] CONDITION_CLASSES = {String.class, Config.class};
 
     public static Condition fromObject(Object object) {
         if (object instanceof String str) {
@@ -89,7 +88,7 @@ public abstract class Condition implements Predicate<Player> {
         return switch ((String) preset.get()) {
             case "commodity" -> new ConditionCommodity(yaml);
             case "placeholder" -> new ConditionPlaceholder(yaml);
-            case "permission" -> ConditionPermission.fromPermString(yaml.get("permission", String.class));
+            case "permission" -> new ConditionPermission(yaml.get("permission", String.class));
             case "true", "false" -> ConditionConstant.valueOf(Boolean.parseBoolean((String) preset.get()));
             default -> throw new IllegalArgumentException("Unknown condition preset " + preset);
         };

@@ -6,20 +6,12 @@ import co.aikar.commands.Locales;
 import co.aikar.locales.LanguageTable;
 import co.aikar.locales.LocaleManager;
 import com.jacky8399.worstshop.helper.ConfigHelper;
-import com.jacky8399.worstshop.helper.InventoryUtils;
 import com.jacky8399.worstshop.helper.PaperHelper;
-import com.jacky8399.worstshop.shops.Shop;
-import com.jacky8399.worstshop.shops.rendering.ShopRenderer;
-import fr.minuskube.inv.SmartInventory;
-import me.clip.placeholderapi.PlaceholderAPI;
 import net.md_5.bungee.api.ChatColor;
 import org.bukkit.configuration.InvalidConfigurationException;
 import org.bukkit.configuration.file.YamlConfiguration;
-import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 import java.io.File;
 import java.io.IOException;
@@ -32,8 +24,6 @@ import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
 import java.util.function.Function;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 public class I18n {
     public static class Keys {
@@ -41,7 +31,7 @@ public class I18n {
         public static final String ITEM_KEY = MESSAGES_KEY + "shops.wants.items";
     }
 
-    public static class Translatable implements Function<String[], String> {
+    public static class Translatable implements Function<Object[], String> {
         public Translatable(String path) {
             this.path = path.toLowerCase(Locale.ROOT);
             update();
@@ -49,12 +39,8 @@ public class I18n {
         public final String path;
 
         @Override
-        public String apply(String... strings) {
+        public String apply(Object... strings) {
             return format.format(strings);
-        }
-
-        public String apply(Player player, String... strings) {
-            return doPlaceholders(player, format.format(strings));
         }
 
         @Override
@@ -177,62 +163,8 @@ public class I18n {
         return path;
     }
 
-    public static String translate(String path, Player player, Object... args) {
-        return doPlaceholders(player, translate(path, args));
-    }
-
     public static Translatable createTranslatable(String path) {
         return translatables.computeIfAbsent(path, Translatable::new);
-    }
-
-    public static final Pattern SHOP_VARIABLE_PATTERN = Pattern.compile("!([A-Za-z0-9_]+)!");
-//    @Deprecated
-    public static String doPlaceholders(@NotNull Player player, String input) {
-        // guess renderer
-        SmartInventory contents = InventoryUtils.getInventory(player);
-        ShopRenderer renderer = null;
-        if (contents != null && contents.getProvider() instanceof ShopRenderer invRenderer) {
-            renderer = invRenderer;
-        }
-        if (renderer == null) { // guess even harder
-            renderer = ShopRenderer.RENDERING;
-        }
-        return doPlaceholders(player, input,
-                renderer != null ? renderer.shop : null,
-                renderer);
-    }
-
-    public static String doPlaceholders(@NotNull Player player, String input, @Nullable Shop shop, @Nullable ShopRenderer renderer) {
-        String ret = input.replace("{player}", player.getName());
-        if (renderer != null) {
-            // page
-            if (ret.contains("!page!") || ret.contains("!max_page!")) {
-                int page = renderer.page + 1;
-                int maxPage = renderer.maxPage;
-                ret = ret.replace("!page!", Integer.toString(page))
-                        .replace("!max_page!", Integer.toString(maxPage));
-            }
-
-        }
-        if (shop != null) {
-            // other shop variables
-            Matcher matcher = SHOP_VARIABLE_PATTERN.matcher(ret);
-            ret = matcher.replaceAll(result -> {
-                String var = result.group(1);
-                if ("id".equals(var))
-                    return shop.id;
-                Object obj = shop.getVariable(var);
-                return obj != null ? String.valueOf(obj) : "!" + var + "!";
-            });
-        }
-        if (plugin.placeholderAPI) {
-            try {
-                ret = PlaceholderAPI.setPlaceholders(player, ret);
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        }
-        return ret;
     }
 
     private static final Field FIELD_LANGUAGE_TABLES;

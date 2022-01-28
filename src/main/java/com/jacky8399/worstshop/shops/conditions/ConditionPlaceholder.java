@@ -1,7 +1,8 @@
 package com.jacky8399.worstshop.shops.conditions;
 
-import com.jacky8399.worstshop.I18n;
 import com.jacky8399.worstshop.helper.Config;
+import com.jacky8399.worstshop.shops.rendering.PlaceholderContext;
+import com.jacky8399.worstshop.shops.rendering.Placeholders;
 import org.bukkit.entity.Player;
 
 import java.util.Map;
@@ -48,7 +49,8 @@ public class ConditionPlaceholder extends Condition {
 
     @Override
     public boolean test(Player player) {
-        String replacedPlaceholderStr = I18n.doPlaceholders(player, placeholderStr);
+        PlaceholderContext context = PlaceholderContext.guessContext(player);
+        String replacedPlaceholderStr = Placeholders.setPlaceholders(placeholderStr, context);
         return matcher.test(replacedPlaceholderStr);
     }
 

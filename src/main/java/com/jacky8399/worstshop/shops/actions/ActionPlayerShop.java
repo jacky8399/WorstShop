@@ -171,7 +171,7 @@ public class ActionPlayerShop extends Action {
 
     SmartInventory getInventory(Player player, SmartInventory parent, boolean isBuying) {
         return WorstShop.buildGui("worstshop:player_shop_gui")
-                .title(I18n.translate("worstshop.messages.shops.shop", player))
+                .title(I18n.translate("worstshop.messages.shops.shop"))
                 .type(InventoryType.CHEST).size(6, 9)
                 .provider(new ShopGui(player, isBuying)).parent(parent)
                 .build();

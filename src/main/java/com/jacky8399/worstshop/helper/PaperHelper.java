@@ -39,9 +39,6 @@ public class PaperHelper {
         if (isPaper) {
             player.sendActionBar(components);
         } else {
-            // lol
-//            Bukkit.dispatchCommand(Bukkit.getConsoleSender(),
-//                    "title actionbar " + player.getName() + " " + ComponentSerializer.toString(components));
             player.spigot().sendMessage(ChatMessageType.ACTION_BAR, components);
         }
     }

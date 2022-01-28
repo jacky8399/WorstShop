@@ -23,12 +23,12 @@ public class ActionPage extends Action {
             case "next_page":
                 pageOffset = 1;
                 break;
-//            case "first_page":
-//                pageOffset = Integer.MIN_VALUE;
-//                break;
-//            case "last_page":
-//                pageOffset = Integer.MAX_VALUE;
-//                break;
+            case "first_page":
+                pageOffset = Integer.MIN_VALUE;
+                break;
+            case "last_page":
+                pageOffset = Integer.MAX_VALUE;
+                break;
             default:
                 throw new ConfigException("Invalid page preset", yaml, "preset");
         }

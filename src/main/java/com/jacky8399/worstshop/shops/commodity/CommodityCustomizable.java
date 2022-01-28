@@ -4,7 +4,6 @@ import com.google.common.collect.Lists;
 import com.jacky8399.worstshop.helper.Config;
 import com.jacky8399.worstshop.helper.ConfigException;
 import com.jacky8399.worstshop.shops.ParseContext;
-import com.jacky8399.worstshop.shops.conditions.Condition;
 import com.jacky8399.worstshop.shops.elements.ShopElement;
 import com.jacky8399.worstshop.shops.rendering.DefaultSlotFiller;
 import org.bukkit.entity.Player;
@@ -156,12 +155,7 @@ public final class CommodityCustomizable extends Commodity implements IFlexibleC
     }
 
     @Override
-    public Condition toCondition() {
-        return base.toCondition();
-    }
-
-    @Override
     public String toString() {
-        return base.toString() + " (w/ custom display)";
+        return base + " (w/ custom display)";
     }
 }

@@ -7,7 +7,7 @@ import org.bukkit.event.Listener;
 public class Events {
 
     public static void registerEvents() {
-        register(new ShopAliasListener());
+//        register(new ShopAliasListener());
         register(new IllegalShopItemListener());
     }
 

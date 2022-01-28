@@ -30,7 +30,7 @@ public class CommodityMoney extends Commodity {
     }
 
     // to maintain serialization accuracy
-    public final boolean fromShorthand;
+    public final boolean isFromShorthand;
     public CommodityMoney(double money) {
         this(money, 1, false);
     }
@@ -43,7 +43,7 @@ public class CommodityMoney extends Commodity {
         this.multiplier = multiplier;
         this.money = Math.abs(money); // ensure not negative
         this.realMoney = money * multiplier;
-        this.fromShorthand = shorthand;
+        this.isFromShorthand = shorthand;
     }
 
     @Override

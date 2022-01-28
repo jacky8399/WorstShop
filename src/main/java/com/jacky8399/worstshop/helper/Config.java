@@ -181,7 +181,7 @@ public final class Config {
     }
 
     @SafeVarargs
-    public final <T> Optional<List<? extends T>> findList(String key, Class<? extends T> listType1, Class<? extends T>... listTypes) throws ConfigException {
+    public final <T> Optional<List<T>> findList(String key, Class<? extends T> listType1, Class<? extends T>... listTypes) throws ConfigException {
         Class<? extends T>[] classes = getClasses(listType1, listTypes);
         return find(key, List.class)
                 .map(list -> (List<?>) list)
@@ -208,7 +208,7 @@ public final class Config {
     }
 
     @SafeVarargs
-    public final <T> List<? extends T> getList(String key, Class<? extends T> listType1, Class<? extends T>... listTypes) throws ConfigException {
+    public final <T> List<T> getList(String key, Class<? extends T> listType1, Class<? extends T>... listTypes) throws ConfigException {
         return findList(key, listType1, listTypes).orElseThrow(()->throwFor(key, stringifyListTypes(getClasses(listType1, listTypes))));
     }
 

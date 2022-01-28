@@ -38,7 +38,7 @@ public class IntegerAdaptor extends TextAdaptor<Integer> {
     @Override
     public ItemStack getRepresentation(Integer val, @Nullable String parentName, @Nullable String fieldName) {
         return ItemBuilder.of(Material.PAPER).name(EditorUtils.NAME_FORMAT.apply(fieldName))
-                .lores(EditorUtils.VALUE_FORMAT.apply(Integer.toString(val)))
+                .lores(EditorUtils.VALUE_FORMAT.apply(val))
                 .addLores(EditorUtils.getDesc(parentName, fieldName))
                 .build();
     }

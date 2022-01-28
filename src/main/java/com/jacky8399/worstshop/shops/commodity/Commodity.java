@@ -3,9 +3,6 @@ package com.jacky8399.worstshop.shops.commodity;
 import com.jacky8399.worstshop.helper.Config;
 import com.jacky8399.worstshop.helper.ConfigException;
 import com.jacky8399.worstshop.helper.ItemBuilder;
-import com.jacky8399.worstshop.shops.conditions.Condition;
-import com.jacky8399.worstshop.shops.conditions.ConditionCommodity;
-import com.jacky8399.worstshop.shops.conditions.ConditionConstant;
 import com.jacky8399.worstshop.shops.elements.ShopElement;
 import com.jacky8399.worstshop.shops.elements.StaticShopElement;
 import com.jacky8399.worstshop.shops.rendering.DefaultSlotFiller;
@@ -236,14 +233,11 @@ public abstract class Commodity {
      * Attempts to serialize the commodity with respect to whether it was created via a shorthand.
      */
     public final Object toSerializable(Map<String, Object> map) {
-        if (this instanceof CommodityMoney && ((CommodityMoney) this).fromShorthand)
-            return "$" + ((CommodityMoney) this).money;
+        if (this instanceof CommodityMoney money && money.isFromShorthand)
+            return "$" + money.money;
         else if (this instanceof CommodityMultiple)
             return ((CommodityMultiple) this).wants.stream().map(want -> want.toSerializable(new HashMap<>())).collect(Collectors.toList());
         return toMap(map);
     }
 
-    public Condition toCondition() {
-        return this instanceof IUnaffordableCommodity ? ConditionConstant.FALSE : new ConditionCommodity(this);
-    }
 }

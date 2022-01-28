@@ -63,7 +63,7 @@ public class CommodityItem extends Commodity implements IFlexibleCommodity {
             if (acceptedString.isPresent()) {
                 accepted = ImmutableList.of(acceptedString.get());
             } else {
-                Optional<List<? extends String>> acceptedList = config.findList("accepts", String.class);
+                Optional<List<String>> acceptedList = config.findList("accepts", String.class);
                 if (acceptedList.isPresent())
                     accepted = acceptedList.get().stream().map(STRING_TO_KEY)
                             .filter(Objects::nonNull)

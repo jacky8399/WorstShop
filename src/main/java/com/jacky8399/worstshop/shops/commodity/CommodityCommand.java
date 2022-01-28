@@ -1,6 +1,7 @@
 package com.jacky8399.worstshop.shops.commodity;
 
 import com.jacky8399.worstshop.I18n;
+import com.jacky8399.worstshop.WorstShop;
 import com.jacky8399.worstshop.helper.Config;
 import com.jacky8399.worstshop.helper.ItemBuilder;
 import com.jacky8399.worstshop.shops.elements.ShopElement;
@@ -9,6 +10,7 @@ import com.jacky8399.worstshop.shops.rendering.Placeholders;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
+import org.bukkit.permissions.PermissionAttachment;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
@@ -22,6 +24,7 @@ public class CommodityCommand extends Commodity implements IUnaffordableCommodit
     List<String> commands;
     CommandInvocationMethod method;
     int multiplier;
+    List<String> ignoredPermissions;
 
     public CommodityCommand(Config config) {
         if (config.has("commands")) {
@@ -30,12 +33,14 @@ public class CommodityCommand extends Commodity implements IUnaffordableCommodit
             commands = Collections.singletonList(config.get("command", String.class));
         }
         method = config.find("method", CommandInvocationMethod.class).orElse(CommandInvocationMethod.PLAYER);
+        ignoredPermissions = config.findList("ignored-permissions", String.class).orElse(Collections.emptyList());
         multiplier = config.find("multiplier", Integer.class).orElse(1);
     }
 
-    public CommodityCommand(List<String> commands, CommandInvocationMethod method, int multiplier) {
+    public CommodityCommand(List<String> commands, CommandInvocationMethod method, List<String> ignoredPermissions, int multiplier) {
         this.commands = new ArrayList<>(commands);
         this.method = method;
+        this.ignoredPermissions = ignoredPermissions;
         this.multiplier = multiplier;
     }
 
@@ -49,14 +54,31 @@ public class CommodityCommand extends Commodity implements IUnaffordableCommodit
         return I18n.translate("worstshop.messages.shops.wants.command", commands.size());
     }
 
+    public Runnable givePermissions(Player player) {
+        // let's hope this works
+        PermissionAttachment attachment = player.addAttachment(WorstShop.get(), 1);
+        if (attachment == null)
+            return ()->{};
+        for (String permString : ignoredPermissions) {
+            attachment.setPermission(permString, true);
+        }
+        return attachment::remove;
+    }
+
     @Override
     public double grantOrRefund(Player player) {
         PlaceholderContext context = PlaceholderContext.guessContext(player);
-        for (int i = 0; i < multiplier; i++) {
-            for (String command : commands) {
-                String actualCommand = Placeholders.setPlaceholders(command, context);
-                doCommandOnce(player, actualCommand);
+
+        Runnable remove = givePermissions(player);
+        try {
+            for (int i = 0; i < multiplier; i++) {
+                for (String command : commands) {
+                    String actualCommand = Placeholders.setPlaceholders(command, context);
+                    doCommandOnce(player, actualCommand);
+                }
             }
+        } finally {
+            remove.run();
         }
         return 0;
     }
@@ -68,21 +90,22 @@ public class CommodityCommand extends Commodity implements IUnaffordableCommodit
 
     public void doCommandOnce(Player player, String command) {
         switch (method) {
-            case CONSOLE:
+            case CONSOLE -> {
                 if (command.startsWith("/"))
                     Bukkit.dispatchCommand(Bukkit.getConsoleSender(), command.substring(1));
-                break;
-            case PLAYER_OP:
+            }
+            case PLAYER_OP -> {
                 boolean playerWasOp = player.isOp();
                 if (!playerWasOp) {
                     player.setOp(true);
                 }
-                player.chat(command);
-                player.setOp(playerWasOp);
-                break;
-            case PLAYER:
-                player.chat(command);
-                break;
+                try {
+                    player.chat(command);
+                } finally {
+                    player.setOp(playerWasOp);
+                }
+            }
+            case PLAYER -> player.chat(command);
         }
     }
 
@@ -95,7 +118,7 @@ public class CommodityCommand extends Commodity implements IUnaffordableCommodit
 
     @Override
     public Commodity multiply(double multiplier) {
-        return new CommodityCommand(commands, method, (int) (this.multiplier * multiplier));
+        return new CommodityCommand(commands, method, ignoredPermissions, (int) (this.multiplier * multiplier));
     }
 
     @Override

@@ -21,15 +21,14 @@ public class ActionDelay extends Action {
     public ActionDelay(Config yaml) {
         super(yaml);
         Object delayInput = yaml.get("delay", Integer.class, String.class);
-        if (delayInput instanceof Integer) {
-            delay = (int) delayInput;
+        if (delayInput instanceof Integer num) {
+            delay = num;
         } else {
             Duration duration = DateTimeUtils.parseTimeStr(delayInput.toString());
             delay = (int) (duration.getSeconds() * 20 + duration.getNano() / ChronoUnit.MILLIS.getDuration().getNano() / 50);
         }
         if (delay <= 0)
             throw new ConfigException("delay cannot be less than 0", yaml, "delay");
-        //noinspection UnstableApiUsage
         actions = yaml.getList("actions", Config.class).stream()
                 .map(Action::fromConfig)
                 .collect(ImmutableList.toImmutableList());

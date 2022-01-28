@@ -290,7 +290,7 @@ public class ActionShop extends Action {
 
         public static SmartInventory getInventory(Player player, ActionShop shop, SmartInventory parent) {
             return WorstShop.buildGui("worstshop:shop_gui")
-                    .title(I18n.translate("worstshop.messages.shops.shop", player))
+                    .title(I18n.translate("worstshop.messages.shops.shop"))
                     .type(InventoryType.CHEST).size(6, 9)
                     .provider(new ShopGui(shop)).parent(parent)
                     .build();
@@ -352,7 +352,7 @@ public class ActionShop extends Action {
                 LocalDateTime now = LocalDateTime.now();
                 records.getEntries().stream()
                         .map(entry -> PREVIOUS_PURCHASE_ENTRY.apply(
-                                Integer.toString(entry.getValue()),
+                                entry.getValue(),
                                 DateTimeUtils.formatTime(Duration.between(entry.getKey(), now))
                         ))
                         .forEach(lore::add);
@@ -424,15 +424,15 @@ public class ActionShop extends Action {
                 // increase by x
                 if (oldCount + number <= maxPurchase) {
                     contents.set(4, 4 + index, ItemBuilder.of(Material.LIME_STAINED_GLASS)
-                            .name(INCREASE_BUY_COUNT_BY.apply(Integer.toString(number)))
-                            .lores(BUY_COUNT_RESULT.apply(Integer.toString(oldCount + number)))
+                            .name(INCREASE_BUY_COUNT_BY.apply(number))
+                            .lores(BUY_COUNT_RESULT.apply(oldCount + number))
                             .amount(number)
                             .toClickable(createBuyCountChanger(oldCount + number))
                     );
                 } else {
                     contents.set(4, 4 + index, ItemBuilder.of(Material.GRAY_STAINED_GLASS)
-                            .name(INCREASE_BUY_COUNT_BY.apply(Integer.toString(number)))
-                            .lores(BUY_COUNT_RESULT.apply(Integer.toString(maxPurchase)))
+                            .name(INCREASE_BUY_COUNT_BY.apply(number))
+                            .lores(BUY_COUNT_RESULT.apply(maxPurchase))
                             .amount(number)
                             .toClickable(createBuyCountChanger(maxPurchase))
                     );
@@ -440,15 +440,15 @@ public class ActionShop extends Action {
                 // decrease by x
                 if (oldCount - number >= 1) {
                     contents.set(4, 4 - index, ItemBuilder.of(Material.RED_STAINED_GLASS)
-                            .name(DECREASE_BUY_COUNT_BY.apply(Integer.toString(number)))
-                            .lores(BUY_COUNT_RESULT.apply(Integer.toString(oldCount - number)))
+                            .name(DECREASE_BUY_COUNT_BY.apply(number))
+                            .lores(BUY_COUNT_RESULT.apply(oldCount - number))
                             .amount(number)
                             .toClickable(createBuyCountChanger(oldCount - number))
                     );
                 } else {
                     contents.set(4, 4 - index, ItemBuilder.of(Material.GRAY_STAINED_GLASS)
-                            .name(DECREASE_BUY_COUNT_BY.apply(Integer.toString(number)))
-                            .lores(BUY_COUNT_RESULT.apply(Integer.toString(1)))
+                            .name(DECREASE_BUY_COUNT_BY.apply(number))
+                            .lores(BUY_COUNT_RESULT.apply(1))
                             .amount(number)
                             .toClickable(createBuyCountChanger(1))
                     );

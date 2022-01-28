@@ -1,10 +1,10 @@
 package com.jacky8399.worstshop.shops.actions;
 
-import com.google.common.collect.Lists;
 import com.jacky8399.worstshop.WorstShop;
 import com.jacky8399.worstshop.helper.Config;
 import com.jacky8399.worstshop.helper.ConfigHelper;
-import net.md_5.bungee.api.chat.BaseComponent;
+import com.jacky8399.worstshop.shops.rendering.PlaceholderContext;
+import com.jacky8399.worstshop.shops.rendering.Placeholders;
 import net.md_5.bungee.chat.ComponentSerializer;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
@@ -18,25 +18,27 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 public class ActionBook extends Action {
-    public final ArrayList<BaseComponent[]> pages;
+    public final ArrayList<String> pages;
 
     public ActionBook(Config yaml) {
         super(yaml);
-        pages = Lists.newArrayList();
-        for (String page : yaml.getList("pages", String.class)) {
-            pages.add(ConfigHelper.parseComponentString(page));
-        }
+        pages = new ArrayList<>(yaml.getList("pages", String.class));
     }
 
     @Override
     public void onClick(InventoryClickEvent e) {
         Player player = (Player) e.getWhoClicked();
+        PlaceholderContext context = PlaceholderContext.guessContext(player);
         // book item
         ItemStack book = new ItemStack(Material.WRITTEN_BOOK);
         BookMeta meta = (BookMeta) book.getItemMeta();
         meta.setTitle(player.getName());
         meta.setAuthor(player.getName());
-        meta.spigot().setPages(pages);
+        meta.spigot().setPages(pages.stream()
+                .map(page -> Placeholders.setPlaceholders(page, context))
+                .map(ConfigHelper::parseComponentString)
+                .collect(Collectors.toList())
+        );
         book.setItemMeta(meta);
         ActionClose.closeInv(player, true);
         Bukkit.getScheduler().runTaskLater(WorstShop.get(), () -> player.openBook(book), 1);

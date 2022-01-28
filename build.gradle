@@ -1,5 +1,5 @@
 plugins {
-    id 'com.github.johnrengelman.shadow' version '7.1.0'
+    id 'com.github.johnrengelman.shadow' version '7.1.2'
     id 'java-library'
     id 'idea'
 }
@@ -50,6 +50,7 @@ dependencies {
     compileOnly 'net.md-5:bungeecord-chat:1.16-R0.4'
     // Paper API
     compileOnly 'io.papermc.paper:paper-api:1.18.1-R0.1-SNAPSHOT'
+    compileOnly 'io.papermc.paper:paper-server:1.18.1-R0.1-SNAPSHOT:mojang-mapped'
     // Mojang AuthLib
     compileOnly('com.mojang:authlib:1.5.21') {
         transitive = false
