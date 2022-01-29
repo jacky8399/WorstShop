@@ -32,6 +32,9 @@ import java.util.*;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
+/**
+ * Opens a GUI where players can exchange for a reward with a predefined cost
+ */
 public class ActionShop extends Action {
     public Commodity cost, reward;
     public PlayerPurchases.RecordTemplate purchaseLimitTemplate;
@@ -224,7 +227,7 @@ public class ActionShop extends Action {
         Optional<InventoryContents> parentContentsOptional = WorstShop.get().inventories.getContents(player);
         if (parentContentsOptional.isPresent()) {
             InventoryContents parentContents = parentContentsOptional.get();
-            SmartInventory inv = ShopGui.getInventory(player, this.adjustForPlayer(player), parentContents.inventory());
+            SmartInventory inv = ShopGui.getInventory(this.adjustForPlayer(player), parentContents.inventory());
             InventoryUtils.openSafely(player, inv);
         }
     }
@@ -288,7 +291,7 @@ public class ActionShop extends Action {
             this.reward = shop.reward;
         }
 
-        public static SmartInventory getInventory(Player player, ActionShop shop, SmartInventory parent) {
+        public static SmartInventory getInventory(ActionShop shop, SmartInventory parent) {
             return WorstShop.buildGui("worstshop:shop_gui")
                     .title(I18n.translate("worstshop.messages.shops.shop"))
                     .type(InventoryType.CHEST).size(6, 9)

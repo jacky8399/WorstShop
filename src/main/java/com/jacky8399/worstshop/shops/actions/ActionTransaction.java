@@ -8,6 +8,10 @@ import org.bukkit.event.inventory.InventoryClickEvent;
 
 import java.util.Map;
 
+/**
+ * Shop but no GUI is displayed.
+ * Will try to maximize the size of the transaction but can be controlled with {@link ActionTransaction#maxPurchase}.
+ */
 public class ActionTransaction extends ActionShop {
     public ActionTransaction(Config yaml) {
         super(yaml);

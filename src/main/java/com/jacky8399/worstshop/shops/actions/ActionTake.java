@@ -11,6 +11,9 @@ import org.bukkit.inventory.meta.ItemMeta;
 
 import java.util.Map;
 
+/**
+ * Lets players take what is currently on the slot.
+ */
 public class ActionTake extends Action {
     boolean unlimited;
     public ActionTake(Config yaml) {

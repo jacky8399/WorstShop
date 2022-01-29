@@ -46,6 +46,9 @@ import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+/**
+ * Item shop but items are from QuickShop shops
+ */
 public class ActionPlayerShop extends Action {
     public static final String I18N_KEY = "worstshop.messages.shops.player-shop.";
     static {
@@ -139,12 +142,13 @@ public class ActionPlayerShop extends Action {
     }
 
     public ItemStack getTargetItemStack(Player player) {
-        return parentElement instanceof StaticShopElement ? ((StaticShopElement) parentElement).createPlaceholderStack(player) : parentElement.createStack(player);
+        return parentElement instanceof StaticShopElement sse ?
+                sse.createPlaceholderStack(player) : parentElement.createStack(player);
     }
 
     public Commodity createDynamicCommodity(boolean isBuying) {
         // dynamic element
-        // updated at ShopGui.updateCommodities
+        // changed at ShopGui.updateCommodities
         return new CommodityCustomizable(CommodityFree.INSTANCE,
                 new DynamicShopElement() {
                     @Override
@@ -177,6 +181,12 @@ public class ActionPlayerShop extends Action {
                 .build();
     }
 
+    /**
+     * Find all QuickShop shops matching the transaction type and the item stack {@link ActionPlayerShop#getTargetItemStack(Player)}
+     * @param player Player
+     * @param isBuying Whether the player is buying items
+     * @return A stream of applicable shops ordered by their price
+     */
     public Stream<Shop> findAllShops(Player player, boolean isBuying) {
         ItemStack stack = getTargetItemStack(player);
         List<Shop> shops = cache.shops.get(stack.getType());
@@ -232,7 +242,14 @@ public class ActionPlayerShop extends Action {
             return shop.getPrice() * buyCount;
         }
     }
-    
+
+    /**
+     * Devise an optimal strategy to trade items with QuickShop shops, earning the maximum or losing the minimum.
+     * @param player
+     * @param isBuying
+     * @param targetAmount
+     * @return
+     */
     private PurchaseStrategySummary deviseStrategy(Player player, boolean isBuying, int targetAmount) {
         // check for any shops
         ItemStack stack = getTargetItemStack(player);
@@ -264,8 +281,8 @@ public class ActionPlayerShop extends Action {
         return new PurchaseStrategySummary(strategies, amount[0]);
     }
 
-    private static final SlotPos[] checkMarkPos = {SlotPos.of(2, 3), SlotPos.of(3, 4), SlotPos.of(2, 5), SlotPos.of(1, 6)};
     class ShopGui extends ActionShop.ShopGui {
+        private static final SlotPos[] checkMarkPos = {SlotPos.of(2, 3), SlotPos.of(3, 4), SlotPos.of(2, 5), SlotPos.of(1, 6)};
         boolean isBuying;
         protected ShopGui(Player player, boolean isBuying) {
             super(createFakeShop(player, isBuying));
@@ -354,6 +371,8 @@ public class ActionPlayerShop extends Action {
             ));
         }
 
+        // loads the chunks and delegates the transaction to QuickShop
+        // probably not a good place to put a critical feature
         protected void confirmPurchase(InventoryClickEvent e) {
             InventoryContents contents = WorstShop.get().inventories.getContents((Player) e.getWhoClicked())
                     .orElseThrow(() -> new IllegalStateException("No inventory?"));
@@ -398,12 +417,12 @@ public class ActionPlayerShop extends Action {
         HashMap<Material, List<Shop>> shops = new HashMap<>();
 
         public void refreshCache() {
-            List<Shop> shops = api.getShopManager().getAllShops();
-            for (Shop shop : shops) {
+            List<Shop> allShops = api.getShopManager().getAllShops();
+            for (Shop shop : allShops) {
                 ItemStack stack = shop.getItem();
                 Material mat = stack.getType();
-                List<Shop> shopz = this.shops.computeIfAbsent(mat, key->new ArrayList<>());
-                shopz.add(shop);
+                List<Shop> shops = this.shops.computeIfAbsent(mat, key->new ArrayList<>());
+                shops.add(shop);
             }
         }
 
@@ -411,26 +430,26 @@ public class ActionPlayerShop extends Action {
         void onShopItemChange(ShopItemChangeEvent e) {
             Shop shop = e.getShop();
             ItemStack oldStack = e.getOldItem(), newStack = e.getNewItem();
-            List<Shop> shopz = shops.get(oldStack.getType()),
-                    newShopz = shops.computeIfAbsent(newStack.getType(), key->new ArrayList<>());
-            if (shopz != null) {
-                shopz.remove(shop);
+            List<Shop> shops = this.shops.get(oldStack.getType()),
+                    newShops = this.shops.computeIfAbsent(newStack.getType(), key->new ArrayList<>());
+            if (shops != null) {
+                shops.remove(shop);
             }
-            newShopz.add(shop);
+            newShops.add(shop);
         }
 
         @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
         void onShopCreate(ShopCreateEvent e) {
             Shop shop = e.getShop();
-            List<Shop> shopz = shops.computeIfAbsent(shop.getItem().getType(), key->new ArrayList<>());
-            shopz.add(shop);
+            List<Shop> shops = this.shops.computeIfAbsent(shop.getItem().getType(), key->new ArrayList<>());
+            shops.add(shop);
         }
 
         @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
         void onShopDelete(ShopDeleteEvent e) {
             Shop shop = e.getShop();
-            List<Shop> shopz = shops.get(shop.getItem().getType());
-            shopz.remove(shop);
+            List<Shop> shops = this.shops.get(shop.getItem().getType());
+            shops.remove(shop);
         }
 
         @EventHandler(priority = EventPriority.LOWEST)

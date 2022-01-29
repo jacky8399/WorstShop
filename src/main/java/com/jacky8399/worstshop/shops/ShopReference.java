@@ -36,11 +36,13 @@ public class ShopReference {
         ref = shop;
     }
 
+    @NotNull
     public static ShopReference of(String id) {
         return REFERENCES.computeIfAbsent(id, ShopReference::new);
     }
 
-    public static ShopReference of(Shop shop) {
+    @NotNull
+    public static ShopReference of(@Nullable Shop shop) {
         return shop == null ? EMPTY : REFERENCES.computeIfAbsent(shop.id, ignored->new ShopReference(shop.id, shop));
     }
 

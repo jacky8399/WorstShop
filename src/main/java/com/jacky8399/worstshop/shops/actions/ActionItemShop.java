@@ -1,6 +1,5 @@
 package com.jacky8399.worstshop.shops.actions;
 
-import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.jacky8399.worstshop.I18n;
 import com.jacky8399.worstshop.WorstShop;
@@ -8,27 +7,31 @@ import com.jacky8399.worstshop.helper.Config;
 import com.jacky8399.worstshop.helper.ItemBuilder;
 import com.jacky8399.worstshop.helper.PlayerPurchases;
 import com.jacky8399.worstshop.shops.*;
+import com.jacky8399.worstshop.shops.commodity.Commodity;
 import com.jacky8399.worstshop.shops.commodity.CommodityItem;
 import com.jacky8399.worstshop.shops.commodity.CommodityMoney;
 import com.jacky8399.worstshop.shops.conditions.Condition;
 import com.jacky8399.worstshop.shops.elements.ConditionalShopElement;
 import com.jacky8399.worstshop.shops.elements.ShopElement;
 import com.jacky8399.worstshop.shops.elements.StaticShopElement;
-import com.jacky8399.worstshop.shops.commodity.Commodity;
 import net.md_5.bungee.api.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
+import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nullable;
 import java.util.*;
 import java.util.stream.Collectors;
 
+/**
+ * Shop but much more concise and only supports items
+ */
 public class ActionItemShop extends Action {
     ShopElement parentElement;
-    Shop parentShop;
+    ShopReference parentShop;
     boolean canSellAll;
     public double buyPrice, sellPrice;
     @Nullable
@@ -39,7 +42,7 @@ public class ActionItemShop extends Action {
     // for serialization purposes
     public transient boolean usedStringShorthand = false, usedPriceShortcut = false, usedLimitShortcut = false;
 
-    public ActionItemShop(Shop parentShop, ShopElement parentElement, double buyPrice, double sellPrice) {
+    public ActionItemShop(@NotNull ShopReference parentShop, ShopElement parentElement, double buyPrice, double sellPrice) {
         super(null);
         this.parentShop = parentShop;
         this.parentElement = parentElement;
@@ -108,7 +111,6 @@ public class ActionItemShop extends Action {
             }
         });
 
-
         readParent();
     }
 
@@ -165,9 +167,9 @@ public class ActionItemShop extends Action {
     }
 
     private void readParent() {
-        parentShop = ParseContext.findLatest(Shop.class);
+        parentShop = ShopReference.of(ParseContext.findLatest(Shop.class));
         ShopElement element = ParseContext.findLatest(ShopElement.class);
-        if (parentShop == null || element == null)
+        if (parentShop == ShopReference.EMPTY || element == null)
             throw new IllegalStateException("Couldn't find parent shop / element! Not in parse context?");
         parentElement = element.clone();
 
@@ -179,9 +181,7 @@ public class ActionItemShop extends Action {
             ItemShop shop = new ItemShop(this, element.condition);
             getItemShops(((StaticShopElement) element).rawStack.getType()).add(shop);
             return Collections.singletonList(shop);
-        } else if (element instanceof ConditionalShopElement) {
-            ConditionalShopElement conditional = (ConditionalShopElement) element;
-
+        } else if (element instanceof ConditionalShopElement conditional) {
             List<ItemShop> shopsTrue = addToItemShop(conditional.elementTrue);
             shopsTrue.forEach(shop -> shop.condition = conditional.condition.and(shop.condition));
             if (conditional.elementFalse != null) {
@@ -197,15 +197,23 @@ public class ActionItemShop extends Action {
         return Collections.emptyList();
     }
 
+    /**
+     * Gets all applicable discounts for the player
+     * @param player Player
+     * @return The cost multiplier
+     */
     private double getDiscount(Player player) {
         ItemStack stack = getTargetItemStack(player);
-        return ShopDiscount.calcFinalPrice(ShopDiscount.findApplicableEntries(parentShop, stack.getType(), player));
+        return ShopDiscount.calcFinalPrice(ShopDiscount.findApplicableEntries(parentShop.get(), stack.getType(), player));
     }
 
     public ItemStack getTargetItemStack(Player player) {
-        return parentElement instanceof StaticShopElement ? ((StaticShopElement) parentElement).createPlaceholderStack(player) : parentElement.createStack(player);
+        return parentElement instanceof StaticShopElement sse ?
+                sse.createPlaceholderStack(player) :
+                parentElement.createStack(player);
     }
 
+    // builds the actual shops used for displaying the GUI
     public ActionShop buildBuyShop(Player player) {
         double discount = getDiscount(player);
         return buyPrice > 0 ?
@@ -226,11 +234,11 @@ public class ActionItemShop extends Action {
                 ) : null;
     }
 
-    public static CommodityItem rerouteWantToInventory(CommodityItem item, Inventory inventory) {
+    public static CommodityItem rerouteToInventory(CommodityItem item, Inventory inventory) {
         return new CommodityItem(item) {
             @Override
             public Commodity multiply(double multiplier) {
-                return rerouteWantToInventory((CommodityItem) super.multiply(multiplier), inventory);
+                return rerouteToInventory((CommodityItem) super.multiply(multiplier), inventory);
             }
 
             @Override
@@ -256,16 +264,16 @@ public class ActionItemShop extends Action {
 
             @Override
             public Commodity adjustForPlayer(Player player) {
-                return rerouteWantToInventory((CommodityItem) super.adjustForPlayer(player), inventory);
+                return rerouteToInventory((CommodityItem) super.adjustForPlayer(player), inventory);
             }
         };
     }
 
-    public static CommodityItem rerouteWantToStack(CommodityItem item, ItemStack stack) {
+    public static CommodityItem rerouteToStack(CommodityItem item, ItemStack stack) {
         return new CommodityItem(item) {
             @Override
             public Commodity multiply(double multiplier) {
-                return rerouteWantToStack((CommodityItem) super.multiply(multiplier), stack);
+                return rerouteToStack((CommodityItem) super.multiply(multiplier), stack);
             }
 
             @Override
@@ -285,7 +293,7 @@ public class ActionItemShop extends Action {
 
             @Override
             public Commodity adjustForPlayer(Player player) {
-                return rerouteWantToStack((CommodityItem) super.adjustForPlayer(player), stack);
+                return rerouteToStack((CommodityItem) super.adjustForPlayer(player), stack);
             }
         };
     }
@@ -306,7 +314,7 @@ public class ActionItemShop extends Action {
         }
         ActionShop shop = buildSellShop(player);
         // HACK: reroute shop cost
-        shop.cost = rerouteWantToInventory((CommodityItem) shop.cost, inventory);
+        shop.cost = rerouteToInventory((CommodityItem) shop.cost, inventory);
         shop.doTransaction(player, count);
     }
 
@@ -317,7 +325,7 @@ public class ActionItemShop extends Action {
         }
         ActionShop shop = buildSellShop(player);
         // HACK: reroute shop cost
-        shop.cost = rerouteWantToStack((CommodityItem) shop.cost, stack);
+        shop.cost = rerouteToStack((CommodityItem) shop.cost, stack);
         shop.doTransaction(player, count);
     }
 
@@ -374,6 +382,6 @@ public class ActionItemShop extends Action {
     }
 
     private static List<ItemShop> getItemShops(Material key) {
-        return ShopManager.ITEM_SHOPS.computeIfAbsent(key, k->Lists.newArrayList());
+        return ShopManager.ITEM_SHOPS.computeIfAbsent(key, k->new ArrayList<>());
     }
 }

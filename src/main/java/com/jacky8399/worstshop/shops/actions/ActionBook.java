@@ -17,6 +17,9 @@ import java.util.ArrayList;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+/**
+ * Displays a book.
+ */
 public class ActionBook extends Action {
     public final ArrayList<String> pages;
 

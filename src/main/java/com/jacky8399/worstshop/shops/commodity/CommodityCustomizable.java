@@ -148,9 +148,8 @@ public final class CommodityCustomizable extends Commodity implements IFlexibleC
 
     @Override
     public boolean equals(Object obj) {
-        if (!(obj instanceof CommodityCustomizable))
+        if (!(obj instanceof CommodityCustomizable other))
             return false;
-        CommodityCustomizable other = (CommodityCustomizable) obj;
         return other.base.equals(base) && other.element.equals(element);
     }
 

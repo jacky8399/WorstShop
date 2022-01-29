@@ -3,6 +3,7 @@ package com.jacky8399.worstshop.shops.commodity;
 import com.jacky8399.worstshop.helper.Config;
 import com.jacky8399.worstshop.helper.ConfigException;
 import com.jacky8399.worstshop.helper.ItemBuilder;
+import com.jacky8399.worstshop.shops.actions.ActionShop;
 import com.jacky8399.worstshop.shops.elements.ShopElement;
 import com.jacky8399.worstshop.shops.elements.StaticShopElement;
 import com.jacky8399.worstshop.shops.rendering.DefaultSlotFiller;
@@ -20,6 +21,9 @@ import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+/**
+ * Represents a commodity that can be used as the cost/reward in {@link ActionShop}.
+ */
 public abstract class Commodity {
     public static final HashMap<String, Function<Config, ? extends Commodity>> PRESETS = new HashMap<>();
 

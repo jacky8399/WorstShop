@@ -12,25 +12,19 @@ import org.bukkit.event.inventory.InventoryClickEvent;
 import java.util.Map;
 import java.util.Optional;
 
+/**
+ * Sets the current page.
+ */
 public class ActionPage extends Action {
     int pageOffset;
     public ActionPage(Config yaml) {
         super(yaml);
         switch (yaml.get("preset", String.class).replace(' ', '_')) {
-            case "previous_page":
-                pageOffset = -1;
-                break;
-            case "next_page":
-                pageOffset = 1;
-                break;
-            case "first_page":
-                pageOffset = Integer.MIN_VALUE;
-                break;
-            case "last_page":
-                pageOffset = Integer.MAX_VALUE;
-                break;
-            default:
-                throw new ConfigException("Invalid page preset", yaml, "preset");
+            case "previous_page" -> pageOffset = -1;
+            case "next_page" -> pageOffset = 1;
+            case "first_page" -> pageOffset = Integer.MIN_VALUE;
+            case "last_page" -> pageOffset = Integer.MAX_VALUE;
+            default -> throw new ConfigException("Invalid page preset", yaml, "preset");
         }
         yaml.find("pages", Integer.class).ifPresent(pageCount -> {
             if (Math.abs(pageOffset) == 1) {

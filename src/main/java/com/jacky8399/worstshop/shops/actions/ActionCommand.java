@@ -16,6 +16,9 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.function.BiConsumer;
 
+/**
+ * Executes commands or things that are too minor to split into an individual class.
+ */
 public class ActionCommand extends Action {
     public final List<String> commands;
 

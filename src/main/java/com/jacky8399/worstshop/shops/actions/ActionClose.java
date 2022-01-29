@@ -9,6 +9,9 @@ import org.bukkit.event.inventory.InventoryClickEvent;
 
 import java.util.Map;
 
+/**
+ * Closes the current GUI, usually returning to the parent GUI
+ */
 public class ActionClose extends Action {
     public final boolean noParent;
     public ActionClose(Config yaml) {

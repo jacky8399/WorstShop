@@ -9,13 +9,18 @@ import org.bukkit.event.inventory.InventoryClickEvent;
 
 import java.util.Map;
 
+/**
+ * Opens a shop, usually ignoring the view condition of the shop.
+ */
 public class ActionOpen extends Action {
     public transient boolean isShorthand = false;
-    boolean skipPermission = false;
+    boolean skipCondition = true;
     ShopReference shop;
     public ActionOpen(Config yaml) {
         super(yaml);
-        yaml.find("ignore-permission", Boolean.class).ifPresent(bool -> skipPermission = bool);
+        skipCondition = yaml.find("ignore-condition", Boolean.class)
+                .or(()->yaml.find("ignore-permission", Boolean.class))
+                .orElse(true);
         shop = ShopReference.of(yaml.get("shop", String.class));
     }
 
@@ -23,21 +28,21 @@ public class ActionOpen extends Action {
     public ActionOpen(String input) {
         super(null);
         shop = ShopReference.of(input);
-        skipPermission = true;
+        skipCondition = true;
         isShorthand = true;
     }
 
-    public ActionOpen(ShopReference shop, boolean ignorePermission) {
+    public ActionOpen(ShopReference shop, boolean ignoreCondition) {
         super(null);
         this.shop = shop;
-        this.skipPermission = ignorePermission;
+        this.skipCondition = ignoreCondition;
     }
 
     @Override
     public void onClick(InventoryClickEvent e) {
         Player player = (Player) e.getWhoClicked();
         Shop shop = this.shop.get();
-        if (skipPermission || shop.canPlayerView(player)) {
+        if (skipCondition || shop.canPlayerView(player)) {
             InventoryUtils.openSafely(player, shop.getInventory(player));
         }
     }
@@ -46,8 +51,8 @@ public class ActionOpen extends Action {
     public Map<String, Object> toMap(Map<String, Object> map) {
         map.put("preset", "open");
         map.put("shop", shop.id);
-        if (skipPermission)
-            map.put("ignore-permission", true);
+        if (!skipCondition)
+            map.put("ignore-condition", false);
         return map;
     }
 }

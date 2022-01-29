@@ -28,7 +28,6 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.SkullMeta;
 import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
-import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.yaml.snakeyaml.Yaml;
@@ -56,7 +55,7 @@ public class StaticShopElement extends ShopElement {
 
     // for faster client load times
     @Nullable
-    private PaperHelper.GameProfile skullCache;
+    private transient PaperHelper.GameProfile skullCache;
 
     public static StaticShopElement fromStack(ItemStack stack) {
         StaticShopElement inst = new StaticShopElement();
@@ -323,6 +322,11 @@ public class StaticShopElement extends ShopElement {
         return map;
     }
 
+    /**
+     * Applies placeholders to the {@link StaticShopElement#rawStack}
+     * @param player The target player
+     * @return The resultant item stack
+     */
     public ItemStack createPlaceholderStack(Player player) {
         if (!condition.test(player)) {
             return null;
@@ -332,11 +336,11 @@ public class StaticShopElement extends ShopElement {
         long start = System.currentTimeMillis();
         ItemStack stack = Placeholders.setPlaceholders(this.rawStack, player);
         long end = System.currentTimeMillis();
-        if (!async && !hasRemindedAsync && end - start > 500) {
-            WorstShop.get().logger.warning("Placeholders took " + (end - start) + "ms. Consider making this element async. (" + id + "@" + owner.id + ")\n" +
-                    "Note that some placeholders may stop working when used async.");
-            hasRemindedAsync = true;
-        }
+//        if (!async && !hasRemindedAsync && end - start > 500) {
+//            WorstShop.get().logger.warning("Placeholders took " + (end - start) + "ms. Consider making this element async. (" + id + "@" + owner.id + ")\n" +
+//                    "Note that some placeholders may stop working when used async.");
+//            hasRemindedAsync = true;
+//        }
         // try to apply cache
         if (skullCache != null && stack.getType() == Material.PLAYER_HEAD) {
             SkullMeta meta = (SkullMeta) stack.getItemMeta();
@@ -408,13 +412,6 @@ public class StaticShopElement extends ShopElement {
         actualStack.setItemMeta(meta);
 
         return actualStack;
-    }
-
-
-    @Deprecated
-    @Contract("_, null -> null; _, !null -> !null")
-    public static ItemStack replacePlaceholders(Player player, @Nullable ItemStack stack) {
-        return Placeholders.setPlaceholders(stack, PlaceholderContext.guessContext(player));
     }
 
     public static boolean isShopItem(ItemStack stack) {

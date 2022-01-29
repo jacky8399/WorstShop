@@ -15,6 +15,9 @@ import java.time.ZoneOffset;
 import java.util.*;
 import java.util.stream.Collectors;
 
+/**
+ * Records player purchases when needed
+ */
 public class PlayerPurchases {
     public static PlayerPurchases getCopy(Player player) {
         PersistentDataContainer container = player.getPersistentDataContainer();

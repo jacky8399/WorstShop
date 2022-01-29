@@ -24,7 +24,7 @@ public class DefaultSlotFiller {
         this.name = name;
         this.usage = usage;
         this.fillerFactory = input -> new SlotFiller() {
-            SlotFiller actual = filler.apply(input);
+            final SlotFiller actual = filler.apply(input);
 
             @Override
             public Collection<SlotPos> fill(ShopElement element, ShopRenderer renderer) {

@@ -15,6 +15,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+/**
+ * Delays execution of actions contained.
+ */
 public class ActionDelay extends Action {
     public final int delay;
     public final List<Action> actions;

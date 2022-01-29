@@ -13,6 +13,9 @@ import org.bukkit.inventory.ItemStack;
 import java.util.*;
 import java.util.function.Function;
 
+/**
+ * Represents an action that will occur when a player clicks on the associated ShopElement.
+ */
 public abstract class Action implements Cloneable {
     EnumSet<ClickType> triggerOnClick = EnumSet.allOf(ClickType.class);
     Condition condition = ConditionConstant.TRUE;
@@ -122,11 +125,16 @@ public abstract class Action implements Cloneable {
         return action;
     }
 
-
     public boolean shouldTrigger(InventoryClickEvent e) {
         return triggerOnClick.contains(e.getClick()) && condition.test((Player) e.getWhoClicked());
     }
 
+    /**
+     * Influence the final displayed item stack, like adding price tags to the item
+     * @param player Player
+     * @param readonlyStack Original item stack
+     * @param stack Actual item stack that will be displayed
+     */
     public void influenceItem(Player player, final ItemStack readonlyStack, ItemStack stack) {
 
     }

@@ -10,6 +10,9 @@ import org.bukkit.event.inventory.InventoryClickEvent;
 
 import java.util.Map;
 
+/**
+ * Forces a redraw of the shop.
+ */
 public class ActionRefresh extends Action {
     public ActionRefresh(Config yaml) {
         super(yaml);

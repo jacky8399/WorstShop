@@ -12,11 +12,11 @@ import net.milkbowl.vault.permission.Permission;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 
-import java.util.HashMap;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 
+/**
+ * {@link CommodityPermission} but worse
+ */
 public class CommodityPermissionVault extends Commodity {
     public static final Permission PERMISSION;
     public static final Chat CHAT;
@@ -76,8 +76,7 @@ public class CommodityPermissionVault extends Commodity {
         } else if (config.has("prefix")) {
             Object prefixData = config.get("prefix", String.class, Config.class);
             String prefix;
-            if (prefixData instanceof Config) {
-                Config innerData = (Config) prefixData;
+            if (prefixData instanceof Config innerData) {
                 prefix = ConfigHelper.translateString(innerData.get("prefix", String.class));
                 value = innerData.find("priority", Integer.class).orElse(100);
             } else {
@@ -89,8 +88,7 @@ public class CommodityPermissionVault extends Commodity {
         } else if (config.has("suffix")) {
             Object suffixData = config.get("suffix", String.class, Config.class);
             String suffix;
-            if (suffixData instanceof Config) {
-                Config innerData = (Config) suffixData;
+            if (suffixData instanceof Config innerData) {
                 suffix = ConfigHelper.translateString(innerData.get("suffix", String.class));
                 value = innerData.find("priority", Integer.class).orElse(100);
             } else {
@@ -176,29 +174,24 @@ public class CommodityPermissionVault extends Commodity {
         if (revokePermission)
             map.put("revoke", true);
         switch (permType) {
-            case META: {
+            case META -> {
                 map.put("key", permission);
                 map.put("value", value);
-                break;
             }
-            case GROUP: {
+            case GROUP -> {
                 map.put("group", permission);
                 map.put("value", value);
-                break;
             }
-            case PREFIX:
-            case SUFFIX: {
+            case PREFIX, SUFFIX -> {
                 String permTypeName = permType.name().toLowerCase(Locale.ROOT);
-                Map<String, Object> innerMap = new HashMap<>();
+                Map<String, Object> innerMap = new LinkedHashMap<>();
                 innerMap.put(permTypeName, ConfigHelper.untranslateString(permission));
                 innerMap.put("priority", value);
                 map.put(permTypeName, innerMap);
-                break;
             }
-            case PERMISSION: {
+            case PERMISSION -> {
                 map.put("permission", permission);
                 map.put("value", value);
-                break;
             }
         }
         return map;
@@ -273,9 +266,8 @@ public class CommodityPermissionVault extends Commodity {
 
     @Override
     public boolean equals(Object obj) {
-        if (!(obj instanceof CommodityPermissionVault))
+        if (!(obj instanceof CommodityPermissionVault other))
             return false;
-        CommodityPermissionVault other = (CommodityPermissionVault) obj;
         return other.permType == permType && other.permission.equals(permission) &&
                 other.value.equals(value) && other.revokePermission == revokePermission;
     }

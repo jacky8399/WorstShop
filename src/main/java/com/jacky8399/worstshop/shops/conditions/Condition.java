@@ -13,6 +13,9 @@ import java.util.Optional;
 import java.util.function.BinaryOperator;
 import java.util.function.Predicate;
 
+/**
+ * Represents a player predicate
+ */
 public abstract class Condition implements Predicate<Player> {
 
     public static Condition fromObject(Object object) {
