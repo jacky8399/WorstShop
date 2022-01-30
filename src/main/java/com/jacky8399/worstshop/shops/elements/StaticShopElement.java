@@ -292,11 +292,13 @@ public class StaticShopElement extends ShopElement {
         if (meta instanceof SkullMeta skullMeta) {
             PaperHelper.GameProfile profile = PaperHelper.getSkullMetaProfile(skullMeta);
             if (profile != null) {
-                if (profile.skinNotLoaded) {
+                if (profile.hasSkin()) {
                     map.put("skin", profile.getSkin());
-                } else {
-                    map.put("skull", profile.getName());
                 }
+                String nameOrUUID = profile.getName();
+                if (nameOrUUID == null)
+                    nameOrUUID = profile.getUUID().toString();
+                map.put("skull", nameOrUUID);
             }
         }
 

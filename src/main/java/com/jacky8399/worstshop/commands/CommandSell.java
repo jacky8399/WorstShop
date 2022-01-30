@@ -25,6 +25,7 @@ import org.bukkit.inventory.PlayerInventory;
 import org.bukkit.util.RayTraceResult;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.List;
 import java.util.ListIterator;
 
 @CommandAlias("sell")
@@ -34,14 +35,13 @@ public class CommandSell extends BaseCommand {
     public static boolean sellStack(Player player, ItemStack stack, boolean promptIfFailed) {
         if (ItemUtils.isEmpty(stack))
             return false;
-        if (ShopManager.ITEM_SHOPS.containsKey(stack.getType())) {
+        List<ItemShop> itemShops = ShopManager.ITEM_SHOPS.get(stack.getType());
+        if (itemShops != null) {
             // there exists shop for the equipped type
-            for (ItemShop shop : ShopManager.ITEM_SHOPS.get(stack.getType())) {
-                if (shop.isAvailableTo(player)) {
-                    if (shop.isSellable(stack, player)) {
-                        shop.sell(stack, player);
-                        return true;
-                    }
+            for (ItemShop shop : itemShops) {
+                if (shop.isAvailableTo(player) && shop.isSellable(stack, player)) {
+                    shop.sell(stack, player);
+                    return true;
                 }
             }
         }
@@ -110,14 +110,13 @@ public class CommandSell extends BaseCommand {
                     continue;
             }
 
-            if (ShopManager.ITEM_SHOPS.containsKey(stack.getType())) {
+            List<ItemShop> itemShops = ShopManager.ITEM_SHOPS.get(stack.getType());
+            if (itemShops != null) {
                 // there exists shop for type
-                for (ItemShop shop : ShopManager.ITEM_SHOPS.get(stack.getType())) {
-                    if (shop.isAvailableTo(player)) {
-                        if (shop.isSellable(stack, player)) {
-                            shop.sell(stack, player);
-                            everSucceeded = true;
-                        }
+                for (ItemShop shop : itemShops) {
+                    if (shop.isAvailableTo(player) && shop.isSellable(stack, player)) {
+                        shop.sell(stack, player);
+                        everSucceeded = true;
                     }
                 }
             }

@@ -105,24 +105,23 @@ public class CommandShop extends BaseCommand {
                    String[] split = input.split("=");
                    String left = split[0];
                    String right =  split.length > 1 ? split[1] : "";
-                   switch (left) {
-                       case "shop":
-                           return ShopManager.SHOPS.keySet().stream()
-                                   .filter(shopName -> shopName.startsWith(right))
-                                   .map(shopName -> "shop=" + shopName).collect(Collectors.toList());
-                       case "material":
-                           return Arrays.stream(Material.values())
-                                   .map(Enum::name)
-                                   .filter(mat -> mat.startsWith(right))
-                                   .map(mat -> "material=" + mat).collect(Collectors.toList());
-                       case "player":
-                           return Bukkit.getOnlinePlayers().stream()
-                                   .map(Player::getName)
-                                   .filter(player -> player.startsWith(right))
-                                   .map(player -> "player=" + player).collect(Collectors.toList());
-                       default:
-                           return Collections.emptyList();
-                   }
+                   return switch (left) {
+                       case "shop" -> ShopManager.SHOPS.keySet().stream()
+                               .filter(shopName -> shopName.startsWith(right))
+                               .map(shopName -> "shop=" + shopName)
+                               .collect(Collectors.toList());
+                       case "material" -> Arrays.stream(Material.values())
+                               .map(Enum::name)
+                               .filter(mat -> mat.startsWith(right))
+                               .map(mat -> "material=" + mat)
+                               .collect(Collectors.toList());
+                       case "player" -> Bukkit.getOnlinePlayers().stream()
+                               .map(Player::getName)
+                               .filter(player -> player.startsWith(right))
+                               .map(player -> "player=" + player)
+                               .collect(Collectors.toList());
+                       default -> Collections.emptyList();
+                   };
                } else {
                    return Arrays.asList("shop=", "material=", "player=", "permission=");
                }

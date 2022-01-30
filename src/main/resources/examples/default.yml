@@ -1,0 +1,13 @@
+# This example shop file demonstrates the following features:
+# - Basic shop structure
+# - Item formats
+# - Slot fillers
+# - Permission based conditions
+# Note
+
+# The title of the shop (Required)
+# For all string fields, 1.16+ RGB color can be used with &#RRGGBB
+title: "&#ff0fe3Server &0Menu"
+# The number of rows displayed (Default: 6)
+rows: 6
+# A list of shop elements to display in this shop

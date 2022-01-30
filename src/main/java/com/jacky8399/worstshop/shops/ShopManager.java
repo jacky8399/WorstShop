@@ -1,7 +1,6 @@
 package com.jacky8399.worstshop.shops;
 
 import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 import com.google.common.io.Files;
 import com.jacky8399.worstshop.WorstShop;
 import fr.minuskube.inv.InventoryManager;
@@ -11,13 +10,19 @@ import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.permissions.Permissible;
 
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.*;
+import java.util.logging.Logger;
 
 public class ShopManager {
-    public static final HashMap<String, Shop> SHOPS = Maps.newHashMap();
+    public static final Map<String, Shop> SHOPS = new HashMap<>();
 
-    public static final EnumMap<Material, List<ItemShop>> ITEM_SHOPS = Maps.newEnumMap(Material.class);
+    /**
+     * Groups all item shops by their item type for easier access
+     */
+    public static final Map<Material, List<ItemShop>> ITEM_SHOPS = new HashMap<>();
 
     /**
      * temporary variable for storing the shop currently being parsed
@@ -30,7 +35,7 @@ public class ShopManager {
     }
 
     public static boolean checkPermsOnly(Permissible player, String shopName) {
-        return player.hasPermission("worstshop.shops." + shopName);
+        return player.hasPermission("worstshop.shops." + shopName) || player.hasPermission("worstshop.shops.*");
     }
 
     public static void closeAllShops() {
@@ -124,10 +129,12 @@ public class ShopManager {
         return list;
     }
 
+    private static final String[] defaultShops = {""};
     @SuppressWarnings({"ConstantConditions", "unchecked"})
     public static void loadShops() {
         WorstShop plugin = WorstShop.get();
-        plugin.logger.info("Loading shops");
+        Logger logger = plugin.getLogger();
+        logger.info("Loading shops");
 
         cleanUp();
 
@@ -140,7 +147,8 @@ public class ShopManager {
                     .map(obj -> (Map<String, Object>) obj)
                     .map(ShopDiscount.Entry::fromMap)
                     .forEach(ShopDiscount::addDiscountEntry);
-            plugin.logger.info("Loaded " + ShopDiscount.ALL_DISCOUNTS.size() + " discounts");
+            if (ShopDiscount.ALL_DISCOUNTS.size() != 0)
+                logger.info("Loaded " + ShopDiscount.ALL_DISCOUNTS.size() + " discounts");
         }
 
         // walk through all shops
@@ -148,22 +156,25 @@ public class ShopManager {
         String shopsFolderPath = shops.getAbsolutePath();
         if (shops.exists() && shops.isDirectory()) {
             // iterate through shops
-            int count = 0;
-            for (File shop : listFilesRecursively(shops, new ArrayList<>())) {
-                String shopPath = shop.getAbsolutePath();
+            for (File shopFile : listFilesRecursively(shops, new ArrayList<>())) {
+                String shopPath = shopFile.getAbsolutePath();
+                // Of course there's no method to get the extension
                 String shopExt = shopPath.substring(shopPath.lastIndexOf('.') + 1);
                 if (!("yml".equals(shopExt) || "yaml".equals(shopExt))) {
                     continue;
                 }
 
-                currentShopId = shopPath.substring(shopsFolderPath.length() + 1, shopPath.length() - shopExt.length() - 1).replace('\\', '/');
+                currentShopId = shopPath.substring(shopsFolderPath.length() + 1, shopPath.length() - shopExt.length() - 1)
+                        .replace(File.separatorChar, '/');
 
                 try {
-                    SHOPS.put(currentShopId, Shop.fromYaml(currentShopId, shop));
-                    plugin.logger.fine("Loaded " + currentShopId + ".yml");
-                    count++;
+                    Shop shop = Shop.fromYaml(currentShopId, shopFile);
+                    if (SHOPS.put(currentShopId, shop) != null)
+                        logger.warning("Overriding preexisting shop " + currentShopId);
                 } catch (Exception e) {
-                    plugin.logger.severe("Error while loading " + currentShopId + ".yml");
+
+                    logger.severe("Unhandled exception while loading " + currentShopId + ".yml");
+                    logger.severe("The exception has been logged");
                     e.printStackTrace();
                 }
             }
@@ -173,11 +184,27 @@ public class ShopManager {
             // load commands
             ShopCommands.loadAliases();
 
-            plugin.logger.info("Loaded " + count + " shops");
+            logger.info("Loaded " + SHOPS.size() + " shops");
         } else {
-            plugin.logger.info("/shops/ folder does not exist. Creating");
-            if (!shops.mkdirs())
-                plugin.logger.warning("Failed to create /shops/ folder.");
+            logger.info("/shops/ folder does not exist. Saving default shops.");
+            if (shops.mkdirs()) {
+                for (String defaultShop : defaultShops) {
+                    File destFile = new File(shops, defaultShop);
+                    try (InputStream in = plugin.getResource("examples/" + defaultShop);
+                         FileOutputStream out = new FileOutputStream(destFile)) {
+                        if (in == null) {
+                            logger.warning("Couldn't load default shop " + defaultShop);
+                            continue;
+                        }
+                        byte[] bytes = in.readAllBytes();
+                        out.write(bytes);
+                    } catch (IOException e) {
+                        logger.warning("Couldn't save default shop " + defaultShop);
+                    }
+                }
+            } else {
+                logger.severe("Failed to create /shops/ folder.");
+            }
         }
     }
 

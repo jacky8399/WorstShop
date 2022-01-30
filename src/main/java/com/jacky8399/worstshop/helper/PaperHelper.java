@@ -185,13 +185,13 @@ public class PaperHelper {
         @Override
         public void setSkin(String base64) {
             PropertyMap propertyMap = obj.getProperties();
-            propertyMap.put("skin", new Property("skin", base64, null));
+            propertyMap.put("textures", new Property("textures", base64, null));
         }
 
         @Override
         public String getSkin() {
             try {
-                return obj.getProperties().get("skin").iterator().next().getValue();
+                return obj.getProperties().get("textures").iterator().next().getValue();
             } catch (Exception e) {
                 return null;
             }
@@ -199,7 +199,7 @@ public class PaperHelper {
 
         @Override
         public boolean hasSkin() {
-            return obj.getProperties().containsKey("skin") || obj.isComplete();
+            return obj.getProperties().containsKey("textures");
         }
 
         @Override
@@ -243,13 +243,13 @@ public class PaperHelper {
 
         @Override
         public void setSkin(String base64) {
-            obj.setProperty(new ProfileProperty("skin", base64, null));
+            obj.setProperty(new ProfileProperty("textures", base64, null));
         }
 
         @Override
         public String getSkin() {
             return obj.getProperties().stream()
-                    .filter(property -> property.getName().equals("skin"))
+                    .filter(property -> property.getName().equals("textures"))
                     .findFirst()
                     .map(ProfileProperty::getValue)
                     .orElse(null);
@@ -257,7 +257,7 @@ public class PaperHelper {
 
         @Override
         public boolean hasSkin() {
-            return obj.hasProperty("skin") || obj.hasTextures();
+            return obj.hasTextures();
         }
 
         @Override
