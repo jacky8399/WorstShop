@@ -2,12 +2,137 @@
 # - Basic shop structure
 # - Item formats
 # - Slot fillers
-# - Permission based conditions
-# Note
+# - Conditions
+# - Basic actions
+# Note: whether a shop can be viewed is determined by the permission worstshop.shops.<shop id>,
+#       which is true if you don't have permissions set up!
 
 # The title of the shop (Required)
 # For all string fields, 1.16+ RGB color can be used with &#RRGGBB
 title: "&#ff0fe3Server &0Menu"
 # The number of rows displayed (Default: 6)
-rows: 6
-# A list of shop elements to display in this shop
+rows: 3
+# A list of shop elements to display in this shop (Required if not extending from a shop)
+items:
+  # The item ID (Required)
+  # Spaces are converted to underscores for ease of input
+  - item: black stained glass
+    # The internal ID of the item (Optional)
+    # Some error messages may use this internal ID
+    id: "filler_item"
+    # The display name (Optional)
+    name: "&0"
+    # The slot filler (Optional)
+    #
+    # Slot fillers determine where items go
+    # Currently, the following slot fillers are available:
+    # all - Fill in all available slots
+    # none - Default. Fill in only at the locations specified by 'pos', or the next available space (pagination)
+    # border <radius> - Fill in the border around the shop
+    # row <row number> - Fill in the row specified
+    # column <column number> - Fill in the column specified
+    # rectangle <pos1> <pos2> - Fill in the rectangle from pos1 to pos2
+    # remaining - Fill in the remaining slots. Note that remaining pagination items will be discarded,
+    #             as there will not be any free space left
+    fill: all
+  - item: grass block
+    name: "&aBazaar"
+    # The lore (Optional)
+    # Can be a list or a string
+    lore:
+      - "&2Click here to visit the bazaar"
+    # (A list of) slots this item should occupy (Optional, see bazaar/blocks for more)
+    # Accepts x,y or slot ID (0-53)
+    pos: 1,1
+    # The actions to perform on click (Optional)
+    actions:
+      - preset: open! bazaar/blocks
+        # Opens the shop bazaar/blocks
+        # Formally the following, but shorthands are cool
+        # preset: open
+        # shop: bazaar/blocks
+        # ignore-conditions: true
+  # The following is a conditional element
+  # The 'then' section is displayed if the condition specified in the 'if' section evaluates to true
+  # Otherwise the 'else' section (or nothing if unspecified) is displayed
+  - if: "%kitplugin_has_claimed_kit_daily% == false"
+    # The condition checks if the placeholders matches the string
+    # Formally the following, but shorthands are better
+    # if:
+    #   preset: placeholder
+    #   placeholder: "%kitplugin_has_claimed_kit_daily%"
+    #   equals: "true"
+    then:
+      item: chest
+      name: "&eDaily Reward"
+      pos: 3,1
+      lore: |-
+        &fClick here to claim your daily reward!
+        &fContains the following:
+        &f- &e$200
+        &f- &dA cool boom :)
+      actions:
+        # Closes the shop
+        # 'preset: back' goes back to the parent shop
+        - preset: close
+        # Commands are executed by the player
+        - 'kit daily'
+        # Add a prefix to indicate a special action
+        # Currently these prefixes are available:
+        # op, console, actionbar, chat (sends a message), chatas (sends a chat message as the player)
+        - 'op:summon tnt'
+    else:
+      item: ender chest
+      name: "&aDaily Reward"
+      pos: 3,1
+      lore:
+        - "&aYou have already claimed your daily reward."
+
+  - item: player head
+    name: "&1Website"
+    lore: "&3Click to go to our website"
+    pos: 5,1
+    # The textures value
+    # Would be under Other -> Values on minecraft-heads.com
+    # You can also use 'skull: <player name>'
+    skin: eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvMjM0N2EzOTQ5OWRlNDllMjRjODkyYjA5MjU2OTQzMjkyN2RlY2JiNzM5OWUxMTg0N2YzMTA0ZmRiMTY1YjZkYyJ9fX0=
+    actions:
+      # Opens a book. Supports JSON
+      - preset: book
+        pages:
+          - '{"text":"Click to open our website!","underlined":true,"color":"dark_green","clickEvent":{"action":"open_url","value":"example.com"}}'
+
+  - item: command block
+    name: "&4Helper features"
+    lore:
+      - "&fLeft click to toggle &binspect mode"
+      - "&fRight click to go to admin control panel (admins only)"
+    # This condition checks for player permissions
+    # You could also use the placeholder permission from above
+    # Formally:
+    # condition:
+    #   permission: group.helper
+    condition: group.helper
+    actions:
+      # Specifies the types of click that this action should respond to
+      # Could be a list or a string
+      # Values: left_click (left and shift_left), right_click (right and shift_right),
+      #         shift_click (shift_left and shift_right), middle_click (middle and creative),
+      #         and all values from https://hub.spigotmc.org/javadocs/spigot/org/bukkit/event/inventory/ClickType.html
+      - click: left click
+        # Delays the action by a number of ticks
+        preset: delay
+        # The time to delay the actions by
+        # Could be an integer indicating the number of ticks, or a duration string (e.g. 3s5t)
+        delay: 1
+        actions:
+          - preset: close
+          - 'co i'
+
+      - click: right click
+        condition: group.admin
+        # You cannot use the shorthand if you need to specify 'click'
+        preset: open
+        # Doesn't exist because I can't be bothered to write one
+        shop: 'admin_panel'
+        ignore-condition: false
