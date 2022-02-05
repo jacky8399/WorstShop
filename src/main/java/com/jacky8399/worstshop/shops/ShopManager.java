@@ -1,8 +1,8 @@
 package com.jacky8399.worstshop.shops;
 
-import com.google.common.collect.Lists;
 import com.google.common.io.Files;
 import com.jacky8399.worstshop.WorstShop;
+import com.jacky8399.worstshop.helper.Exceptions;
 import fr.minuskube.inv.InventoryManager;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
@@ -29,6 +29,11 @@ public class ShopManager {
      */
     public static String currentShopId = null;
     public static Shop currentShop = null;
+
+    /**
+     * Default shops that will be generated
+     */
+    private static final String[] defaultShops = {""};
 
     public static Optional<Shop> getShop(String id) {
         return Optional.ofNullable(SHOPS.get(id));
@@ -89,10 +94,31 @@ public class ShopManager {
         SHOPS.put(newName, shop);
     }
 
+    @SuppressWarnings({"ConstantConditions", "unchecked"})
+    public static void loadDiscounts() {
+        WorstShop plugin = WorstShop.get();
+
+        ShopDiscount.clearDiscounts();
+        File discountFile = new File(plugin.getDataFolder(), "discounts.yml");
+        if (discountFile.exists()) {
+            YamlConfiguration yaml = YamlConfiguration.loadConfiguration(discountFile);
+            yaml.getList("discounts").stream()
+                    .map(obj -> (Map<String, Object>) obj)
+                    .map(ShopDiscount.Entry::fromMap)
+                    .forEach(ShopDiscount::addDiscountEntry);
+            if (ShopDiscount.ALL_DISCOUNTS.size() != 0)
+                plugin.logger.info("Loaded " + ShopDiscount.ALL_DISCOUNTS.size() + " discounts");
+        }
+    }
+
     public static void saveDiscounts() {
-        List<Map<String, Object>> discounts = Lists.newArrayList();
-        ShopDiscount.ALL_DISCOUNTS.values().stream().filter(entry -> !entry.hasExpired())
-                .map(ShopDiscount.Entry::toMap).forEach(discounts::add);
+        List<Map<String, Object>> discounts = new ArrayList<>();
+        ShopDiscount.ALL_DISCOUNTS.values().stream()
+                .filter(entry -> !entry.hasExpired())
+                .map(ShopDiscount.Entry::toMap)
+                .forEach(discounts::add);
+        if (discounts.size() == 0)
+            return;
         WorstShop.get().logger.info("Saving " + discounts.size() + " discounts");
         YamlConfiguration yaml = new YamlConfiguration();
         yaml.set("discounts", discounts);
@@ -129,8 +155,6 @@ public class ShopManager {
         return list;
     }
 
-    private static final String[] defaultShops = {""};
-    @SuppressWarnings({"ConstantConditions", "unchecked"})
     public static void loadShops() {
         WorstShop plugin = WorstShop.get();
         Logger logger = plugin.getLogger();
@@ -138,18 +162,7 @@ public class ShopManager {
 
         cleanUp();
 
-        // load discounts
-        ShopDiscount.clearDiscounts();
-        File discountFile = new File(plugin.getDataFolder(), "discounts.yml");
-        if (discountFile.exists()) {
-            YamlConfiguration yaml = YamlConfiguration.loadConfiguration(discountFile);
-            yaml.getList("discounts").stream()
-                    .map(obj -> (Map<String, Object>) obj)
-                    .map(ShopDiscount.Entry::fromMap)
-                    .forEach(ShopDiscount::addDiscountEntry);
-            if (ShopDiscount.ALL_DISCOUNTS.size() != 0)
-                logger.info("Loaded " + ShopDiscount.ALL_DISCOUNTS.size() + " discounts");
-        }
+        loadDiscounts();
 
         // walk through all shops
         File shops = new File(plugin.getDataFolder(), "shops");
@@ -172,10 +185,10 @@ public class ShopManager {
                     if (SHOPS.put(currentShopId, shop) != null)
                         logger.warning("Overriding preexisting shop " + currentShopId);
                 } catch (Exception e) {
-
+                    RuntimeException wrapped = new RuntimeException("Loading shop " + currentShopId, e);
+                    String id = Exceptions.logException(wrapped);
                     logger.severe("Unhandled exception while loading " + currentShopId + ".yml");
-                    logger.severe("The exception has been logged");
-                    e.printStackTrace();
+                    logger.severe("The exception has been logged as " + id);
                 }
             }
             currentShop = null;
@@ -207,5 +220,4 @@ public class ShopManager {
             }
         }
     }
-
 }

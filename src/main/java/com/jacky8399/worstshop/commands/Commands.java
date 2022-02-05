@@ -14,8 +14,9 @@ public class Commands {
         manager.registerDependency(BukkitLocales.class, manager.getLocales());
         manager.registerDependency(PaperCommandManager.class, manager);
 
-        // enable help
+        // enable unstable APIs
         manager.enableUnstableAPI("help");
+        manager.enableUnstableAPI("brigadier");
 
         // register commands
         try {

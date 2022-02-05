@@ -1,6 +1,5 @@
 package com.jacky8399.worstshop.shops;
 
-import com.google.common.collect.Maps;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
@@ -34,7 +33,7 @@ public class ShopDiscount {
         }
 
         public Map<String, Object> toMap() {
-            Map<String, Object> map = Maps.newHashMap();
+            Map<String, Object> map = new LinkedHashMap<>();
             map.put("name", name);
             if (expiry != null)
                 map.put("expiry", expiry.toEpochSecond(ZoneOffset.UTC)); // doesn't matter, will be read as UTC too
