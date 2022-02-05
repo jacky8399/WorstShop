@@ -21,7 +21,7 @@ public class Commands {
         try {
             manager.registerCommand(new CommandShop());
             manager.registerCommand(new CommandSell());
-            manager.registerCommand(new CommandBuy());
+//            manager.registerCommand(new CommandBuy());
             manager.registerCommand(new CommandLogs());
         } catch (Exception e) {
             plugin.logger.severe("Failed to register commands!");

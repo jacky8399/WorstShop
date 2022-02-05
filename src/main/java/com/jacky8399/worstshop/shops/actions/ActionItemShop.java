@@ -169,7 +169,7 @@ public class ActionItemShop extends Action {
     private void readParent() {
         parentShop = ShopReference.of(ParseContext.findLatest(Shop.class));
         ShopElement element = ParseContext.findLatest(ShopElement.class);
-        if (parentShop == ShopReference.EMPTY || element == null)
+        if (parentShop == ShopReference.empty() || element == null)
             throw new IllegalStateException("Couldn't find parent shop / element! Not in parse context?");
         parentElement = element.clone();
 

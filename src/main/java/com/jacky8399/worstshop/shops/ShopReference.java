@@ -21,7 +21,9 @@ import java.util.stream.Stream;
 @Editable
 @Adaptor(ShopReference.Adaptor.class)
 public class ShopReference {
-    public static final Empty EMPTY = new Empty();
+    public static ShopReference empty() {
+        return Empty.INSTANCE;
+    }
 
     public static final HashMap<String, ShopReference> REFERENCES = new HashMap<>();
     // basically final
@@ -43,7 +45,7 @@ public class ShopReference {
 
     @NotNull
     public static ShopReference of(@Nullable Shop shop) {
-        return shop == null ? EMPTY : REFERENCES.computeIfAbsent(shop.id, ignored->new ShopReference(shop.id, shop));
+        return shop == null ? empty() : REFERENCES.computeIfAbsent(shop.id, ignored->new ShopReference(shop.id, shop));
     }
 
     public Optional<Shop> find() {
@@ -83,6 +85,7 @@ public class ShopReference {
     }
 
     private static class Empty extends ShopReference {
+        public static final Empty INSTANCE = new Empty();
         private Empty() {
             super(null);
         }
@@ -119,7 +122,7 @@ public class ShopReference {
 
         @Override
         public Collection<? extends ShopReference> getValues() {
-            return Stream.concat(ShopManager.SHOPS.keySet().stream().map(ShopReference::of), Stream.of(EMPTY))
+            return Stream.concat(ShopManager.SHOPS.keySet().stream().map(ShopReference::of), Stream.of(empty()))
                     .sorted(Comparator.comparing(ref -> ref instanceof Empty ? "?" : ref.id))
                     .collect(Collectors.toList());
         }
@@ -135,21 +138,4 @@ public class ShopReference {
             return ItemBuilder.of(Material.EMERALD_BLOCK).name(ChatColor.GREEN + val.id).build();
         }
     }
-
-//    public static class Serializer extends ScalarSerializer<ShopReference> {
-//        public static Serializer INSTANCE = new Serializer();
-//        private Serializer() {
-//            super(ShopReference.class);
-//        }
-//
-//        @Override
-//        public ShopReference deserialize(Type type, Object obj) throws SerializationException {
-//            return obj == null ? EMPTY : ShopReference.of(obj.toString());
-//        }
-//
-//        @Override
-//        protected Object serialize(ShopReference item, Predicate<Class<?>> typeSupported) {
-//            return item.id;
-//        }
-//    }
 }

@@ -34,7 +34,7 @@ public class ShopRenderer implements InventoryProvider, RenderingLayer {
     public void addShopBackground() {
         if (!shop.circularReferenceChecked)
             shop.checkCircularReference();
-        if (shop.extendsFrom != ShopReference.EMPTY) {
+        if (shop.extendsFrom != ShopReference.empty()) {
             ShopRenderer renderer = new ShopRenderer(shop.extendsFrom.get(), player);
             renderer.addShopBackground();
             backgrounds.add(renderer);

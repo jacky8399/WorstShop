@@ -13,24 +13,29 @@ author: jacky8399
 description: The worst shop plugin.
 
 permissions:
-#  worstshop.discount.*:
-#    children:
-#      worstshop.discount.create: true
-#      worstshop.discount.list: true
-#      worstshop.discount.delete: true
-#
-#  worstshop.log.*:
-#    children:
-#      worstshop.log.error: true
-#      worstshop.log.purchases: true
+  # Player permissions
+  worstshop.player:
+    default: true
+    children:
+      worstshop.shops.*: true # Allows opening all shops by default
+      worstshop.command.shop: true # Allows using /shop
+      worstshop.command.open: true # Allows using /shop [shop]
 
+  # Admin permissions
   worstshop.*:
     default: op
     children:
-      worstshop.discount.*: true
-      worstshop.log.*: true
-      worstshop.shops.*: true
-      worstshop.shop.*: true
+      worstshop.command.*: true
+
+  worstshop.command.*:
+    default: op
+    children:
+      worstshop.command.sell.*: true
+      worstshop.command.buy.*: true
+      worstshop.command.shop.*: true
+      worstshop.command.shop.discount.*: true
+      worstshop.command.log.*: true
+
 
 commands:
   worstshop:

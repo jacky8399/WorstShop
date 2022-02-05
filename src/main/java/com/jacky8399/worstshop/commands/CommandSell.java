@@ -29,7 +29,7 @@ import java.util.List;
 import java.util.ListIterator;
 
 @CommandAlias("sell")
-@CommandPermission("worstshop.sell")
+@CommandPermission("worstshop.command.sell")
 public class CommandSell extends BaseCommand {
 
     public static boolean sellStack(Player player, ItemStack stack, boolean promptIfFailed) {
@@ -130,14 +130,14 @@ public class CommandSell extends BaseCommand {
     }
 
     @Subcommand("hand")
-    @CommandPermission("worstshop.sell.hand")
+    @CommandPermission("worstshop.command.sell.hand")
     public void sellHand(Player player) {
         ItemStack stack = player.getInventory().getItemInMainHand();
         sellStack(player, stack, true);
     }
 
     @Subcommand("all")
-    @CommandPermission("worstshop.sell.all")
+    @CommandPermission("worstshop.command.sell.all")
     public void sellAll(Player player) {
         boolean everSucceeded = sellInventory(player, player.getInventory());
         if (!everSucceeded) {
@@ -147,7 +147,7 @@ public class CommandSell extends BaseCommand {
     }
 
     @Subcommand("container")
-    @CommandPermission("worstshop.sell.container")
+    @CommandPermission("worstshop.command.sell.container")
     public void sellFacingContainer(Player player) {
         RayTraceResult rayTraceResult = player.rayTraceBlocks(5.0f);
         if (rayTraceResult != null && rayTraceResult.getHitBlock() != null) {
@@ -182,7 +182,7 @@ public class CommandSell extends BaseCommand {
     }
 
     @Subcommand("material")
-    @CommandPermission("worstshop.sell.material")
+    @CommandPermission("worstshop.command.sell.material")
     @CommandCompletion("*")
     public void sellMaterial(Player player, Material mat) {
         for (ItemStack stack : player.getInventory().getContents()) {

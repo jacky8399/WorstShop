@@ -66,12 +66,12 @@ public class Shop implements ParseContext.NamedContext {
 
     // parents
     @Property
-    public ShopReference parentShop = ShopReference.EMPTY;
+    public ShopReference parentShop = ShopReference.empty();
     @Property
     public boolean autoSetParentShop = false;
 
     @Property
-    public ShopReference extendsFrom = ShopReference.EMPTY;
+    public ShopReference extendsFrom = ShopReference.empty();
 
     // aliases
     public static final Pattern ALIAS_PATTERN = Pattern.compile("^\\w+$", Pattern.UNICODE_CHARACTER_CLASS);
@@ -139,7 +139,7 @@ public class Shop implements ParseContext.NamedContext {
             });
         }
         String actualTitle;
-        if (title == null && extendsFrom != ShopReference.EMPTY) {
+        if (title == null && extendsFrom != ShopReference.empty()) {
             actualTitle = extendsFrom.get().title;
         } else {
             actualTitle = title;
@@ -170,7 +170,7 @@ public class Shop implements ParseContext.NamedContext {
             inst.rows = config.find("rows", Integer.class).orElse(6);
             inst.type = config.find("type", InventoryType.class).orElse(InventoryType.CHEST);
 
-            if (!config.has("title") && inst.extendsFrom != ShopReference.EMPTY) {
+            if (!config.has("title") && inst.extendsFrom != ShopReference.empty()) {
                 inst.title = null; // allow templates to do the hard work
             } else {
                 inst.title = ConfigHelper.translateString(config.get("title", String.class));
@@ -181,7 +181,7 @@ public class Shop implements ParseContext.NamedContext {
                     .map(Condition::fromObject)
                     .orElse(ConditionConstant.TRUE);
 
-            inst.parentShop = config.find("parent", String.class).map(ShopReference::of).orElse(ShopReference.EMPTY);
+            inst.parentShop = config.find("parent", String.class).map(ShopReference::of).orElse(ShopReference.empty());
             if ("auto".equals(inst.parentShop.id)) {
                 inst.autoSetParentShop = true;
             }
@@ -236,7 +236,7 @@ public class Shop implements ParseContext.NamedContext {
         yaml.set("title", title.replace(ChatColor.COLOR_CHAR, '&'));
         if (updateInterval != 0)
             yaml.set("update-interval", updateInterval);
-        if (parentShop != ShopReference.EMPTY)
+        if (parentShop != ShopReference.empty())
             yaml.set("parent", parentShop.id);
         if (aliases != null && aliases.size() != 0)
             yaml.set("alias", String.join(",", aliases));
@@ -253,7 +253,7 @@ public class Shop implements ParseContext.NamedContext {
         ShopReference template = extendsFrom;
         Set<String> traversed = new LinkedHashSet<>();
         int depth = 0;
-        while (template != ShopReference.EMPTY) {
+        while (template != ShopReference.empty()) {
             boolean shouldExit = false;
             if (!traversed.add(template.id)) {
                 WorstShop.get().logger.severe("Circular reference is not allowed!!! (at shop " + id + "). The circular reference has been removed.");
@@ -270,7 +270,7 @@ public class Shop implements ParseContext.NamedContext {
 
             if (shouldExit) {
                 WorstShop.get().logger.severe("Hierarchy: " + String.join(" <- ", traversed));
-                extendsFrom = ShopReference.EMPTY;
+                extendsFrom = ShopReference.empty();
                 break;
             }
 

@@ -46,7 +46,7 @@ import static net.md_5.bungee.api.ChatColor.*;
 
 @SuppressWarnings("unused")
 @CommandAlias("worstshop|shop")
-@CommandPermission("worstshop.shop")
+@CommandPermission("worstshop.command.shop")
 public class CommandShop extends BaseCommand {
     public CommandShop() {
         // register shops autocompletion
@@ -68,7 +68,7 @@ public class CommandShop extends BaseCommand {
     }
 
     @Subcommand("reload")
-    @CommandPermission("worstshop.reload")
+    @CommandPermission("worstshop.command.shop.reload")
     public void reload(CommandIssuer issuer) {
         // close all shops
         WorstShop plugin = WorstShop.get();
@@ -84,7 +84,7 @@ public class CommandShop extends BaseCommand {
     }
 
     @Subcommand("version|ver|info")
-    @CommandPermission("worstshop.version")
+    @CommandPermission("worstshop.command.shop.version")
     public void showVersion(CommandSender sender) {
         sender.sendMessage(GREEN + "You are running WorstShop " + WorstShop.get().getDescription().getVersion());
         // Statistics
@@ -94,7 +94,7 @@ public class CommandShop extends BaseCommand {
     }
 
     @Subcommand("discount")
-    @CommandPermission("worstshop.discount")
+    @CommandPermission("worstshop.command.shop.discount")
     public class Discount extends co.aikar.commands.BaseCommand {
         public Discount() {
             manager.getCommandCompletions().registerStaticCompletion("discount_ids", ShopDiscount.ALL_DISCOUNTS::keySet);
@@ -172,7 +172,7 @@ public class CommandShop extends BaseCommand {
         }
 
         @Subcommand("create")
-        @CommandPermission("worstshop.discount.create")
+        @CommandPermission("worstshop.command.shop.discount.create")
         @CommandCompletion("@nothing permanent|1h|6h|12h|1d|7d|30d 0.5|0.7|0.9 @discount_argstr")
         public void createDiscount(CommandSender sender, String name, String expiry, double discount, String argString) {
             String[] args = argString.split(" ");
@@ -217,7 +217,7 @@ public class CommandShop extends BaseCommand {
         }
 
         @Subcommand("list")
-        @CommandPermission("worstshop.discount.list")
+        @CommandPermission("worstshop.command.shop.discount.list")
         public void listDiscounts(CommandSender sender) {
             boolean shouldPutDetailsInHover = sender instanceof Player;
             sender.sendMessage(GREEN + "Discounts:");
@@ -235,7 +235,7 @@ public class CommandShop extends BaseCommand {
         }
 
         @Subcommand("delete")
-        @CommandPermission("worstshop.discount.delete")
+        @CommandPermission("worstshop.command.shop.discount.delete")
         @CommandCompletion("@discount_ids")
         public void deleteDiscount(CommandSender sender, String name) {
             ShopDiscount.Entry realEntry = ShopDiscount.ALL_DISCOUNTS.get(name);
@@ -250,7 +250,7 @@ public class CommandShop extends BaseCommand {
     }
 
     @Subcommand("inspectitem|itemmeta|item|meta")
-    @CommandPermission("worstshop.inspectitem")
+    @CommandPermission("worstshop.command.shop.inspectitem")
     public void showItem(Player player) {
         ItemStack stack = player.getInventory().getItemInMainHand();
 
@@ -323,14 +323,14 @@ public class CommandShop extends BaseCommand {
 
     @Subcommand("open")
     @CommandCompletion("* *")
-    @CommandPermission("worstshop.shop.open.others")
+    @CommandPermission("worstshop.command.shop.open.others")
     public void openOthers(CommandSender sender, Shop shop, OnlinePlayer player) {
         shop.getInventory(player.player).open(player.player);
     }
 
     @Subcommand("testpermission")
     @CommandCompletion("* @nothing")
-    @CommandPermission("worstshop.shop.testpermission")
+    @CommandPermission("worstshop.command.shop.testpermission")
     public void testPermString(CommandSender sender, OnlinePlayer player, String permString) {
         try {
             Condition test = ConditionPermission.fromPermString(permString);
@@ -346,7 +346,7 @@ public class CommandShop extends BaseCommand {
 
     @Subcommand("editor")
     @CommandCompletion("*")
-    @CommandPermission("worstshop.editor")
+    @CommandPermission("worstshop.command.shop.editor")
     public void openEditor(Player player, @Optional Shop shop) {
         if (shop == null)
             EditorMainMenu.getInventory().open(player);
@@ -361,7 +361,7 @@ public class CommandShop extends BaseCommand {
 
     @Default
     @Subcommand("open")
-    @CommandPermission("worstshop.shop.open")
+    @CommandPermission("worstshop.command.shop.open")
     @CommandCompletion("*")
     public void open(Player player, @Optional Shop shop) {
         if (shop != null && shop.canPlayerView(player))

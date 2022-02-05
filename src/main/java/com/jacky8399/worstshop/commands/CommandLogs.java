@@ -25,13 +25,13 @@ import static com.jacky8399.worstshop.I18n.translate;
 
 @CommandAlias("worstshop|shop")
 @Subcommand("log|logs")
-@CommandPermission("worstshop.log")
+@CommandPermission("worstshop.command.log")
 public class CommandLogs extends BaseCommand {
 
     @CommandAlias("worstshoplog|worstshoplogs|shoplog|shoplogs")
     public class Inner extends BaseCommand {
         @Subcommand("error")
-        @CommandPermission("worstshop.log.error")
+        @CommandPermission("worstshop.command.log.error")
         public class Error extends BaseCommand {
             @Subcommand("list")
             public void listErrors(CommandSender sender, @Optional Integer page) {
@@ -97,7 +97,7 @@ public class CommandLogs extends BaseCommand {
         }
 
         @Subcommand("purchases")
-        @CommandPermission("worstshop.log.purchases")
+        @CommandPermission("worstshop.command.log.purchases")
         public class InspectPurchases extends BaseCommand {
             public InspectPurchases() {
                 WorstShop.get().commands.getCommandCompletions().registerCompletion("@purchase_record_ids", ctx -> {
