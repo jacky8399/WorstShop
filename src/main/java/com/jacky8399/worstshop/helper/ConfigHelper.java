@@ -1,5 +1,6 @@
 package com.jacky8399.worstshop.helper;
 
+import com.google.common.collect.ImmutableMap;
 import com.jacky8399.worstshop.PluginConfig;
 import com.jacky8399.worstshop.shops.elements.ShopElement;
 import net.md_5.bungee.api.ChatColor;
@@ -10,10 +11,29 @@ import org.bukkit.Material;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
+import java.util.function.Function;
 
 public final class ConfigHelper {
     private ConfigHelper() {}
+
+    record ConfigDeserializer(Class<?>[] acceptedTypes, Map<Class<?>, Function<?, ?>> constructors) {}
+    static final HashMap<Class<?>, ConfigDeserializer> configDeserializers = new HashMap<>();
+
+    @SafeVarargs
+    public static <T, C> void registerConfigDeserializer(Class<T> clazz, Function<C, T> function, Class<? extends C>... classes) {
+        ImmutableMap.Builder<Class<?>, Function<?, ?>> map = ImmutableMap.builder();
+        for (Class<? extends C> accepted : classes) {
+            map.put(accepted, function);
+        }
+        configDeserializers.put(clazz, new ConfigDeserializer(classes, map.build()));
+    }
+
+    public static <T, C> void registerConfigDeserializer(Class<T> clazz, Map<Class<? extends C>, Function<?, T>> functionMap) {
+        Class<?>[] classes = functionMap.keySet().toArray(new Class[0]);
+        configDeserializers.put(clazz, new ConfigDeserializer(classes, (Map) functionMap));
+    }
 
     @NotNull
     public static <T extends Enum<T>> T parseEnum(String input, Class<T> clazz) throws IllegalArgumentException {

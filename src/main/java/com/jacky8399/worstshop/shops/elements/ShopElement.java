@@ -2,6 +2,7 @@ package com.jacky8399.worstshop.shops.elements;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.jacky8399.worstshop.WorstShop;
 import com.jacky8399.worstshop.editor.Property;
 import com.jacky8399.worstshop.helper.Config;
 import com.jacky8399.worstshop.helper.ConfigHelper;
@@ -95,14 +96,15 @@ public abstract class ShopElement implements Cloneable, ParseContext.NamedContex
             }
         }
 
-        Optional<String> posOptional = config.find("pos", String.class);
-        posOptional.ifPresent(s -> element.itemPositions = parsePos(s));
+        config.find("pos", String.class).ifPresent(s -> element.itemPositions = parsePos(s));
 
-        ConditionAnd instCondition = new ConditionAnd();
-        config.find("view-perm", String.class).map(ConditionPermission::fromPermString).ifPresent(instCondition::mergeCondition);
-        config.find("condition", Config.class, String.class)
-                .map(Condition::fromObject).ifPresent(instCondition::mergeCondition);
-        element.condition = instCondition;
+        element.condition = config.find("condition", Condition.class).orElse(ConditionConstant.TRUE);
+        config.find("view-perm", String.class).map(ConditionPermission::fromPermString)
+                .ifPresent(condition -> {
+                    WorstShop.get().logger.warning("'view-perm' is deprecated. Please use 'condition' instead.");
+                    WorstShop.get().logger.warning("Offending shop element: " + config.getPath());
+                    element.condition = element.condition.and(condition);
+                });
 
         // Action parsing
         element.actions = config.findList("actions", Config.class, String.class).orElseGet(ArrayList::new).stream()

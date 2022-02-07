@@ -5,6 +5,7 @@ import com.jacky8399.worstshop.WorstShop;
 import javax.annotation.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
 import java.util.*;
+import java.util.function.Function;
 import java.util.logging.Logger;
 
 /**
@@ -47,21 +48,19 @@ public final class Config {
     @SuppressWarnings("unchecked")
     private <T> T handleObj(String path, Object obj, Class<? extends T> clazz) {
         if (clazz.isInstance(obj)) {
-            // does it matter? idk
             return (T) obj;
-        } else if (clazz.isEnum() && obj instanceof String) {
+        } else if (clazz.isEnum() && obj instanceof String str) {
             @SuppressWarnings("rawtypes")
-            T enumObj = (T) ConfigHelper.parseEnum((String) obj, (Class) clazz);
+            T enumObj = (T) ConfigHelper.parseEnum(str, (Class) clazz);
             return enumObj;
         } else if (Config.class == clazz) {
             if (obj instanceof Map<?, ?>) {
                 return (T) new Config((Map<String, Object>) obj, this, path);
             }
         } else if (Number.class.isAssignableFrom(clazz) && obj instanceof Number num) {
-            // numbers huh
             if (clazz == Integer.class) {
                 if (!(obj instanceof Integer))
-                    logger.warning("number \"" + num + "\" (@" + this.path + " > " + path + ") was rounded down to an integer.");
+                    logger.warning("Number \"" + num + "\" (@" + this.path + " > " + path + ") was rounded down to an integer.");
                 return (T) Integer.valueOf(num.intValue());
             } else if (clazz == Double.class)
                 return (T) Double.valueOf(num.doubleValue());
@@ -73,6 +72,23 @@ public final class Config {
                 return (T) Byte.valueOf(num.byteValue());
             else if (clazz == Short.class)
                 return (T) Short.valueOf(num.shortValue());
+        } else {
+            ConfigHelper.ConfigDeserializer deserializer = ConfigHelper.configDeserializers.get(clazz);
+            if (deserializer != null) {
+                for (Class<?> acceptedClazz : deserializer.acceptedTypes()) {
+                    Object transformed = handleObj(path, obj, acceptedClazz);
+                    if (transformed != null) {
+                        try {
+                            @SuppressWarnings("rawtypes")
+                            Object result = ((Function) deserializer.constructors().get(acceptedClazz)).apply(transformed);
+                            if (clazz.isInstance(result)) {
+                                return (T) result;
+                            }
+                        } catch (Exception ignored) {
+                        }
+                    }
+                }
+            }
         }
         // cannot throw an exception
         return null;

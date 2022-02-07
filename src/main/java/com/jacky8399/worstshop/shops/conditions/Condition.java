@@ -1,8 +1,10 @@
 package com.jacky8399.worstshop.shops.conditions;
 
+import com.google.common.collect.ImmutableMap;
 import com.jacky8399.worstshop.WorstShop;
 import com.jacky8399.worstshop.helper.Config;
 import com.jacky8399.worstshop.helper.ConfigException;
+import com.jacky8399.worstshop.helper.ConfigHelper;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 
@@ -11,6 +13,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.BinaryOperator;
+import java.util.function.Function;
 import java.util.function.Predicate;
 
 /**
@@ -18,14 +21,10 @@ import java.util.function.Predicate;
  */
 public abstract class Condition implements Predicate<Player> {
 
-    public static Condition fromObject(Object object) {
-        if (object instanceof String str) {
-            return fromShorthand(str);
-        } else if (object instanceof Config yaml) {
-            return fromMap(yaml);
-        } else {
-            throw new IllegalArgumentException("Invalid condition " + object);
-        }
+    static {
+        Map<Class<?>, Function<?, Condition>> map = ImmutableMap.of(Config.class, (Config config) -> Condition.fromMap(config),
+                String.class, (String string) -> Condition.fromShorthand(string));
+        ConfigHelper.registerConfigDeserializer(Condition.class, map);
     }
 
     public static Condition fromShorthand(String string) {
@@ -49,7 +48,7 @@ public abstract class Condition implements Predicate<Player> {
             } else {
                 try {
                     BinaryOperator<Condition> accumulator = logic.equals("or") ? Condition::or : Condition::and;
-                    List<? extends Config> children = yaml.getList("conditions", Config.class);
+                    List<Config> children = yaml.getList("conditions", Config.class);
                     Optional<Condition> result = children.stream().map(Condition::fromMap).reduce(accumulator);
                     return result.orElse(ConditionConstant.TRUE); // always true if no elements
                 } catch (ConfigException ex) {
@@ -67,7 +66,7 @@ public abstract class Condition implements Predicate<Player> {
                 }
             } else {
                 try {
-                    List<? extends Config> listOptional = yaml.getList(yaml.has("and") ? "and" : "or", Config.class);
+                    List<Config> listOptional = yaml.getList(yaml.has("and") ? "and" : "or", Config.class);
                     BinaryOperator<Condition> accumulator = yaml.has("and") ? Condition::and : Condition::or;
                     return listOptional.stream().map(Condition::fromMap).reduce(accumulator).orElse(ConditionConstant.TRUE);
                 } catch (IllegalArgumentException ex) {

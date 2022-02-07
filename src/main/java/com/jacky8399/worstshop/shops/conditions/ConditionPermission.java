@@ -33,6 +33,7 @@ public class ConditionPermission extends Condition {
         return new ConditionPermission(builder.toString(), true);
     }
 
+    @Deprecated
     public static Condition fromPermString(String permRaw) {
         final String perm = permRaw.trim();
         if (perm.equalsIgnoreCase("true") || perm.equalsIgnoreCase("false")) {

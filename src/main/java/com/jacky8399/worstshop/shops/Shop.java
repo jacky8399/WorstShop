@@ -177,9 +177,7 @@ public class Shop implements ParseContext.NamedContext {
             }
             inst.updateInterval = config.find("update-interval", Integer.class).orElse(0);
 
-            inst.condition = config.find("condition", Config.class, String.class)
-                    .map(Condition::fromObject)
-                    .orElse(ConditionConstant.TRUE);
+            inst.condition = config.find("condition", Condition.class).orElse(ConditionConstant.TRUE);
 
             inst.parentShop = config.find("parent", String.class).map(ShopReference::of).orElse(ShopReference.empty());
             if ("auto".equals(inst.parentShop.id)) {

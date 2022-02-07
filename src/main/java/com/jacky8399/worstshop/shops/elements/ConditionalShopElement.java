@@ -41,8 +41,7 @@ public class ConditionalShopElement extends ShopElement {
 
         ParseContext.pushContext(ret);
 
-        Object ifSection = config.get("if", Config.class, String.class);
-        ret.condition = Condition.fromObject(ifSection);
+        ret.condition = config.get("if", Condition.class);
 
         Config thenSection = config.get("then", Config.class);
         ShopElement element = ShopElement.fromConfig(thenSection);

@@ -208,6 +208,7 @@ public class PaperHelper {
         }
     }
 
+    // TODO use Bukkit implementation
     public static class PaperGameProfile extends GameProfile {
         PlayerProfile obj;
         public PaperGameProfile(UUID uuid, String name) {
@@ -309,7 +310,8 @@ public class PaperHelper {
 
     public static void checkIsPaper() {
         try {
-            isPaper = Class.forName("com.destroystokyo.paper.event.server.AsyncTabCompleteEvent") != null;
+            Class.forName("com.destroystokyo.paper.event.server.AsyncTabCompleteEvent");
+            isPaper = true;
         } catch (ClassNotFoundException ex) {
             isPaper = false;
         }
