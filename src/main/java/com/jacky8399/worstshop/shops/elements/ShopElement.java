@@ -89,8 +89,8 @@ public abstract class ShopElement implements Cloneable, ParseContext.NamedContex
         Optional<Object> fillOptional = config.find("fill", Boolean.class, String.class);
         if (fillOptional.isPresent()) {
             Object fill = fillOptional.get();
-            if (fill instanceof Boolean) {
-                element.filler = (Boolean) fill ? DefaultSlotFiller.ALL : DefaultSlotFiller.NONE;
+            if (fill instanceof Boolean bool) {
+                element.filler = bool ? DefaultSlotFiller.ALL : DefaultSlotFiller.NONE;
             } else {
                 element.filler = DefaultSlotFiller.fromInput(fill.toString());
             }

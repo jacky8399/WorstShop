@@ -94,15 +94,32 @@ public final class Config {
         return null;
     }
 
+    private static String nameClass(Class<?> clazz) {
+        if (Map.class.isAssignableFrom(clazz)) {
+            return "Config";
+        } else if (Number.class.isAssignableFrom(clazz)) {
+            return clazz == Integer.class ? "an integer" : "a number";
+        } else {
+            ConfigHelper.ConfigDeserializer deserializer = ConfigHelper.configDeserializers.get(clazz);
+            if (deserializer != null) {
+                StringJoiner joiner = new StringJoiner("/", clazz.getSimpleName() + " (which accepts ", ")");
+                for (Class<?> acceptedClazz : deserializer.acceptedTypes()) {
+                    joiner.add(nameClass(acceptedClazz));
+                }
+            }
+        }
+        return clazz.getSimpleName();
+    }
+
     private static String stringifyTypes(Class<?>[] classes) {
         if (classes.length == 1) {
-            return classes[0].getSimpleName();
+            return nameClass(classes[0]);
         } else if (classes.length == 2) {
-            return "either " + classes[0].getSimpleName() + " or " + classes[1].getSimpleName();
+            return "either " + nameClass(classes[0]) + " or " + nameClass(classes[1]);
         } else {
             StringJoiner joiner = new StringJoiner("/");
             for (Class<?> clazz : classes) {
-                joiner.add(clazz.getSimpleName());
+                joiner.add(nameClass(clazz));
             }
             return joiner.toString();
         }
@@ -132,11 +149,11 @@ public final class Config {
         return arr;
     }
 
-    public final boolean has(String key) {
+    public boolean has(String key) {
         return backingMap.containsKey(key);
     }
 
-    public final boolean has(String key, Class<?> clazz1, Class<?>... clazzOthers) {
+    public boolean has(String key, Class<?> clazz1, Class<?>... clazzOthers) {
         return tryFind(key, clazz1, clazzOthers).isPresent();
     }
 
@@ -182,7 +199,7 @@ public final class Config {
             if (val != null)
                 return Optional.of(val);
         }
-        throw new ConfigException("Expected " + stringifyTypes(classes) + " at " + key + ", found " + obj.getClass().getSimpleName(), this);
+        throw new ConfigException("Expected " + stringifyTypes(classes) + " at " + key + ", found " + nameClass(obj.getClass()), this);
     }
 
     /**
@@ -217,7 +234,7 @@ public final class Config {
                         }
                         if (newChild == null)
                             throw new ConfigException("Expected " + stringifyListTypes(classes) + " at " + key +
-                                    ", but found " + child.getClass().getSimpleName() + " at " + nameOrdinal(index + 1) + " element", this);
+                                    ", but found " + nameClass(child.getClass()) + " at " + nameOrdinal(index + 1) + " element", this);
                     }
                     return newList;
                 });
