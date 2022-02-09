@@ -49,12 +49,15 @@ public class ItemUtils {
                 });
     }
 
+    public static ItemMeta removeSafetyKey(@NotNull ItemMeta meta) {
+        meta.getPersistentDataContainer().remove(StaticShopElement.SAFETY_KEY);
+        return meta;
+    }
+
     @NotNull
     public static ItemStack removeSafetyKey(@NotNull ItemStack stack) {
         ItemStack clone = stack.clone();
-        ItemMeta meta = clone.getItemMeta();
-        meta.getPersistentDataContainer().remove(StaticShopElement.SAFETY_KEY);
-        clone.setItemMeta(meta);
+        clone.setItemMeta(removeSafetyKey(clone.getItemMeta()));
         return clone;
     }
 }

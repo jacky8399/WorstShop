@@ -88,11 +88,10 @@ public class StaticShopElement extends ShopElement {
         ItemStack rawStack = parseItemStack(config);
 
         // die if null
-        if (ItemUtils.isEmpty(rawStack) && !config.find("preserve-space", Boolean.class).orElse(false))
+        if (ItemUtils.isEmpty(rawStack))
             return null;
 
-        if (rawStack != null)
-            inst.rawStack = rawStack;
+        inst.rawStack = rawStack;
 
         inst.async = config.find("async", Boolean.class).orElse(false);
         if (inst.async)
@@ -148,7 +147,7 @@ public class StaticShopElement extends ShopElement {
                 return null; // skip air
             }
             ItemBuilder is = ItemBuilder.of(material);
-            int amount = yaml.find("amount", Integer.class).orElseGet(()->yaml.find("count", Integer.class).orElse(1));
+            int amount = yaml.find("amount", Integer.class).or(()->yaml.find("count", Integer.class)).orElse(1);
             is.amount(Math.min(Math.max(amount, 1), material.getMaxStackSize()));
 
             Optional<String> itemMetaString = yaml.find("item-meta", String.class);
@@ -179,13 +178,22 @@ public class StaticShopElement extends ShopElement {
                         enchants.getPrimitiveMap().forEach((ench, level) -> {
                             Enchantment enchType = Enchantment.getByKey(NamespacedKey.minecraft(ench));
                             if (enchType == null)
-                                throw new ConfigException(ench + " is not a valid enchant!", enchants);
+                                throw new ConfigException(ench + " is not a valid enchantment!", enchants);
                             if (!(level instanceof Number))
                                 throw new ConfigException("Expected level to be a number", enchants, ench);
                             consumer.accept(enchType, ((Number) level).intValue());
                         });
                     })
             );
+
+            Optional<String> optionalText = yaml.find("text", String.class);
+            if (optionalText.isPresent()) {
+                String[] lines = optionalText.get().split("\n");
+                is.name(lines[0]);
+                if (lines.length > 1) {
+                    is.lores(Arrays.copyOfRange(lines, 1, lines.length));
+                }
+            }
 
             yaml.find("name", String.class).ifPresent(is::name);
 
@@ -202,13 +210,15 @@ public class StaticShopElement extends ShopElement {
 
             yaml.find("unbreakable", Boolean.class).ifPresent(bool -> is.meta(meta -> meta.setUnbreakable(bool)));
 
-            yaml.findList("hide-flags", String.class).ifPresent(flags -> {
-                ItemFlag[] itemFlags = flags.stream()
-                        .map(flag -> !flag.startsWith("HIDE") ? "HIDE_" + flag : flag)
-                        .map(flag -> ConfigHelper.parseEnum(flag, ItemFlag.class))
-                        .toArray(ItemFlag[]::new);
-                is.meta(meta -> meta.addItemFlags(itemFlags));
-            });
+            yaml.findList("hide", String.class)
+                    .or(() -> yaml.findList("hide-flags", String.class)) // old name
+                    .ifPresent(flags -> {
+                        ItemFlag[] itemFlags = flags.stream()
+                                .map(flag -> !flag.startsWith("HIDE") ? "HIDE_" + flag : flag)
+                                .map(flag -> ConfigHelper.parseEnum(flag, ItemFlag.class))
+                                .toArray(ItemFlag[]::new);
+                        is.meta(meta -> meta.addItemFlags(itemFlags));
+                    });
 
             // skull
             yaml.find("skull", String.class).ifPresent(uuidOrName -> {
@@ -224,7 +234,7 @@ public class StaticShopElement extends ShopElement {
                     if (meta instanceof SkullMeta skullMeta) {
                         PaperHelper.setSkullMetaProfile(skullMeta, PaperHelper.createProfile(finalUuid, finalName));
                     } else {
-                        throw new IllegalArgumentException("skull can only be used on player heads!");
+                        throw new ConfigException("skull can only be used on player heads!", yaml, "skull");
                     }
                 });
             });
@@ -232,16 +242,20 @@ public class StaticShopElement extends ShopElement {
                 PaperHelper.GameProfile profile = PaperHelper.createProfile(UUID.randomUUID(), null);
                 profile.setSkin(skin);
                 is.meta(meta -> {
-                    if (meta instanceof SkullMeta) {
-                        PaperHelper.setSkullMetaProfile((SkullMeta) meta, profile);
+                    if (meta instanceof SkullMeta skullMeta) {
+                        PaperHelper.setSkullMetaProfile(skullMeta, profile);
                     } else {
-                        throw new IllegalArgumentException("skin can only be used on player heads!");
+                        throw new ConfigException("skin can only be used on player heads!", yaml, "skin");
                     }
                 });
             });
             return is.build();
         } catch (Exception ex) {
-            throw new IllegalArgumentException(ex);
+            if (ex instanceof ConfigException) {
+                throw ex;
+            } else {
+                throw new ConfigException("Parsing item stack", yaml, ex);
+            }
         }
     }
 
@@ -255,7 +269,9 @@ public class StaticShopElement extends ShopElement {
         map.put("item", stack.getType().name().toLowerCase(Locale.ROOT).replace('_', ' '));
         if (stack.getAmount() != 1)
             map.put("amount", stack.getAmount());
-        ItemMeta meta = stack.getItemMeta();
+        // remove safety key first
+        ItemMeta meta = ItemUtils.removeSafetyKey(stack.getItemMeta());
+
         if (meta instanceof Damageable damageable) {
             if (damageable.hasDamage()) {
                 map.put("damage", damageable.getDamage());
@@ -284,7 +300,7 @@ public class StaticShopElement extends ShopElement {
             map.put("lore", meta.getLore().stream().map(ConfigHelper::untranslateString).collect(Collectors.toList()));
         }
         if (meta.getItemFlags().size() != 0) {
-            map.put("hide-flags", meta.getItemFlags().stream().map(ItemFlag::name)
+            map.put("hide", meta.getItemFlags().stream().map(ItemFlag::name)
                     .map(str -> str.substring("HIDE_".length())) // strip hide
                     .map(str -> str.toLowerCase().replace('_', ' ')) // to lowercase
                     .collect(Collectors.toList()));
