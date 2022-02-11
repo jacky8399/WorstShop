@@ -31,6 +31,7 @@ import org.jetbrains.annotations.Nullable;
 import org.yaml.snakeyaml.Yaml;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.util.*;
 import java.util.logging.Logger;
@@ -216,10 +217,8 @@ public class Shop implements ParseContext.NamedContext {
             if (ParseContext.popContext() != inst) {
                 throw new IllegalStateException("Stack is broken?? " + ParseContext.getHierarchy());
             }
-        } catch (Exception ex) {
-            logger.severe("Error while parsing shop " + shopName + ", skipping.");
-            logger.severe("Stack: " + ParseContext.getHierarchy());
-            ex.printStackTrace();
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
         } finally {
             ParseContext.clear();
         }

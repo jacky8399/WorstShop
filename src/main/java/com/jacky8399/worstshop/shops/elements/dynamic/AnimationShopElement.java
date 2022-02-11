@@ -96,7 +96,7 @@ public class AnimationShopElement extends DynamicShopElement {
         List<RenderElement> items = current.getRenderElement(renderer, selfContext);
         return items.stream()
                 // hijack the render elements to reroute updates to animation
-                .map(item -> item.withOwner(this, selfContext))
+                .map(item -> new RenderElement(this, item.positions(), item.stack(), selfContext, item.handler(), DYNAMIC_FLAGS))
                 .collect(Collectors.toList());
     }
 

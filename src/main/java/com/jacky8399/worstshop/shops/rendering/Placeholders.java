@@ -63,11 +63,14 @@ public class Placeholders {
     @SuppressWarnings("deprecation")
     @Contract("null, _ -> null; !null, _ -> !null")
     public static ItemStack setPlaceholders(ItemStack stack, @NotNull PlaceholderContext context) {
-        if (stack == null || stack.getType() == Material.AIR || context == PlaceholderContext.NO_CONTEXT)
+        if (stack == null)
+            return null;
+
+        stack = stack.clone();
+        if (stack.getType() == Material.AIR || context == PlaceholderContext.NO_CONTEXT)
             return stack;
 
         UnaryOperator<String> placeholderReplacer = str -> setPlaceholders(str, context);
-        stack = stack.clone();
         ItemMeta meta = stack.getItemMeta();
         if (meta.hasLore()) {
             // noinspection ConstantConditions

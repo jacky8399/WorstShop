@@ -38,9 +38,9 @@ public class CommodityItem extends Commodity implements IFlexibleCommodity {
     public final double multiplier;
     public HashSet<ItemMatcher> itemMatchers = Sets.newHashSet(ItemMatcher.SIMILAR);
 
-    private static final Function<String, NamespacedKey> STRING_TO_KEY =
+    public static final Function<String, NamespacedKey> STRING_TO_KEY =
             key -> NamespacedKey.fromString((key.startsWith("#") ? key.substring(1) : key).replace(' ', '_'));
-    private static final Function<NamespacedKey, String> KEY_TO_STRING =
+    public static final Function<NamespacedKey, String> KEY_TO_STRING =
             key -> key.getNamespace().equals(NamespacedKey.MINECRAFT) ? key.getKey() : key.toString();
     public CommodityItem(Config config) {
         // parse item stack

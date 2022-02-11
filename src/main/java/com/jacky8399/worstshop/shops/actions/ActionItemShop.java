@@ -1,5 +1,6 @@
 package com.jacky8399.worstshop.shops.actions;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
 import com.jacky8399.worstshop.I18n;
 import com.jacky8399.worstshop.WorstShop;
@@ -11,18 +12,22 @@ import com.jacky8399.worstshop.shops.commodity.Commodity;
 import com.jacky8399.worstshop.shops.commodity.CommodityItem;
 import com.jacky8399.worstshop.shops.commodity.CommodityMoney;
 import com.jacky8399.worstshop.shops.conditions.Condition;
+import com.jacky8399.worstshop.shops.conditions.ConditionConstant;
 import com.jacky8399.worstshop.shops.elements.ConditionalShopElement;
 import com.jacky8399.worstshop.shops.elements.ShopElement;
 import com.jacky8399.worstshop.shops.elements.StaticShopElement;
+import com.jacky8399.worstshop.shops.rendering.PlaceholderContext;
+import com.jacky8399.worstshop.shops.rendering.Placeholders;
 import net.md_5.bungee.api.ChatColor;
 import org.bukkit.Material;
+import org.bukkit.NamespacedKey;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
-import javax.annotation.Nullable;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -31,6 +36,8 @@ import java.util.stream.Collectors;
  */
 public class ActionItemShop extends Action {
     ShopElement parentElement;
+    @Nullable
+    ItemStack overrideStack;
     ShopReference parentShop;
     boolean canSellAll;
     public double buyPrice, sellPrice;
@@ -38,11 +45,14 @@ public class ActionItemShop extends Action {
     public PlayerPurchases.RecordTemplate buyLimitTemplate, sellLimitTemplate;
     public int buyLimit, sellLimit;
     public HashSet<CommodityItem.ItemMatcher> itemMatchers = Sets.newHashSet(CommodityItem.ItemMatcher.SIMILAR);
+    @NotNull
+    ImmutableList<NamespacedKey> accepted = ImmutableList.of();
 
     // for serialization purposes
     public transient boolean usedStringShorthand = false, usedPriceShortcut = false, usedLimitShortcut = false;
 
-    public ActionItemShop(@NotNull ShopReference parentShop, ShopElement parentElement, double buyPrice, double sellPrice) {
+    public ActionItemShop(@NotNull ShopReference parentShop, ShopElement parentElement, double buyPrice, double sellPrice,
+                          @NotNull ImmutableList<NamespacedKey> accepted) {
         super(null);
         this.parentShop = parentShop;
         this.parentElement = parentElement;
@@ -50,6 +60,7 @@ public class ActionItemShop extends Action {
         this.sellPrice = sellPrice;
         checkPrices();
         canSellAll = sellPrice != 0;
+        this.accepted = accepted;
     }
 
     // shortcut
@@ -111,7 +122,31 @@ public class ActionItemShop extends Action {
             }
         });
 
-        readParent();
+        // accepts
+        Optional<NamespacedKey> acceptedString = yaml.tryFind("accepts", String.class).map(CommodityItem.STRING_TO_KEY);
+        if (acceptedString.isPresent()) {
+            accepted = ImmutableList.of(acceptedString.get());
+        } else {
+            Optional<List<String>> acceptedList = yaml.findList("accepts", String.class);
+            acceptedList.ifPresent(strings -> accepted = strings.stream().map(CommodityItem.STRING_TO_KEY)
+                    .filter(Objects::nonNull)
+                    .collect(ImmutableList.toImmutableList()));
+        }
+
+        // allow changing the item bought/sold
+        Optional<Config> itemOverride = yaml.find("item", Config.class);
+        itemOverride.ifPresent(config -> overrideStack = StaticShopElement.parseItemStack(config));
+        if (overrideStack != null) {
+            parentShop = ShopReference.of(ParseContext.findLatest(Shop.class));
+            // add to item shop
+            ItemShop shop = new ItemShop(this, ConditionConstant.TRUE);
+            getItemShops(overrideStack.getType()).add(shop);
+        } else {
+            if (!readParent()) {
+                WorstShop.get().logger.warning(parentElement.getClass().getSimpleName() + " is not supported! This item shop may not work!");
+                WorstShop.get().logger.warning("Offending action: " + yaml.getPath());
+            }
+        }
     }
 
     public void checkPrices() throws IllegalArgumentException {
@@ -163,23 +198,31 @@ public class ActionItemShop extends Action {
 
         if (!canSellAll && sellPrice != 0)
             map.put("allow-sell-all", false);
+
+        if (accepted.size() != 0) {
+            map.put("accepts", accepted.stream().map(CommodityItem.KEY_TO_STRING).collect(Collectors.toList()));
+        }
+
+        if (overrideStack != null) {
+            map.put("item", StaticShopElement.serializeItemStack(overrideStack, new LinkedHashMap<>()));
+        }
         return map;
     }
 
-    private void readParent() {
+    private boolean readParent() {
         parentShop = ShopReference.of(ParseContext.findLatest(Shop.class));
         ShopElement element = ParseContext.findLatest(ShopElement.class);
         if (parentShop == ShopReference.empty() || element == null)
             throw new IllegalStateException("Couldn't find parent shop / element! Not in parse context?");
         parentElement = element.clone();
 
-        addToItemShop(parentElement);
+        return addToItemShop(parentElement).size() == 0;
     }
 
     private List<ItemShop> addToItemShop(ShopElement element) {
-        if (element instanceof StaticShopElement) {
+        if (element instanceof StaticShopElement staticElem) {
             ItemShop shop = new ItemShop(this, element.condition);
-            getItemShops(((StaticShopElement) element).rawStack.getType()).add(shop);
+            getItemShops(staticElem.rawStack.getType()).add(shop);
             return Collections.singletonList(shop);
         } else if (element instanceof ConditionalShopElement conditional) {
             List<ItemShop> shopsTrue = addToItemShop(conditional.elementTrue);
@@ -208,9 +251,14 @@ public class ActionItemShop extends Action {
     }
 
     public ItemStack getTargetItemStack(Player player) {
-        return parentElement instanceof StaticShopElement sse ?
-                sse.createPlaceholderStack(player) :
-                parentElement.createStack(player);
+        if (overrideStack != null) {
+            PlaceholderContext context = PlaceholderContext.guessContext(player);
+            return Placeholders.setPlaceholders(overrideStack, context);
+        } else {
+            return parentElement instanceof StaticShopElement sse ?
+                    sse.createPlaceholderStack(player) :
+                    parentElement.createStack(player);
+        }
     }
 
     // builds the actual shops used for displaying the GUI
@@ -226,9 +274,10 @@ public class ActionItemShop extends Action {
 
     public ActionShop buildSellShop(Player player) {
         double discount = getDiscount(player);
+        ItemStack target = getTargetItemStack(player);
         return sellPrice > 0 ?
                 new ActionShop(
-                        new CommodityItem(getTargetItemStack(player)).setItemMatchers(itemMatchers),
+                        new CommodityItem(target, accepted, target.getAmount(), 1).setItemMatchers(itemMatchers),
                         new CommodityMoney(sellPrice * discount),
                         sellLimitTemplate, sellLimit, Integer.MAX_VALUE
                 ) : null;
