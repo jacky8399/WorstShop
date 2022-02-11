@@ -159,7 +159,7 @@ public class Shop implements ParseContext.NamedContext {
         try {
             ParseContext.pushContext(inst);
 
-            Config config = new Config(new Yaml().load(new FileReader(file)), null, "ROOT");
+            Config config = new Config(new Yaml().load(new FileReader(file)), null, "[" + shopName + ".yml]");
 
             config.find("extends", String.class).ifPresent(templateId -> {
                 // self-reference check

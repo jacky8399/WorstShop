@@ -1,6 +1,7 @@
 package com.jacky8399.worstshop.shops.rendering;
 
 import com.google.common.collect.ImmutableList;
+import com.jacky8399.worstshop.helper.ItemUtils;
 import com.jacky8399.worstshop.shops.Shop;
 import com.jacky8399.worstshop.shops.ShopReference;
 import com.jacky8399.worstshop.shops.elements.ShopElement;
@@ -150,18 +151,24 @@ public class ShopRenderer implements InventoryProvider, RenderingLayer {
 
     public void apply(Player player, InventoryContents contents) {
         RENDERING = this;
-        Map<SlotPos, RenderElement> result = render(this, contents.pagination().getPage());
-        result.forEach((var pos, @Nullable var info) -> {
-            if (info == null || info.stack() == null) {
-                contents.set(pos, null); // to clear old pagination items
-                return;
-            }
-            contents.set(pos, info.clickableItem(this));
-            // TODO do I really need to store the flags on each element??
-            if (info.flags().contains(RenderingFlag.UPDATE_NEXT_TICK)) {
-                toUpdateNextTick.add(info);
-            }
-        });
+        try {
+            Map<SlotPos, RenderElement> result = render(this, contents.pagination().getPage());
+            result.forEach((var pos, @Nullable var info) -> {
+                if (info == null || info.stack() == null) {
+                    contents.set(pos, null); // to clear old pagination items
+                    return;
+                }
+                contents.set(pos, info.clickableItem(this));
+                // TODO do I really need to store the flags on each element??
+                if (info.flags().contains(RenderingFlag.UPDATE_NEXT_TICK)) {
+                    toUpdateNextTick.add(info);
+                }
+            });
+        } catch (Exception e) {
+            RuntimeException wrapped = new RuntimeException("Rendering shop " + shop.id, e);
+            ClickableItem item = ItemUtils.getClickableErrorItem(wrapped);
+            contents.fill(item);
+        }
         RENDERING = null;
     }
 

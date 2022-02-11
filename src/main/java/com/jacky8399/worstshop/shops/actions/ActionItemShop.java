@@ -216,7 +216,7 @@ public class ActionItemShop extends Action {
             throw new IllegalStateException("Couldn't find parent shop / element! Not in parse context?");
         parentElement = element.clone();
 
-        return addToItemShop(parentElement).size() == 0;
+        return addToItemShop(parentElement).size() != 0;
     }
 
     private List<ItemShop> addToItemShop(ShopElement element) {
