@@ -16,7 +16,7 @@ public class Commands {
 
         // enable unstable APIs
         manager.enableUnstableAPI("help");
-        manager.enableUnstableAPI("brigadier");
+//        manager.enableUnstableAPI("brigadier");
 
         // register commands
         try {
