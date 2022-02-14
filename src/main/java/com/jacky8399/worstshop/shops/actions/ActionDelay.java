@@ -32,9 +32,7 @@ public class ActionDelay extends Action {
         }
         if (delay <= 0)
             throw new ConfigException("delay cannot be less than 0", yaml, "delay");
-        actions = yaml.getList("actions", Config.class).stream()
-                .map(Action::fromConfig)
-                .collect(ImmutableList.toImmutableList());
+        actions = ImmutableList.copyOf(yaml.getList("actions", Action.class));
     }
 
     public ActionDelay(int delay, List<Action> actions) {

@@ -35,13 +35,14 @@ public abstract class Commodity {
         PRESETS.put("points", CommodityPlayerPoint::new);
         PRESETS.put("exp", CommodityExp::new);
         PRESETS.put("free", yaml -> CommodityFree.INSTANCE);
-        PRESETS.put("perm", yaml -> {
+        PRESETS.put("permission", yaml -> {
             try {
                 return new CommodityPermission(yaml);
             } catch (IllegalStateException e) {
                 return new CommodityPermissionVault(yaml);
             }
         });
+        PRESETS.put("perm", PRESETS.get("permission"));
     }
 
     public static Commodity fromMap(Config config) {
@@ -49,7 +50,7 @@ public abstract class Commodity {
             registerPresets();
         }
 
-        String type = config.find("preset", String.class).orElseGet(()->config.get("type", String.class));
+        String type = config.find("type", String.class).orElseGet(()->config.get("preset", String.class));
         Commodity commodity;
         if ("_debug_exception_grant_".equals(type)) {
             commodity = new CommodityAction(Collections.emptyList()) {

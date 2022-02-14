@@ -2,6 +2,8 @@ package com.jacky8399.worstshop.helper;
 
 import com.google.common.collect.ImmutableMap;
 import com.jacky8399.worstshop.PluginConfig;
+import com.jacky8399.worstshop.shops.actions.Action;
+import com.jacky8399.worstshop.shops.conditions.Condition;
 import com.jacky8399.worstshop.shops.elements.ShopElement;
 import net.md_5.bungee.api.ChatColor;
 import net.md_5.bungee.api.chat.BaseComponent;
@@ -34,6 +36,16 @@ public final class ConfigHelper {
     public static <T, C> void registerConfigDeserializer(Class<T> clazz, Map<Class<? extends C>, Function<?, T>> functionMap) {
         Class<?>[] classes = functionMap.keySet().toArray(new Class[0]);
         configDeserializers.put(clazz, new ConfigDeserializer(classes, (Map) functionMap));
+    }
+
+    public static void registerDefaultDeserializers() {
+        ConfigHelper.registerConfigDeserializer(Action.class, ImmutableMap.of(
+                Config.class, (Config config) -> Action.fromConfig(config),
+                String.class, (String string) -> Action.fromCommand(string)));
+
+        ConfigHelper.registerConfigDeserializer(Condition.class, ImmutableMap.of(
+                Config.class, (Config config) -> Condition.fromMap(config),
+                String.class, (String string) -> Condition.fromShorthand(string)));
     }
 
     @NotNull

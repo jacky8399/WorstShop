@@ -33,7 +33,7 @@ public class ShopManager {
     /**
      * Default shops that will be generated
      */
-    private static final String[] defaultShops = {""};
+    private static final String[] defaultShops = {"default.yml", "shops/base.yml", "shops/blocks.yml", "shops/misc.yml"};
 
     public static Optional<Shop> getShop(String id) {
         return Optional.ofNullable(SHOPS.get(id));
@@ -167,7 +167,33 @@ public class ShopManager {
         // walk through all shops
         File shops = new File(plugin.getDataFolder(), "shops");
         String shopsFolderPath = shops.getAbsolutePath();
-        if (shops.exists() && shops.isDirectory()) {
+        if (!shops.isDirectory()) {
+            logger.info("/shops/ folder does not exist. Saving default shops.");
+            if (shops.mkdirs()) {
+                for (String defaultShop : defaultShops) {
+                    File destFile = new File(shops, defaultShop);
+                    // create the necessary folder structure
+                    File parentFile = destFile.getParentFile();
+                    if (parentFile != null)
+                        parentFile.mkdirs();
+                    try (InputStream in = plugin.getResource("examples/" + defaultShop);
+                         FileOutputStream out = new FileOutputStream(destFile)) {
+                        if (in == null) {
+                            logger.warning("Couldn't load default shop " + defaultShop);
+                            continue;
+                        }
+                        byte[] bytes = in.readAllBytes();
+                        out.write(bytes);
+                    } catch (IOException e) {
+                        logger.warning("Couldn't save default shop " + defaultShop + ": " + e);
+                    }
+                }
+            } else {
+                logger.severe("Failed to create /shops/ folder.");
+            }
+        }
+
+        if (shops.isDirectory()) {
             // iterate through shops
             for (File shopFile : listFilesRecursively(shops, new ArrayList<>())) {
                 String shopPath = shopFile.getAbsolutePath();
@@ -187,7 +213,7 @@ public class ShopManager {
                 } catch (Exception e) {
                     RuntimeException wrapped = new RuntimeException("Loading shop " + currentShopId, e);
                     String id = Exceptions.logException(wrapped);
-                    logger.severe("Unhandled exception while loading " + currentShopId + ".yml");
+                    logger.severe("Unhandled exception while loading " + currentShopId + ".yml: " + e);
                     logger.severe("The exception has been logged as " + id);
                 }
             }
@@ -198,26 +224,6 @@ public class ShopManager {
             ShopCommands.loadAliases();
 
             logger.info("Loaded " + SHOPS.size() + " shops");
-        } else {
-            logger.info("/shops/ folder does not exist. Saving default shops.");
-            if (shops.mkdirs()) {
-                for (String defaultShop : defaultShops) {
-                    File destFile = new File(shops, defaultShop);
-                    try (InputStream in = plugin.getResource("examples/" + defaultShop);
-                         FileOutputStream out = new FileOutputStream(destFile)) {
-                        if (in == null) {
-                            logger.warning("Couldn't load default shop " + defaultShop);
-                            continue;
-                        }
-                        byte[] bytes = in.readAllBytes();
-                        out.write(bytes);
-                    } catch (IOException e) {
-                        logger.warning("Couldn't save default shop " + defaultShop);
-                    }
-                }
-            } else {
-                logger.severe("Failed to create /shops/ folder.");
-            }
         }
     }
 }

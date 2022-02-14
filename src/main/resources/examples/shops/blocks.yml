@@ -30,6 +30,7 @@ items:
     # See more about commodities below
     condition:
       preset: commodity
+      # You have to use 'type' here because of the name conflict
       type: item
       item: stone
       count: 10
@@ -84,6 +85,7 @@ items:
         cost:
           # Use a list to specify multiple commodities
           # Also works for rewards
+          # Note that you can use 'preset' or 'type' here unlike in conditions
           - type: item
             item: sand
             # 'amount' can be greater than max stack size

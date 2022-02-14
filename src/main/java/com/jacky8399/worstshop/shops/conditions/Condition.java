@@ -1,10 +1,8 @@
 package com.jacky8399.worstshop.shops.conditions;
 
-import com.google.common.collect.ImmutableMap;
 import com.jacky8399.worstshop.WorstShop;
 import com.jacky8399.worstshop.helper.Config;
 import com.jacky8399.worstshop.helper.ConfigException;
-import com.jacky8399.worstshop.helper.ConfigHelper;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 
@@ -13,20 +11,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.BinaryOperator;
-import java.util.function.Function;
 import java.util.function.Predicate;
 
 /**
  * Represents a player predicate
  */
 public abstract class Condition implements Predicate<Player> {
-
-    static {
-        Map<Class<?>, Function<?, Condition>> map = ImmutableMap.of(Config.class, (Config config) -> Condition.fromMap(config),
-                String.class, (String string) -> Condition.fromShorthand(string));
-        ConfigHelper.registerConfigDeserializer(Condition.class, map);
-    }
-
     public static Condition fromShorthand(String string) {
         if (ConditionPlaceholder.SHORTHAND_PATTERN.matcher(string).matches()) {
             return new ConditionShorthand(string, ConditionPlaceholder.fromShorthand(string));
@@ -92,7 +82,7 @@ public abstract class Condition implements Predicate<Player> {
             case "placeholder" -> new ConditionPlaceholder(yaml);
             case "permission" -> new ConditionPermission(yaml.get("permission", String.class));
             case "true", "false" -> ConditionConstant.valueOf(Boolean.parseBoolean((String) preset.get()));
-            default -> throw new IllegalArgumentException("Unknown condition preset " + preset);
+            default -> throw new IllegalArgumentException("Unknown condition preset " + preset.get());
         };
     }
 

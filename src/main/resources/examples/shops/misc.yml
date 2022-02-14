@@ -1,9 +1,18 @@
 # This example shop file demonstrates the following features:
 # - Examples of other types of commodities
+# - Command aliases
 
 title: "&bOthers"
 extends: shops/base
 parent: default
+
+# A comma-delimited list of command aliases that will open this shop
+alias: menucommand
+# Whether the aliases would ignore permissions and conditions
+
+# Shops can also have conditions
+# condition: ...
+
 items:
   - condition: group.newbie
     item: barrier
@@ -12,6 +21,12 @@ items:
       - "&cClick here to remove your newbie rank with some... processing fees!"
     actions:
       - preset: transaction
+        # Max number of purchases per click
+        # max-purchase is a way to limit the number of purchases for every click
+        # Also works for shops
+        # Since transaction skips the GUI, it always tries to maximize the number of purchases!!!!
+        # If you don't want players paying millions of dollars for the same result, remember to configure max-purchase!!!
+        max-purchase: 1
         cost: $10000
         reward:
           # Vault integration with other permission plugins is not tested
@@ -38,10 +53,6 @@ items:
       - "&eLasts for 1 hour"
     actions:
       - preset: shop
-        # Max number of purchases per click
-        # max-purchase is a way to limit the number of purchases for every click
-        # Also works for transaction actions
-        # (Since transaction skips the GUI, it always tries to maximize the number of purchases)
         max-purchase: 1
         cost:
           preset: free
@@ -62,7 +73,7 @@ items:
           - preset: action
             actions:
               - preset: close
-          - preset: commands
+          - preset: command
             commands:
               # Commands should begin with a slash, otherwise the player would send the chat message
               - '/broadcast Check out {player}''s new prefix!'

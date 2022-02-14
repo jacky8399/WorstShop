@@ -13,7 +13,7 @@ import org.bukkit.entity.Player;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
-import java.util.function.BiConsumer;
+import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
@@ -116,14 +116,15 @@ public class ShopRenderer implements InventoryProvider, RenderingLayer {
             });
         }
 
-        BiConsumer<SlotPos, RenderElement> addToElements = (pos, element) -> {
+        BiFunction<SlotPos, RenderElement, Boolean> addToElements = (pos, element) -> {
             if (element == null || !element.owner().condition.test(player))
-                return;
+                return false;
             elements.put(pos, element);
+            return true;
         };
 
         fillOutline(context);
-        outline.forEach(addToElements);
+        outline.forEach(addToElements::apply);
         // pagination
         // find empty slots
         List<SlotPos> emptySlots = new ArrayList<>();
@@ -134,15 +135,19 @@ public class ShopRenderer implements InventoryProvider, RenderingLayer {
             }
         }
         if (emptySlots.size() != 0) {
+            ListIterator<SlotPos> emptySlotIterator = emptySlots.listIterator();
             this.page = page;
             this.maxPage = (int) Math.ceil((double) paginationItems.size() / emptySlots.size());
 
             int start = page * emptySlots.size(), end = Math.min(start + emptySlots.size(), paginationItems.size());
             if (start < end) {
                 List<RenderElement> elementsDisplayed = paginationItems.subList(start, end);
-                for (int i = 0; i < elementsDisplayed.size(); i++) {
-                    SlotPos slot = emptySlots.get(i);
-                    addToElements.accept(slot, elementsDisplayed.get(i));
+                SlotPos slot = emptySlotIterator.next();
+                for (RenderElement renderElement : elementsDisplayed) {
+                    if (addToElements.apply(slot, renderElement)) {
+                        // only consume slot if condition test passes
+                        slot = emptySlotIterator.next();
+                    }
                 }
             }
         }

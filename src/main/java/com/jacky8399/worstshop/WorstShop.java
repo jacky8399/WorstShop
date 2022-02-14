@@ -3,6 +3,7 @@ package com.jacky8399.worstshop;
 import co.aikar.commands.PaperCommandManager;
 import com.jacky8399.worstshop.commands.Commands;
 import com.jacky8399.worstshop.events.Events;
+import com.jacky8399.worstshop.helper.ConfigHelper;
 import com.jacky8399.worstshop.helper.InventoryUtils;
 import com.jacky8399.worstshop.helper.PaperHelper;
 import com.jacky8399.worstshop.shops.ShopManager;
@@ -64,6 +65,8 @@ public final class WorstShop extends JavaPlugin {
         plugin = this;
 
         logger = getLogger();
+
+        ConfigHelper.registerDefaultDeserializers();
 
         saveDefaultConfig();
         reloadConfig();

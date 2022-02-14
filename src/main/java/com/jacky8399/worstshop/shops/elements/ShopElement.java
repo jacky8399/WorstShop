@@ -108,11 +108,7 @@ public abstract class ShopElement implements Cloneable, ParseContext.NamedContex
                 });
 
         // Action parsing
-        element.actions = config.findList("actions", Config.class, String.class).orElseGet(ArrayList::new).stream()
-                .map(obj -> obj instanceof Config ?
-                        Action.fromConfig((Config) obj) :
-                        Action.fromCommand(obj.toString()))
-                .collect(Collectors.toList());
+        element.actions = config.findList("actions", Action.class).orElseGet(ArrayList::new);
 
         // variables
         config.find("variables", Config.class)

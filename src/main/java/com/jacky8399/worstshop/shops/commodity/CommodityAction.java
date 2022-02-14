@@ -29,9 +29,7 @@ public class CommodityAction extends Commodity implements IUnaffordableCommodity
 
     public List<Action> actions;
     public CommodityAction(Config yaml) {
-        actions = yaml.getList("actions", Config.class).stream()
-                .map(Action::fromConfig)
-                .collect(Collectors.toList());
+        actions = yaml.getList("actions", Action.class);
     }
 
     public CommodityAction(List<? extends Action> actions) {

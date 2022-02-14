@@ -5,7 +5,7 @@
 title: ''
 items:
   # Outline
-  - item: black stained glass
+  - item: black stained glass pane
     name: "&0"
     fill: border 1
   - item: player head
@@ -41,6 +41,7 @@ items:
     then:
       item: grass block
       name: "&aBlocks"
+      pos: 0,1
       enchants:
         protection: 1
 
@@ -51,12 +52,14 @@ items:
     else:
       item: grass block
       name: "&aBlocks"
+      pos: 0,1
       actions:
         - preset: open! shops/blocks
   - if: "!shop! == shops/misc"
     then:
       item: lava bucket
       name: "&aOthers"
+      pos: 0,2
       enchants:
         protection: 1
       hide:
@@ -64,5 +67,6 @@ items:
     else:
       item: lava bucket
       name: "&aOthers"
+      pos: 0,2
       actions:
         - preset: open! shops/misc

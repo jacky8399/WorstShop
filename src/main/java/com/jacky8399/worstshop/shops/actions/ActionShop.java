@@ -212,7 +212,7 @@ public class ActionShop extends Action {
         PlayerPurchases records = PlayerPurchases.getCopy(player);
         PlayerPurchases.RecordStorage storage = records.applyTemplate(purchaseLimitTemplate);
         int totalPurchases = storage.getTotalPurchases();
-        return Math.max(1, Math.min(maxPurchase, purchaseLimit - totalPurchases));
+        return Math.min(maxPurchase, purchaseLimit - totalPurchases);
     }
 
     // The overall
@@ -342,28 +342,7 @@ public class ActionShop extends Action {
                             .name(I18n.translate("worstshop.messages.shops.buttons.cancel"))
                             .build(), e -> contents.inventory().close(player)
             ));
-            // purchase limit
-            if (shop.purchaseLimitTemplate != null) {
-                List<String> lore = new ArrayList<>();
-                // header
-                lore.add(I18n.translate(I18n.Keys.MESSAGES_KEY + "shops.buttons.purchase-limit.limit",
-                        shop.purchaseLimit, DateTimeUtils.formatTime(shop.purchaseLimitTemplate.retentionTime())));
-                lore.add(I18n.translate(I18n.Keys.MESSAGES_KEY + "shops.buttons.purchase-limit.previous-purchases"));
-                var records = PlayerPurchases.getCopy(player).applyTemplate(shop.purchaseLimitTemplate);
-
-                // entries
-                LocalDateTime now = LocalDateTime.now();
-                records.getEntries().stream()
-                        .map(entry -> PREVIOUS_PURCHASE_ENTRY.apply(
-                                entry.getValue(),
-                                DateTimeUtils.formatTime(Duration.between(entry.getKey(), now))
-                        ))
-                        .forEach(lore::add);
-                contents.set(5, 0, ItemBuilder.of(Material.CLOCK)
-                        .name(I18n.translate(I18n.Keys.MESSAGES_KEY + "shops.buttons.purchase-limit.name"))
-                        .lore(lore).toEmptyClickable()
-                );
-            }
+            updatePurchaseLimit(player, contents);
             // maximize purchase button
             if (cost.canMultiply() && reward.canMultiply() && shop.maxPurchase != 1)
                 contents.set(5, 8, ItemBuilder.of(Material.HOPPER)
@@ -527,13 +506,8 @@ public class ActionShop extends Action {
         }
 
         protected void updateCanAfford(Player player, InventoryContents contents) {
-            if (cost.multiply(buyCount).canAfford(player) && buyCount <= shop.getShopMaxPurchase(player)) {
-                // green
-                contents.fillRow(3, GREEN);
-            } else {
-                // red
-                contents.fillRow(3, RED);
-            }
+            boolean canBuy = cost.multiply(buyCount).canAfford(player) && buyCount <= shop.getShopMaxPurchase(player);
+            contents.fillRow(3, canBuy ? GREEN : RED);
         }
 
         final int calculateItemColumn() {
@@ -561,7 +535,35 @@ public class ActionShop extends Action {
 
             // also update item lol
             if (animationSequence == 3) {
+                // regularly refresh these too
+                updatePurchaseLimit(player, contents);
+                updateCanAfford(player, contents);
                 updateCommodities(player, contents, true);
+            }
+        }
+
+        protected void updatePurchaseLimit(Player player, InventoryContents contents) {
+            // purchase limit
+            if (shop.purchaseLimitTemplate != null) {
+                var records = PlayerPurchases.getCopy(player).applyTemplate(shop.purchaseLimitTemplate);
+                List<String> lore = new ArrayList<>(records.getEntries().size() + 2);
+                // header
+                lore.add(I18n.translate(I18n.Keys.MESSAGES_KEY + "shops.buttons.purchase-limit.limit",
+                        shop.purchaseLimit, DateTimeUtils.formatTime(shop.purchaseLimitTemplate.retentionTime())));
+                lore.add(I18n.translate(I18n.Keys.MESSAGES_KEY + "shops.buttons.purchase-limit.previous-purchases"));
+
+                // entries
+                LocalDateTime now = LocalDateTime.now();
+                records.getEntries().stream()
+                        .map(entry -> PREVIOUS_PURCHASE_ENTRY.apply(
+                                entry.getValue(),
+                                DateTimeUtils.formatTime(Duration.between(entry.getKey(), now))
+                        ))
+                        .forEach(lore::add);
+                contents.set(5, 0, ItemBuilder.of(Material.CLOCK)
+                        .name(I18n.translate(I18n.Keys.MESSAGES_KEY + "shops.buttons.purchase-limit.name"))
+                        .lore(lore).toEmptyClickable()
+                );
             }
         }
     }

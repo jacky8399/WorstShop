@@ -16,7 +16,7 @@ rows: 3
 items:
   # The item ID (Required)
   # Spaces are converted to underscores for ease of input
-  - item: black stained glass
+  - item: black stained glass pane
     # The internal ID of the item (Optional)
     # Some error messages may use this internal ID
     id: "filler_item"
@@ -100,7 +100,7 @@ items:
       # Opens a book. Supports JSON
       - preset: book
         pages:
-          - '{"text":"Click to open our website!","underlined":true,"color":"dark_green","clickEvent":{"action":"open_url","value":"example.com"}}'
+          - '{"text":"Click to open our website!","underlined":true,"color":"dark_green","clickEvent":{"action":"open_url","value":"https://example.com"}}'
 
   - item: command block
     name: "&4Helper features"

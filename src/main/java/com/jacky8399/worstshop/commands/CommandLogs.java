@@ -28,6 +28,11 @@ import static com.jacky8399.worstshop.I18n.translate;
 @CommandPermission("worstshop.command.log")
 public class CommandLogs extends BaseCommand {
 
+    public CommandLogs() {
+        manager.getCommandCompletions().registerCompletion("error_hash_ids", ctx -> Exceptions.exceptions.keySet());
+//        manager.getCommandCompletions().registerCompletion("purchase_record_ids", ctx -> );
+    }
+
     @CommandAlias("worstshoplog|worstshoplogs|shoplog|shoplogs")
     public class Inner extends BaseCommand {
         @Subcommand("error")
@@ -54,6 +59,7 @@ public class CommandLogs extends BaseCommand {
             }
 
             @Subcommand("show")
+            @CommandCompletion("@error_hash_ids full")
             public void showError(CommandSender sender, String hash, @Optional String full) {
                 boolean showFull = "full".equalsIgnoreCase(full);
                 Exceptions.ExceptionLog log = Exceptions.exceptions.get(hash);

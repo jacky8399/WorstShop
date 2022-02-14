@@ -43,7 +43,7 @@ public abstract class Action implements Cloneable {
     }
 
     private EnumSet<ClickType> matchShopTrigger(String input, boolean canUseWildcard) {
-        input = input.trim().toLowerCase(Locale.ROOT);
+        input = input.trim().replace(' ', '_').toLowerCase(Locale.ROOT);
         switch (input) {
             case "*":
                 if (canUseWildcard)
@@ -72,7 +72,7 @@ public abstract class Action implements Cloneable {
             case "open":
                 return new ActionOpen(classArgument);
             default:
-                return null;
+                throw new IllegalArgumentException("Invalid shorthand " + classSpecifier);
         }
     }
 

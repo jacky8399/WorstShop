@@ -84,13 +84,17 @@ public final class Config {
                             if (clazz.isInstance(result)) {
                                 return (T) result;
                             }
-                        } catch (Exception ignored) {
+                        } catch (Exception ex) {
+                            if (ex instanceof ConfigException)
+                                throw ex;
+                            else
+                                throw new ConfigException("Failed to create " + nameClass(clazz), this, path, ex);
                         }
                     }
                 }
             }
         }
-        // cannot throw an exception
+        // don't throw if none matches to allow further processing
         return null;
     }
 
@@ -234,7 +238,8 @@ public final class Config {
                         }
                         if (newChild == null)
                             throw new ConfigException("Expected " + stringifyListTypes(classes) + " at " + key +
-                                    ", but found " + nameClass(child.getClass()) + " at " + nameOrdinal(index + 1) + " element", this);
+                                    ", but found " + nameClass(child.getClass()) +
+                                    " at " + nameOrdinal(index + 1) + " element", this, key + "[" + index + "]");
                     }
                     return newList;
                 });
