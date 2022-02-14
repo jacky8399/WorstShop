@@ -6,6 +6,7 @@ import com.jacky8399.worstshop.WorstShop;
 import com.jacky8399.worstshop.editor.Property;
 import com.jacky8399.worstshop.helper.Config;
 import com.jacky8399.worstshop.helper.ConfigHelper;
+import com.jacky8399.worstshop.helper.ItemUtils;
 import com.jacky8399.worstshop.shops.ParseContext;
 import com.jacky8399.worstshop.shops.ShopReference;
 import com.jacky8399.worstshop.shops.actions.Action;
@@ -124,10 +125,16 @@ public abstract class ShopElement implements Cloneable, ParseContext.NamedContex
     }
 
     public void onClick(InventoryClickEvent e) {
-        for (Action action : actions) {
-            if (action.shouldTrigger(e)) {
-                action.onClick(e);
+        try {
+            for (Action action : actions) {
+                if (action.shouldTrigger(e)) {
+                    action.onClick(e);
+                }
             }
+        } catch (Exception ex) {
+            RuntimeException wrapped = new RuntimeException("Processing click " + e.getClick() + " for " + e.getWhoClicked().getName(), ex);
+            ItemStack stack = ItemUtils.getErrorItem(wrapped);
+            e.setCurrentItem(stack);
         }
     }
 

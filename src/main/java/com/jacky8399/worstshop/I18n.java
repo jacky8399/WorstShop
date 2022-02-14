@@ -65,7 +65,11 @@ public class I18n {
 
     public static void changeLang(String lang) {
         if (!langs.containsKey(lang)) {
-            throw new IllegalArgumentException(lang);
+            plugin.logger.severe("Failed to find lang/" + lang + ".yml, using bundled default values instead.");
+            I18n.lang = YamlConfiguration.loadConfiguration(new InputStreamReader(plugin.getResource("en.yml")));
+            currentLang = "en";
+            translatables.values().forEach(Translatable::update);
+            return;
         }
         I18n.lang = langs.get(lang);
         currentLang = lang;

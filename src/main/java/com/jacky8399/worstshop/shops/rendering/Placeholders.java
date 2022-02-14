@@ -29,9 +29,11 @@ public class Placeholders {
 
         if (context.player() != null)
             input = input.replace("{player}", context.player().getName());
-        if (context.renderer() != null && (input.contains("!page!") || input.contains("!max_page!")))
+        if (context.renderer() != null && input.indexOf('!') > -1) {
             input = input.replace("!page!", Integer.toString(context.renderer().page + 1))
-                    .replace("!max_page!", Integer.toString(context.renderer().maxPage));
+                    .replace("!max_page!", Integer.toString(context.renderer().maxPage))
+                    .replace("!shop!", context.renderer().shop.id);
+        }
         // shop and element variables
         Matcher matcher = SHOP_VARIABLE_PATTERN.matcher(input);
         input = matcher.replaceAll(result -> {

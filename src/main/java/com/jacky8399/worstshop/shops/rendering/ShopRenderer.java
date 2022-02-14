@@ -196,6 +196,8 @@ public class ShopRenderer implements InventoryProvider, RenderingLayer {
             contents.setProperty("ticksSinceUpdate", ticksElapsed);
         }
         if (!updated && contents.pagination().getPage() != page) {
+            // update page number in placeholders
+            page = contents.pagination().getPage();
             clearAll(contents);
             apply(player, contents);
             updated = true;

@@ -3,7 +3,6 @@ package com.jacky8399.worstshop;
 import org.bukkit.configuration.file.FileConfiguration;
 
 import java.util.regex.Pattern;
-import java.util.regex.PatternSyntaxException;
 
 public class PluginConfig {
 
@@ -14,8 +13,7 @@ public class PluginConfig {
         String rgbRegexString = config.getString("rgb-regex");
         try {
             rgbRegex = Pattern.compile(rgbRegexString);
-        } catch (PatternSyntaxException e) {
-            e.printStackTrace();
+        } catch (Exception e) {
             rgbRegex = Pattern.compile("&#([A-Za-z0-9]{6})");
         }
     }

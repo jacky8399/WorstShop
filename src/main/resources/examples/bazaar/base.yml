@@ -1,3 +1,36 @@
 # This example shop file demonstrates the following features:
-# -
-#
+# - Placeholders
+# - Pagination
+title: ''
+items:
+  # Outline
+  - item: black stained glass
+    name: "&0"
+    fill: border 1
+  - item: player head
+    # In addition to PlaceholderAPI placeholders, there are also special internal placeholders
+    # {player} - the current player viewing the shop
+    # !shop! - the current shop ID
+    # !page! - the current page
+    # !max_page! - the max page
+    name: "&eWelcome, {player}!"
+    skull: "{player}"
+    pos: 4,5
+    lore:
+      - "&6Your balance: %vault_eco_balance_formatted%"
+  # Pagination happens when one or more elements don't have a slot filler or absolute position
+  # These items are rendered last, and the player can then switch between pages using the following actions
+  # To see this in action, see bazaar/blocks which extends this shop
+  - item: arrow
+    name: "&aPrevious page"
+    actions:
+      - preset: previous page
+    pos: 6,5
+  - item: paper
+    name: "&f!page!/!max_page!"
+    pos: 7,5
+  - item: arrow
+    name: "&aNext page"
+    actions:
+      - preset: next page
+    pos: 8,5

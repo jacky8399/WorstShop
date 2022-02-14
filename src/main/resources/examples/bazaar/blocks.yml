@@ -1,3 +1,134 @@
 # This example shop file demonstrates the following features:
-# -
-#
+# - Extends and parent shop
+# - More conditions
+# - Shops
+# - Item shops
+# - Player shops
+title: "&bBlocks"
+# When a shop extends another shop, elements from that shop are inherited
+extends: bazaar/base
+# Parent shop indicates the shop the player would navigate to when the GUI is closed
+# Use action preset close to close and not open the parent shop
+# Use 'auto' to automatically navigate to the opener
+# Use the shop ID to create a non-closable shop that can only be closed with actions
+parent: default
+
+# The shop would refresh (re-render) every 60 ticks
+update-interval: 60
+items:
+  - item: paper
+    name: "&aRefresh conditions/placeholders"
+    pos: 5,5
+    actions:
+      - preset: refresh
+  # Note that the following elements don't have a slot filler
+  - item: stone
+    name: "You have 10 stone blocks in your inventory"
+    # commodity - checks whether the player can "afford" the commodity
+    condition:
+      preset: commodity
+      type: item
+      item: stone
+      count: 10
+  - item: grass block
+    name: "You have 2 grass blocks OR 1 beacon, AND 0 iron ingots in your inventory"
+    # for logic (and/or/not); and/or must have a 'conditions' list, not must have a 'condition' element
+    condition:
+      and:
+        - or:
+            - preset: commodity
+              type: item
+              item: grass block
+              count: 2
+            - preset: commodity
+              type: item
+              item: beacon
+        - not:
+            preset: commodity
+            type: item
+            item: iron ingot
+  - item: tnt
+    actions:
+      # Shops (the action)
+      # All shops have a cost and reward, and would open an unnecessarily fancy GUI
+      # where the player can see the cost and reward among other things.
+      # The player can also adjust the number of trades to carry out at once
+      # Of course, the transaction will not proceed if the player cannot "afford" the cost!
+      # Thus, there is no need to guard the element with a condition.
+      - preset: shop
+        # There are different types of commodities ([] indicates the properties available to that type)
+        # item - item, uses the format of all shop elements
+        # exp - experience [levels, points]
+        # money - vault money [money]
+        # command - run commands when purchased [method = (PLAYER_OP / PLAYER / CONSOLE), command, multiplier = no. of times to run the command]
+        # points - player points from PlayerPoints plugin [points]
+        # perm - permission [(permission / group / meta / prefix / suffix), value = true/false, duration = duration in seconds, duration-append = true/false (append to existing temporary timer), revoke = true/false (revoke or check only when set as cost)]
+        # free - no cost
+        #
+        # Of course money would have a shorthand
+        # Formally,
+        # cost:
+        #   preset: money
+        #   money: 1000000
+        cost: "$1000000"
+        # if you omit the cost/reward, it is automatically copied from the parent item (the TNT item in this case)
+  - item: tnt
+    name: "Click here to craft TNT!"
+    actions:
+      - preset: shop # Use 'transaction' to skip the fancy GUI
+        cost:
+          # Use a list to specify multiple commodities
+          # Also works for rewards
+          - type: item
+            item: sand
+            # 'amount' can be greater than max stack size
+            amount: 4
+            # Additionally accept these items as cost
+            # Supports item IDs and item tags prefixed with a # (not block tags!)
+            accepts:
+              - red_sand
+          - type: item
+            item: gunpowder
+            amount: 5
+        reward:
+          type: item
+          item: tnt
+  - item: beacon
+    actions:
+      # 'item shop' is a more specialized version of shop
+      # Items can be bought from/sold to item shops with money
+      # There are also additional benefits, like sell all with middle click,
+      # or the /sell command
+      - preset: item shop
+        buy-price: 10000
+        sell-price: 100
+        # Whether to allow selling all with middle click (default: true)
+        allow-sell-all: false
+        # You can override the item bought/sold
+        # Otherwise it would default to the parent item (the beacon in this case)
+        # item:
+        #  item: stone
+        #  name: aaa
+  - item: beacon
+    actions:
+      - preset: item shop
+        prices: 1000000 100 # short form
+        allow-sell-all: false
+  - item: beacon
+    actions:
+      - preset: item shop! 1000000 100 # even shorter short form
+  - item: sand
+    name: You can only buy 1 every minute
+    actions:
+      - preset: shop
+        cost:
+          type: item
+          item: gravel
+        # Purchase restrictions
+        purchase-limit:
+          # An ID for internal storage. Multiple shops can share the same ID
+          # (Alphanumerical characters and underscores only)
+          id: gravel_to_sand
+          # The number of purchases players are allowed to make in a given period of time
+          limit: 1
+          every: 1m
