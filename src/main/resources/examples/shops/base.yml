@@ -1,6 +1,7 @@
 # This example shop file demonstrates the following features:
 # - Placeholders
 # - Pagination
+# - Additional item formats
 title: ''
 items:
   # Outline
@@ -20,7 +21,7 @@ items:
       - "&6Your balance: %vault_eco_balance_formatted%"
   # Pagination happens when one or more elements don't have a slot filler or absolute position
   # These items are rendered last, and the player can then switch between pages using the following actions
-  # To see this in action, see bazaar/blocks which extends this shop
+  # To see this in action, see shops/blocks which extends this shop
   - item: arrow
     name: "&aPrevious page"
     actions:
@@ -34,3 +35,34 @@ items:
     actions:
       - preset: next page
     pos: 8,5
+
+  # Placeholders are expanded correctly for child shops
+  - if: "!shop! == shops/blocks"
+    then:
+      item: grass block
+      name: "&aBlocks"
+      enchants:
+        protection: 1
+
+      # See https://hub.spigotmc.org/javadocs/bukkit/org/bukkit/inventory/ItemFlag.html
+      # The HIDE_ prefix can be omitted
+      hide:
+        - enchants
+    else:
+      item: grass block
+      name: "&aBlocks"
+      actions:
+        - preset: open! shops/blocks
+  - if: "!shop! == shops/misc"
+    then:
+      item: lava bucket
+      name: "&aOthers"
+      enchants:
+        protection: 1
+      hide:
+        - enchants
+    else:
+      item: lava bucket
+      name: "&aOthers"
+      actions:
+        - preset: open! shops/misc

@@ -1,12 +1,14 @@
 # This example shop file demonstrates the following features:
 # - Extends and parent shop
 # - More conditions
-# - Shops
+# - Shops and commodities
+# - Item matchers
 # - Item shops
 # - Player shops
+
 title: "&bBlocks"
 # When a shop extends another shop, elements from that shop are inherited
-extends: bazaar/base
+extends: shops/base
 # Parent shop indicates the shop the player would navigate to when the GUI is closed
 # Use action preset close to close and not open the parent shop
 # Use 'auto' to automatically navigate to the opener
@@ -24,7 +26,8 @@ items:
   # Note that the following elements don't have a slot filler
   - item: stone
     name: "You have 10 stone blocks in your inventory"
-    # commodity - checks whether the player can "afford" the commodity
+    # Commodity condition - checks whether the player can "afford" the commodity
+    # See more about commodities below
     condition:
       preset: commodity
       type: item
@@ -32,7 +35,8 @@ items:
       count: 10
   - item: grass block
     name: "You have 2 grass blocks OR 1 beacon, AND 0 iron ingots in your inventory"
-    # for logic (and/or/not); and/or must have a 'conditions' list, not must have a 'condition' element
+    # You can create sophisticated logic with and, or and not
+    # and/or requires a list of conditions, while not requires one condition
     condition:
       and:
         - or:
@@ -63,6 +67,7 @@ items:
         # command - run commands when purchased [method = (PLAYER_OP / PLAYER / CONSOLE), command, multiplier = no. of times to run the command]
         # points - player points from PlayerPoints plugin [points]
         # perm - permission [(permission / group / meta / prefix / suffix), value = true/false, duration = duration in seconds, duration-append = true/false (append to existing temporary timer), revoke = true/false (revoke or check only when set as cost)]
+        # action - click actions [actions]
         # free - no cost
         #
         # Of course money would have a shorthand
@@ -124,6 +129,17 @@ items:
         cost:
           type: item
           item: gravel
+          # Item matchers
+          # By default, all properties (except amount) of an item stack must match the desired item stack
+          # This may not be desirable for things like item with engraved player names
+          # You can override the behavior of item matching by specifying the properties to match against the desired stack
+          # equality - all properties (including amount) must match
+          # similar - all properties (except amount) must match
+          # material - item type must match
+          # damage, name, lore, custom_model_data, enchants, plugin_data, skull - you get the point
+          # Note that plugin_data will not work with plugins that use legacy Bukkit APIs or NBT to store data
+          matches:
+            - material
         # Purchase restrictions
         purchase-limit:
           # An ID for internal storage. Multiple shops can share the same ID
@@ -132,3 +148,32 @@ items:
           # The number of purchases players are allowed to make in a given period of time
           limit: 1
           every: 1m
+  - item: diamond ore
+    actions:
+      - preset: item shop
+        prices: 10000 1
+        # Item shops may also have purchase restrictions, accepted items and customized item matchers
+        accepts:
+          - deepslate diamond ore
+        matches:
+          - material
+        purchase-limits:
+          buy: # To have both buy and sell shops share the same purchase restriction, use 'both' instead of 'buy'/'sell'
+            id: diamond_ore_buy
+            limit: 128
+            every: 1d
+          sell:
+            id: diamond_ore_sell
+            limit: 64
+            every: 1h
+  - item: elytra
+    #actions:
+      # 'player shop' is another specialization of shop
+      # It integrates with QuickShop shops and buys/sells from player shops
+      # Profit is maximized by buying from the cheapest shops/selling to the most expensive shops
+      # You can add a fallback item shop, which would be used when no buyers/sellers are found
+      # Note that player shops are always preferred over the fallback shop, even if it is less competitive!
+      # Use the built-in admin shops to compete with player shops
+      #- preset: player shop
+      #  fallback:
+      #    prices: 1000000 0

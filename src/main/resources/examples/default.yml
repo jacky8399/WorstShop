@@ -36,21 +36,21 @@ items:
     #             as there will not be any free space left
     fill: all
   - item: grass block
-    name: "&aBazaar"
+    name: "&aShop"
     # The lore (Optional)
     # Can be a list or a string
     lore:
-      - "&2Click here to visit the bazaar"
-    # (A list of) slots this item should occupy (Optional, see bazaar/blocks for more)
+      - "&2Click here to visit the block shop"
+    # (A list of) slots this item should occupy (Optional, see shops/blocks for more)
     # Accepts x,y or slot ID (0-53)
     pos: 1,1
     # The actions to perform on click (Optional)
     actions:
-      - preset: open! bazaar/blocks
-        # Opens the shop bazaar/blocks
+      - preset: open! shops/blocks
+        # Opens the shop shops/blocks
         # Formally the following, but shorthands are cool
         # preset: open
-        # shop: bazaar/blocks
+        # shop: shops/blocks
         # ignore-conditions: true
   # The following is a conditional element
   # The 'then' section is displayed if the condition specified in the 'if' section evaluates to true

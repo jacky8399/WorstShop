@@ -29,9 +29,9 @@ public abstract class Condition implements Predicate<Player> {
 
     public static Condition fromShorthand(String string) {
         if (ConditionPlaceholder.SHORTHAND_PATTERN.matcher(string).matches()) {
-            return ConditionPlaceholder.fromShorthand(string);
+            return new ConditionShorthand(string, ConditionPlaceholder.fromShorthand(string));
         }
-        return ConditionPermission.fromPermString(string);
+        return new ConditionShorthand(string, ConditionPermission.fromPermString(string));
     }
 
     public static Condition fromMap(Config yaml) {

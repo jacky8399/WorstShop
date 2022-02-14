@@ -421,6 +421,7 @@ public class CommodityItem extends Commodity implements IFlexibleCommodity {
         public static final ItemMatcher DAMAGE = compareProperty("damage", Damageable.class, Damageable::getDamage);
         public static final ItemMatcher NAME = compareProperty("name", ItemMeta::hasDisplayName, ItemMeta::getDisplayName);
         public static final ItemMatcher LORE = compareProperty("lore", ItemMeta::hasLore, ItemMeta::getLore);
+        public static final ItemMatcher CUSTOM_MODEL_DATA = compareProperty("custom_model_data", ItemMeta::hasCustomModelData, ItemMeta::getCustomModelData);
         public static final ItemMatcher ENCHANTS = compareProperty("enchants", ItemMeta::getEnchants);
         public static final ItemMatcher PLUGIN_DATA = compareProperty("plugin_data", ItemMeta::getPersistentDataContainer);
         public static final ItemMatcher SKULL = compareProperty("skull", SkullMeta.class, SkullMeta::getOwningPlayer);

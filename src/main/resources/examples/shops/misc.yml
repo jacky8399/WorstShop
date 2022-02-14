@@ -1,0 +1,72 @@
+# This example shop file demonstrates the following features:
+# - Examples of other types of commodities
+
+title: "&bOthers"
+extends: shops/base
+parent: default
+items:
+  - condition: group.newbie
+    item: barrier
+    name: "&dRemove newbie rank"
+    lore:
+      - "&cClick here to remove your newbie rank with some... processing fees!"
+    actions:
+      - preset: transaction
+        cost: $10000
+        reward:
+          # Vault integration with other permission plugins is not tested
+          # It is advised to use LuckPerms
+          preset: permission
+          # permission/group/meta/prefix/suffix
+          # prefix/suffix can be a string or an object containing the priority like so:
+          # prefix:
+          #   prefix: &aPlayer
+          #   priority: 100
+          group: newbie
+          # Whether to revoke the permission node (default: false)
+          # If false,
+          # As a cost: will only check for presence of the permission node
+          # As a reward: will grant the permission node
+          # If true,
+          # As a cost: will deduct the permission node
+          # As a reward: will remove the permission node
+          revoke: true
+  - item: firework rocket
+    name: "&aCool prefix"
+    lore:
+      - "&eClick here to get a cool prefix for free!"
+      - "&eLasts for 1 hour"
+    actions:
+      - preset: shop
+        # Max number of purchases per click
+        # max-purchase is a way to limit the number of purchases for every click
+        # Also works for transaction actions
+        # (Since transaction skips the GUI, it always tries to maximize the number of purchases)
+        max-purchase: 1
+        cost:
+          preset: free
+        reward:
+          - preset: permission
+            prefix:
+              prefix: "&5Cheapskate"
+              priority: 1000
+            # Temporary permission nodes only work with LuckPerms
+            duration: 1h
+            # Whether the duration should be added to the existing node if it exists
+            duration-append: true
+            # You can change the item displayed
+            display:
+              # Copies the firework rocket item
+              # You could also specify an item
+              from: parent
+          - preset: action
+            actions:
+              - preset: close
+          - preset: commands
+            commands:
+              # Commands should begin with a slash, otherwise the player would send the chat message
+              - '/broadcast Check out {player}''s new prefix!'
+            # console - run as console
+            # player - run as player
+            # player_op - temporarily OPs the player, then run the command
+            method: console

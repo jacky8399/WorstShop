@@ -49,7 +49,7 @@ public abstract class Commodity {
             registerPresets();
         }
 
-        String type = config.get("type", String.class);
+        String type = config.find("preset", String.class).orElseGet(()->config.get("type", String.class));
         Commodity commodity;
         if ("_debug_exception_grant_".equals(type)) {
             commodity = new CommodityAction(Collections.emptyList()) {
