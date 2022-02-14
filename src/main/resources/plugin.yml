@@ -17,7 +17,6 @@ permissions:
   worstshop.player:
     default: true
     children:
-      worstshop.shops.*: true # Allows opening all shops by default
       worstshop.command.shop: true # Allows using /shop
       worstshop.command.open: true # Allows using /shop [shop]
 
@@ -26,9 +25,9 @@ permissions:
     default: op
     children:
       worstshop.command.*: true
+      worstshop.shops.*: true
 
   worstshop.command.*:
-    default: op
     children:
       worstshop.command.sell.*: true
       worstshop.command.buy.*: true
