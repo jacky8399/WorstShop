@@ -8,15 +8,13 @@ import org.bukkit.entity.Player;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.function.Predicate;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class ConditionPlaceholder extends Condition {
     public final String placeholderStr;
-    private final Internal matcher;
+    private final Comparator matcher;
     public ConditionPlaceholder(Config config) {
-//        if (!WorstShop.get().placeholderAPI) throw new IllegalStateException("PlaceholderAPI not enabled!");
         placeholderStr = config.get("placeholder", String.class);
         Optional<String> regex = config.find("matches", String.class);
         if (regex.isPresent()) {
@@ -26,7 +24,7 @@ public class ConditionPlaceholder extends Condition {
         }
     }
 
-    protected ConditionPlaceholder(String placeholderStr, Internal matcher) {
+    protected ConditionPlaceholder(String placeholderStr, Comparator matcher) {
         this.placeholderStr = placeholderStr;
         this.matcher = matcher;
     }
@@ -40,8 +38,8 @@ public class ConditionPlaceholder extends Condition {
         String placeholderStr = matcher.group(1);
         boolean isNegated = matcher.group(2) != null;
         String format = matcher.group(4);
-        Internal internal = "matches".equals(matcher.group(3)) ? new CompareRegex(format) : new CompareString(format);
-        ConditionPlaceholder condition = new ConditionPlaceholder(placeholderStr, internal);
+        Comparator comparator = "matches".equals(matcher.group(3)) ? new CompareRegex(format) : new CompareString(format);
+        ConditionPlaceholder condition = new ConditionPlaceholder(placeholderStr, comparator);
         condition.isFromShorthand = true;
         return isNegated ? condition.negate() : condition;
     }
@@ -51,7 +49,7 @@ public class ConditionPlaceholder extends Condition {
     public boolean test(Player player) {
         PlaceholderContext context = PlaceholderContext.guessContext(player);
         String replacedPlaceholderStr = Placeholders.setPlaceholders(placeholderStr, context);
-        return matcher.test(replacedPlaceholderStr);
+        return matcher.test(replacedPlaceholderStr, context);
     }
 
     @Override
@@ -82,12 +80,14 @@ public class ConditionPlaceholder extends Condition {
         return other.placeholderStr.equals(placeholderStr) && other.matcher.equals(matcher);
     }
 
-    private static abstract class Internal implements Predicate<String> {
+    private static abstract class Comparator {
+        public abstract boolean test(String s, PlaceholderContext context);
+
         @Override
         public abstract String toString();
     }
 
-    private static class CompareRegex extends Internal {
+    private static class CompareRegex extends Comparator {
         private final Pattern pattern;
         CompareRegex(String pattern) {
             this.pattern = Pattern.compile(pattern, Pattern.UNICODE_CHARACTER_CLASS);
@@ -99,7 +99,7 @@ public class ConditionPlaceholder extends Condition {
         }
 
         @Override
-        public boolean test(String s) {
+        public boolean test(String s, PlaceholderContext context) {
             return pattern.matcher(s).matches();
         }
 
@@ -109,7 +109,7 @@ public class ConditionPlaceholder extends Condition {
         }
     }
 
-    private static class CompareString extends Internal {
+    private static class CompareString extends Comparator {
         private final String string;
         CompareString(String string) {
             this.string = string;
@@ -121,8 +121,9 @@ public class ConditionPlaceholder extends Condition {
         }
 
         @Override
-        public boolean test(String s) {
-            return string.equals(s);
+        public boolean test(String s, PlaceholderContext context) {
+            String placeholder = Placeholders.setPlaceholders(string, context);
+            return placeholder.equals(s);
         }
 
         @Override
