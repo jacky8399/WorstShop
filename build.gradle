@@ -81,8 +81,8 @@ dependencies {
     implementation "io.papermc:paperlib:1.0.7"
     // Annotations
     compileOnly 'org.jetbrains:annotations:22.0.0'
-    // Configurate
-//    implementation 'org.spongepowered:configurate-yaml:4.1.2'
+    // bStats
+    implementation "org.bstats:bstats-bukkit:3.0.0"
 }
 
 processResources {
@@ -102,6 +102,7 @@ shadowJar {
     relocate 'co.aikar.util', 'com.jacky8399.worstshop.acf.util'
     relocate 'net.jodah.expiringmap', 'com.jacky8399.worstshop.acf.expiringmap'
     relocate "io.papermc.lib", "com.jacky8399.worstshop.paperlib"
+    relocate "org.bstats", "com.jacky8399.worstshop.bstats"
 }
 
 build.dependsOn shadowJar

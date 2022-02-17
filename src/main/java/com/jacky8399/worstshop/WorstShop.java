@@ -16,6 +16,7 @@ import net.milkbowl.vault.chat.Chat;
 import net.milkbowl.vault.economy.Economy;
 import net.milkbowl.vault.permission.Permission;
 import org.black_ixx.playerpoints.PlayerPoints;
+import org.bstats.bukkit.Metrics;
 import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
 import org.bukkit.entity.Player;
@@ -124,6 +125,8 @@ public final class WorstShop extends JavaPlugin {
         Events.registerEvents();
 
         ShopManager.loadShops();
+
+        Metrics metrics = new Metrics(this, 14350);
     }
 
     @Override

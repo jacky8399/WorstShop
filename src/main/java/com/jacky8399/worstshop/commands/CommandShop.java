@@ -8,8 +8,10 @@ import co.aikar.commands.bukkit.contexts.OnlinePlayer;
 import com.jacky8399.worstshop.I18n;
 import com.jacky8399.worstshop.PluginConfig;
 import com.jacky8399.worstshop.WorstShop;
-import com.jacky8399.worstshop.editor.EditorMainMenu;
-import com.jacky8399.worstshop.helper.*;
+import com.jacky8399.worstshop.helper.ConfigHelper;
+import com.jacky8399.worstshop.helper.DateTimeUtils;
+import com.jacky8399.worstshop.helper.ItemUtils;
+import com.jacky8399.worstshop.helper.TextUtils;
 import com.jacky8399.worstshop.shops.Shop;
 import com.jacky8399.worstshop.shops.ShopDiscount;
 import com.jacky8399.worstshop.shops.ShopManager;
@@ -83,7 +85,7 @@ public class CommandShop extends BaseCommand {
         issuer.sendMessage(translate("worstshop.messages.config-reloaded"));
     }
 
-    @Subcommand("version|ver|info")
+    @Subcommand("version")
     @CommandPermission("worstshop.command.shop.version")
     public void showVersion(CommandSender sender) {
         sender.sendMessage(GREEN + "You are running WorstShop " + WorstShop.get().getDescription().getVersion());
@@ -348,10 +350,10 @@ public class CommandShop extends BaseCommand {
     @CommandCompletion("*")
     @CommandPermission("worstshop.command.shop.editor")
     public void openEditor(Player player, @Optional Shop shop) {
-        if (shop == null)
-            EditorMainMenu.getInventory().open(player);
-        else
-            EditorUtils.findAdaptorForClass(Shop.class, shop).onInteract(player, shop, null);
+//        if (shop == null)
+//            EditorMainMenu.getInventory().open(player);
+//        else
+//            EditorUtils.findAdaptorForClass(Shop.class, shop).onInteract(player, shop, null);
     }
 
     @HelpCommand
