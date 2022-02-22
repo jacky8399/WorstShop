@@ -31,8 +31,9 @@ import org.jetbrains.annotations.Nullable;
 import org.yaml.snakeyaml.Yaml;
 
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.FileReader;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
@@ -159,7 +160,9 @@ public class Shop implements ParseContext.NamedContext {
         try {
             ParseContext.pushContext(inst);
 
-            Config config = new Config(new Yaml().load(new FileReader(file)), null, "[" + shopName + ".yml]");
+            // of course you have to specify the charset
+            Config config = new Config(new Yaml().load(new FileReader(file, StandardCharsets.UTF_8)),
+                    null, "[" + shopName + ".yml]");
 
             config.find("extends", String.class).ifPresent(templateId -> {
                 // self-reference check
@@ -217,7 +220,8 @@ public class Shop implements ParseContext.NamedContext {
             if (ParseContext.popContext() != inst) {
                 throw new IllegalStateException("Stack is broken?? " + ParseContext.getHierarchy());
             }
-        } catch (FileNotFoundException e) {
+        } catch (IOException e) {
+            logger.severe("Failed to load shop " + shopName);
             e.printStackTrace();
         } finally {
             ParseContext.clear();

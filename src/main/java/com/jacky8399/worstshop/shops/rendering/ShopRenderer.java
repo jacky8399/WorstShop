@@ -144,7 +144,7 @@ public class ShopRenderer implements InventoryProvider, RenderingLayer {
                 List<RenderElement> elementsDisplayed = paginationItems.subList(start, end);
                 SlotPos slot = emptySlotIterator.next();
                 for (RenderElement renderElement : elementsDisplayed) {
-                    if (addToElements.apply(slot, renderElement)) {
+                    if (addToElements.apply(slot, renderElement) && emptySlotIterator.hasNext()) {
                         // only consume slot if condition test passes
                         slot = emptySlotIterator.next();
                     }
