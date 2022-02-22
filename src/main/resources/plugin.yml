@@ -18,7 +18,7 @@ permissions:
     default: true
     children:
       worstshop.command.shop: true # Allows using /shop
-      worstshop.command.open: true # Allows using /shop [shop]
+      worstshop.command.shop.open: true # Allows using /shop [shop]
 
   # Admin permissions
   worstshop.*:
