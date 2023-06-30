@@ -81,6 +81,16 @@ public class CommandSell extends BaseCommand {
             public @NotNull String getTitle() {
                 return inventory.getType().getDefaultTitle();
             }
+
+            @Override
+            public @NotNull String getOriginalTitle() {
+                return getTitle();
+            }
+
+            @Override
+            public void setTitle(@NotNull String title) {
+
+            }
         };
         if (!skipEventCalls) { // more events
             InventoryOpenEvent e = new InventoryOpenEvent(inventoryView);

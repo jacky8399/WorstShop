@@ -77,6 +77,16 @@ public class CommodityAction extends Commodity implements IUnaffordableCommodity
             public @NotNull String getTitle() {
                 return player.getName();
             }
+
+            @Override
+            public @NotNull String getOriginalTitle() {
+                return player.getName();
+            }
+
+            @Override
+            public void setTitle(@NotNull String title) {
+
+            }
         }, InventoryType.SlotType.CONTAINER, 0, ClickType.UNKNOWN, InventoryAction.UNKNOWN);
     }
 

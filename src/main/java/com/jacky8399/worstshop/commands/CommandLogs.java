@@ -10,10 +10,11 @@ import com.jacky8399.worstshop.helper.TextUtils;
 import net.md_5.bungee.api.ChatColor;
 import net.md_5.bungee.api.chat.*;
 import net.md_5.bungee.api.chat.hover.content.Text;
-import org.apache.commons.lang.exception.ExceptionUtils;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.Comparator;
@@ -68,7 +69,11 @@ public class CommandLogs extends BaseCommand {
                 }
                 LocalDateTime now = LocalDateTime.now();
                 Duration timeElapsed = Duration.between(log.date, now);
-                String stackTrace = ExceptionUtils.getStackTrace(log.exception)
+
+                var stackTraceWriter = new StringWriter();
+                log.exception.printStackTrace(new PrintWriter(stackTraceWriter));
+
+                String stackTrace = stackTraceWriter.toString()
                         .replace("\t", "    ").replace("\r\n", "\n");
                 // make fancy hover component if invoked by player
                 BaseComponent[] showStackTraceComponent = sender instanceof Player ?

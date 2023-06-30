@@ -49,8 +49,8 @@ dependencies {
     // BungeeCord Chat
     compileOnly 'net.md-5:bungeecord-chat:1.16-R0.4'
     // Paper API
-    compileOnly 'io.papermc.paper:paper-api:1.18.1-R0.1-SNAPSHOT'
-    compileOnly 'io.papermc.paper:paper-server:1.18.1-R0.1-SNAPSHOT:mojang-mapped'
+    compileOnly 'io.papermc.paper:paper-api:1.20.1-R0.1-SNAPSHOT'
+//    compileOnly 'io.papermc.paper:paper-server:1.18.1-R0.1-SNAPSHOT:mojang-mapped'
     // Mojang AuthLib
     compileOnly('com.mojang:authlib:1.5.21') {
         transitive = false

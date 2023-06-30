@@ -10,7 +10,6 @@ import com.jacky8399.worstshop.shops.rendering.DefaultSlotFiller;
 import com.jacky8399.worstshop.shops.rendering.PlaceholderContext;
 import com.jacky8399.worstshop.shops.rendering.RenderElement;
 import com.jacky8399.worstshop.shops.rendering.ShopRenderer;
-import org.apache.commons.lang.Validate;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
@@ -28,7 +27,7 @@ public class AnimationShopElement extends DynamicShopElement {
                 .filter(Objects::nonNull)
                 .forEach(elements::add);
         ParseContext.popContext();
-        Validate.notEmpty(elements, "Elements cannot be empty!");
+        if (elements.size() == 0) throw new IllegalArgumentException("Elements cannot be empty!");
     }
 
     public AnimationShopElement(int interval, ShopElement... elements) {

@@ -24,7 +24,6 @@ import com.jacky8399.worstshop.shops.rendering.PlaceholderContext;
 import com.jacky8399.worstshop.shops.rendering.Placeholders;
 import net.md_5.bungee.api.chat.*;
 import net.md_5.bungee.api.chat.hover.content.Text;
-import org.apache.commons.lang.StringUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.command.CommandSender;
@@ -269,7 +268,7 @@ public class CommandShop extends BaseCommand {
                 .create());
         for (String line : yamlString.split("\n")) {
             if (line.contains("item-meta")) {
-                player.spigot().sendMessage(new ComponentBuilder(StringUtils.abbreviate(line, 25)).color(WHITE)
+                player.spigot().sendMessage(new ComponentBuilder(line.length() > 25 ? line.substring(0, 23) + "..." : line).color(WHITE)
                         .event(new HoverEvent(HoverEvent.Action.SHOW_TEXT,
                                 new Text(TextComponent.fromLegacyText("This line is abbreviated!", YELLOW)),
                                 new Text(TextComponent.fromLegacyText("Click to copy line", WHITE))))

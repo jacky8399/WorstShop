@@ -11,8 +11,6 @@ import com.mojang.authlib.properties.PropertyMap;
 import com.mojang.authlib.yggdrasil.YggdrasilAuthenticationService;
 import net.md_5.bungee.api.ChatMessageType;
 import net.md_5.bungee.api.chat.BaseComponent;
-import org.apache.commons.lang.StringUtils;
-import org.apache.commons.lang.WordUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandMap;
@@ -48,7 +46,9 @@ public class PaperHelper {
             return stack.getI18NDisplayName();
         } else {
             // return name from material type
-            return WordUtils.capitalize(stack.getType().toString().replace('_', ' ').toLowerCase());
+            var temp = stack.getType().toString().replace('_', ' ');
+
+            return Character.toUpperCase(temp.charAt(0)) + temp.substring(1);
         }
     }
 
@@ -119,7 +119,7 @@ public class PaperHelper {
         private com.mojang.authlib.GameProfile obj;
 
         public NmsGameProfile(UUID uuid, String name) {
-            if (uuid == null && StringUtils.isBlank(name)) {
+            if (uuid == null && (name == null || name.isBlank())) {
                 throw new IllegalArgumentException("Name and ID cannot both be blank");
             }
             try {
@@ -212,7 +212,7 @@ public class PaperHelper {
     public static class PaperGameProfile extends GameProfile {
         PlayerProfile obj;
         public PaperGameProfile(UUID uuid, String name) {
-            if (uuid == null && StringUtils.isBlank(name)) {
+            if (uuid == null && (name == null || name.isBlank())) {
                 throw new IllegalArgumentException("Name and ID cannot both be blank");
             }
             obj = Bukkit.createProfile(uuid, name);
