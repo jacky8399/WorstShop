@@ -15,10 +15,8 @@ import fr.minuskube.inv.SmartInventory;
 import fr.minuskube.inv.content.InventoryContents;
 import fr.minuskube.inv.content.SlotPos;
 import io.papermc.lib.PaperLib;
-import org.bukkit.Bukkit;
-import org.bukkit.Chunk;
-import org.bukkit.Material;
-import org.bukkit.NamespacedKey;
+import org.bukkit.*;
+import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -405,6 +403,32 @@ public class ActionPlayerShop extends Action {
         }
     }
 
+    public static void probeCache(CommandSender sender) {
+        int total = 0;
+        for (Map.Entry<Material, List<Shop>> entry : cache.shops.entrySet()) {
+            Material mat = entry.getKey();
+            List<Shop> shops = entry.getValue();
+            var shopsString = shops.stream()
+                    .map(shop -> {
+                        Location location = shop.getLocation();
+                        return (shop.isBuying() ? ChatColor.GREEN + "BUYING" : ChatColor.RED + "SELLING") +
+                                ChatColor.YELLOW + " @ " + shop.getPrice() +
+                                "(" + location.getBlockX() + ", " + location.getBlockY() + ", " + location.getBlockZ() + ")";
+                    })
+                    .collect(Collectors.joining("\n"));
+
+
+            sender.sendMessage("" + ChatColor.GREEN + mat + ":\n" + shopsString);
+            total += shops.size();
+        }
+
+        sender.sendMessage("" + ChatColor.GREEN + total + " total shops");
+    }
+
+    public static void reloadCache(CommandSender sender) {
+        cache.refreshCache();
+    }
+
     private static final ShopCache cache;
     private static class ShopCache implements Listener {
         private QuickShopAPI api;
@@ -414,7 +438,7 @@ public class ActionPlayerShop extends Action {
             Bukkit.getPluginManager().registerEvents(this, WorstShop.get());
         }
 
-        HashMap<Material, List<Shop>> shops = new HashMap<>();
+        private final HashMap<Material, List<Shop>> shops = new HashMap<>();
 
         public void refreshCache() {
             List<Shop> allShops = api.getShopManager().getAllShops();

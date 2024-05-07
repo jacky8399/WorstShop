@@ -16,6 +16,7 @@ import com.jacky8399.worstshop.shops.Shop;
 import com.jacky8399.worstshop.shops.ShopDiscount;
 import com.jacky8399.worstshop.shops.ShopManager;
 import com.jacky8399.worstshop.shops.ShopReference;
+import com.jacky8399.worstshop.shops.actions.ActionPlayerShop;
 import com.jacky8399.worstshop.shops.commodity.CommodityItem;
 import com.jacky8399.worstshop.shops.conditions.Condition;
 import com.jacky8399.worstshop.shops.conditions.ConditionPermission;
@@ -320,6 +321,20 @@ public class CommandShop extends BaseCommand {
         sender.sendMessage(GREEN + "Placeholder string: " + str);
         String result = Placeholders.setPlaceholders(ConfigHelper.translateString(str), context);
         sender.sendMessage(GREEN + "Result: " + ConfigHelper.untranslateString(result));
+    }
+
+    @Private
+    @Subcommand("debugqs probe")
+    @CommandPermission("worstshop.debug")
+    public void debugQuickShopProbe(CommandSender sender) {
+        ActionPlayerShop.probeCache(sender);
+    }
+
+    @Private
+    @Subcommand("debugqs reload")
+    @CommandPermission("worstshop.debug")
+    public void debugQuickShopReload(CommandSender sender) {
+        ActionPlayerShop.reloadCache(sender);
     }
 
     @Subcommand("open")
