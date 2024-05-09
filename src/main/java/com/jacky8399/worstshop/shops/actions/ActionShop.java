@@ -149,7 +149,7 @@ public class ActionShop extends Action {
                 // record the sale
                 if (purchaseLimitTemplate != null) {
                     PlayerPurchases records = PlayerPurchases.getCopy(player);
-                    records.applyTemplate(purchaseLimitTemplate).addRecord(LocalDateTime.now(), (int) (count - refund));
+                    records.applyTemplate(purchaseLimitTemplate).addRecord(player, LocalDateTime.now(), (int) (count - refund));
                     records.updateFor(player);
                 }
                 player.sendMessage(formatPurchaseMessage(player, count - refund));

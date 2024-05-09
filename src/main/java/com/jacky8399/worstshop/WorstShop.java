@@ -6,6 +6,7 @@ import com.jacky8399.worstshop.events.Events;
 import com.jacky8399.worstshop.helper.ConfigHelper;
 import com.jacky8399.worstshop.helper.InventoryUtils;
 import com.jacky8399.worstshop.helper.PaperHelper;
+import com.jacky8399.worstshop.helper.PlayerPurchases;
 import com.jacky8399.worstshop.shops.ShopManager;
 import fr.minuskube.inv.InventoryManager;
 import fr.minuskube.inv.SmartInventory;
@@ -16,7 +17,6 @@ import net.milkbowl.vault.chat.Chat;
 import net.milkbowl.vault.economy.Economy;
 import net.milkbowl.vault.permission.Permission;
 import org.black_ixx.playerpoints.PlayerPoints;
-import org.bstats.bukkit.Metrics;
 import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
 import org.bukkit.entity.Player;
@@ -31,7 +31,9 @@ import org.bukkit.plugin.RegisteredServiceProvider;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.jetbrains.annotations.Nullable;
 
+import java.io.IOException;
 import java.lang.reflect.Field;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public final class WorstShop extends JavaPlugin {
@@ -126,7 +128,7 @@ public final class WorstShop extends JavaPlugin {
 
         ShopManager.loadShops();
 
-        Metrics metrics = new Metrics(this, 14350);
+        PlayerPurchases.setupPurchaseRecorder();
     }
 
     @Override
@@ -148,6 +150,11 @@ public final class WorstShop extends JavaPlugin {
         } catch (Throwable e) {
             logger.severe("Failed to save discounts!");
             e.printStackTrace();
+        }
+        try {
+            PlayerPurchases.writePurchaseRecords();
+        } catch (IOException ex) {
+            logger.log(Level.SEVERE, "Failed to write purchase records", ex);
         }
     }
 

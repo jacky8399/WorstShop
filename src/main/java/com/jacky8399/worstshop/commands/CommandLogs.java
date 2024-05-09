@@ -151,7 +151,7 @@ public class CommandLogs extends BaseCommand {
                         BaseComponent[] components = new ComponentBuilder("")
                                 .append("x" + entry.getValue()).color(ChatColor.YELLOW)
                                 .append(" - ").color(ChatColor.YELLOW)
-                                .append(TextUtils.formatDuration(false, entry.getKey(), Duration.between(entry.getKey(), LocalDateTime.now())))
+                                .append(TextUtils.formatDuration(false, entry.getKey(), Duration.between(entry.getKey(), now)))
                                 .create();
                         sender.spigot().sendMessage(components);
                     }

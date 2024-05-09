@@ -2,6 +2,7 @@ package com.jacky8399.worstshop.helper;
 
 import com.google.common.collect.Maps;
 import com.jacky8399.worstshop.WorstShop;
+import org.bukkit.Bukkit;
 import org.bukkit.NamespacedKey;
 import org.bukkit.entity.Player;
 import org.bukkit.persistence.PersistentDataAdapterContext;
@@ -9,16 +10,56 @@ import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
 import org.jetbrains.annotations.NotNull;
 
+import java.io.File;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.*;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.logging.Level;
 import java.util.stream.Collectors;
 
 /**
  * Records player purchases when needed
  */
 public class PlayerPurchases {
+    private static final ConcurrentLinkedQueue<Object[]> recordsToSave = new ConcurrentLinkedQueue<>();
+    private static boolean printError = true;
+    public static void setupPurchaseRecorder() {
+        Bukkit.getScheduler().runTaskTimerAsynchronously(WorstShop.get(), () -> {
+            try {
+                writePurchaseRecords();
+            } catch (IOException ex) {
+                if (printError) {
+                    WorstShop.get().logger.log(Level.SEVERE, "Failed to write purchase record", ex);
+                    printError = false;
+                }
+            }
+        }, 0, 20);
+    }
+
+    private static final Path file = new File(WorstShop.get().getDataFolder(), "purchases.csv").toPath();
+    public static void writePurchaseRecords() throws IOException {
+        if (recordsToSave.isEmpty())
+            return;
+        try (var bw = Files.newBufferedWriter(file, StandardCharsets.UTF_8, StandardOpenOption.APPEND, StandardOpenOption.CREATE)) {
+            Object[] toWrite;
+            while ((toWrite = recordsToSave.poll()) != null) {
+                var joiner = new StringJoiner(",", "", "\n");
+                for (Object object : toWrite) {
+                    joiner.add(object.toString());
+                }
+
+                bw.write(joiner.toString());
+            }
+        }
+    }
+
     public static PlayerPurchases getCopy(Player player) {
         PersistentDataContainer container = player.getPersistentDataContainer();
         if (!container.has(PURCHASE_RECORD_KEY, PURCHASE_RECORD_STORAGE)) {
@@ -41,11 +82,11 @@ public class PlayerPurchases {
     }
 
     public RecordStorage applyTemplate(@NotNull RecordTemplate template) {
-        return records.computeIfAbsent(template.id, key -> new RecordStorage(template.retentionTime, template.maxRecords));
+        return records.computeIfAbsent(template.id, key -> new RecordStorage(key, template.retentionTime, template.maxRecords));
     }
 
     public RecordStorage create(@NotNull String id, @NotNull Duration retentionTime, int maxRecords) {
-        RecordStorage recordStorage = new RecordStorage(retentionTime, maxRecords);
+        RecordStorage recordStorage = new RecordStorage(id, retentionTime, maxRecords);
         records.put(id, recordStorage);
         return recordStorage;
     }
@@ -53,7 +94,7 @@ public class PlayerPurchases {
     public void purgeOldRecords() {
         records.values().removeIf(recordStorage -> {
             recordStorage.purgeOldRecords();
-            return recordStorage.records.size() == 0;
+            return recordStorage.records.isEmpty();
         });
     }
 
@@ -61,6 +102,14 @@ public class PlayerPurchases {
         public static RecordTemplate fromConfig(Config map) {
             return new RecordTemplate(
                     map.get("id", String.class),
+                    DateTimeUtils.parseTimeStr(map.get("every", String.class)),
+                    map.find("max-records", Integer.class).orElse(128)
+            );
+        }
+
+        public static RecordTemplate fromConfig(Config map, String defaultId) {
+            return new RecordTemplate(
+                    map.find("id", String.class).orElse(defaultId),
                     DateTimeUtils.parseTimeStr(map.get("every", String.class)),
                     map.find("max-records", Integer.class).orElse(128)
             );
@@ -76,11 +125,13 @@ public class PlayerPurchases {
     }
 
     public static class RecordStorage {
-        public RecordStorage(Duration retentionTime, int maxRecords) {
+        public RecordStorage(String id, Duration retentionTime, int maxRecords) {
+            this.id = id;
             this.retentionTime = retentionTime;
             this.maxRecords = maxRecords;
         }
 
+        public final String id;
         public final Duration retentionTime;
         public final int maxRecords;
         public class Record {
@@ -98,9 +149,22 @@ public class PlayerPurchases {
         }
 
         ArrayList<Record> records = new ArrayList<>();
-        public void addRecord(LocalDateTime timeOfPurchase, int amount) {
+        private void addRecord(LocalDateTime timeOfPurchase, int amount) {
             records.add(new Record(timeOfPurchase, amount));
             purgeOldRecords();
+        }
+
+        public void addRecord(Player player, LocalDateTime timeOfPurchase, int amount) {
+            addRecord(timeOfPurchase, amount);
+
+            // write to file
+            recordsToSave.add(new Object[]{
+                    timeOfPurchase.toEpochSecond(ZoneOffset.UTC),
+                    player.getUniqueId(),
+                    player.getName(),
+                    id,
+                    amount
+            });
         }
 
         public int getTotalPurchases() {
@@ -117,9 +181,8 @@ public class PlayerPurchases {
         }
 
         public void purgeOldRecords() {
-            while (records.size() > maxRecords) {
-                records.remove(0);
-            }
+            if (records.size() > maxRecords)
+                records.subList(0, records.size() - maxRecords).clear();
             LocalDateTime now = LocalDateTime.now();
             records.removeIf(record -> record.shouldBeDeletedAt(now));
         }
