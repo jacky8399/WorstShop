@@ -4,6 +4,7 @@ import com.google.common.collect.ImmutableMap;
 import com.jacky8399.worstshop.PluginConfig;
 import com.jacky8399.worstshop.shops.actions.Action;
 import com.jacky8399.worstshop.shops.conditions.Condition;
+import com.jacky8399.worstshop.shops.conditions.ConditionConstant;
 import com.jacky8399.worstshop.shops.elements.ShopElement;
 import net.md_5.bungee.api.ChatColor;
 import net.md_5.bungee.api.chat.BaseComponent;
@@ -45,7 +46,9 @@ public final class ConfigHelper {
 
         ConfigHelper.registerConfigDeserializer(Condition.class, ImmutableMap.of(
                 Config.class, (Config config) -> Condition.fromMap(config),
-                String.class, (String string) -> Condition.fromShorthand(string)));
+                String.class, (String string) -> Condition.fromShorthand(string),
+                Boolean.class, (Boolean bool) -> ConditionConstant.valueOf(bool)
+        ));
     }
 
     @NotNull

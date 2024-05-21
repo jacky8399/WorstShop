@@ -65,6 +65,8 @@ public class Shop implements ParseContext.NamedContext {
     public int updateInterval;
     @Property
     public Condition condition = ConditionConstant.TRUE;
+    @Property
+    public Condition openOnJoin = ConditionConstant.FALSE;
 
     // parents
     @Property
@@ -183,6 +185,8 @@ public class Shop implements ParseContext.NamedContext {
 
             inst.condition = config.find("condition", Condition.class).orElse(ConditionConstant.TRUE);
 
+            inst.openOnJoin = config.find("open-on-join", Condition.class).orElse(ConditionConstant.FALSE);
+
             inst.parentShop = config.find("parent", String.class).map(ShopReference::of).orElse(ShopReference.empty());
             if ("auto".equals(inst.parentShop.id)) {
                 inst.autoSetParentShop = true;
@@ -243,6 +247,8 @@ public class Shop implements ParseContext.NamedContext {
             yaml.set("alias", String.join(",", aliases));
         if (condition != ConditionConstant.TRUE)
             yaml.set("condition", condition.toMapObject());
+        if (openOnJoin != ConditionConstant.FALSE)
+            yaml.set("open-on-join", openOnJoin.toMapObject());
         yaml.set("items", elements.stream()
                 .map(element -> element.toMap(new HashMap<>()))
                 .collect(Collectors.toList())
