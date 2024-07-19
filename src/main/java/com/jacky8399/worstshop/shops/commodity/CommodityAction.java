@@ -4,19 +4,16 @@ import com.jacky8399.worstshop.I18n;
 import com.jacky8399.worstshop.WorstShop;
 import com.jacky8399.worstshop.helper.Config;
 import com.jacky8399.worstshop.helper.Exceptions;
+import com.jacky8399.worstshop.helper.InventoryUtils;
 import com.jacky8399.worstshop.helper.ItemBuilder;
 import com.jacky8399.worstshop.shops.actions.Action;
 import com.jacky8399.worstshop.shops.elements.ShopElement;
 import org.bukkit.Material;
-import org.bukkit.entity.HumanEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.ClickType;
 import org.bukkit.event.inventory.InventoryAction;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryType;
-import org.bukkit.inventory.Inventory;
-import org.bukkit.inventory.InventoryView;
-import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
@@ -52,42 +49,8 @@ public class CommodityAction extends Commodity implements IUnaffordableCommodity
     }
 
     private InventoryClickEvent doUnspeakableThings(Player player) {
-        return new InventoryClickEvent(new InventoryView() {
-            @Override
-            public @NotNull Inventory getTopInventory() {
-                return player.getInventory();
-            }
-
-            @Override
-            public @NotNull Inventory getBottomInventory() {
-                return player.getInventory();
-            }
-
-            @Override
-            public @NotNull HumanEntity getPlayer() {
-                return player;
-            }
-
-            @Override
-            public @NotNull InventoryType getType() {
-                return InventoryType.PLAYER;
-            }
-
-            @Override
-            public @NotNull String getTitle() {
-                return player.getName();
-            }
-
-            @Override
-            public @NotNull String getOriginalTitle() {
-                return player.getName();
-            }
-
-            @Override
-            public void setTitle(@NotNull String title) {
-
-            }
-        }, InventoryType.SlotType.CONTAINER, 0, ClickType.UNKNOWN, InventoryAction.UNKNOWN);
+        return new InventoryClickEvent(InventoryUtils.makeInventoryView(player, player.getInventory()),
+                InventoryType.SlotType.CONTAINER, 0, ClickType.UNKNOWN, InventoryAction.UNKNOWN);
     }
 
     @Override

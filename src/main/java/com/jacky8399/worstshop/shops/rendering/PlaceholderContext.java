@@ -91,4 +91,8 @@ public record PlaceholderContext(@Nullable Player player,
             builder.add("additional=" + additionalContext);
         return builder.toString();
     }
+
+    public String apply(String input) {
+        return Placeholders.setPlaceholders(input, this);
+    }
 }

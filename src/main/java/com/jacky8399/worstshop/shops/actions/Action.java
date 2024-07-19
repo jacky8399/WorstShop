@@ -86,7 +86,7 @@ public abstract class Action implements Cloneable {
         PRESETS.put("shop", ActionShop::new);
         PRESETS.put("transaction", ActionTransaction::new);
         PRESETS.put("item_shop", ActionItemShop::new);
-        PRESETS.put("player_shop", ActionPlayerShop::new);
+        PRESETS.put("player_shop", ActionPlayerShopFallback::make);
         PRESETS.put("take", ActionTake::new);
         PRESETS.put("open", ActionOpen::new);
         PRESETS.put("previous_page", ActionPage::new);

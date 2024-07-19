@@ -1,5 +1,7 @@
 package com.jacky8399.worstshop.helper;
 
+import com.destroystokyo.paper.profile.PlayerProfile;
+import com.destroystokyo.paper.profile.ProfileProperty;
 import com.jacky8399.worstshop.I18n;
 import com.jacky8399.worstshop.WorstShop;
 import com.jacky8399.worstshop.shops.elements.StaticShopElement;
@@ -13,6 +15,9 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.EnumSet;
+import java.util.Objects;
+import java.util.UUID;
+import java.util.regex.Pattern;
 
 public class ItemUtils {
     public static boolean isEmpty(ItemStack stack) {
@@ -59,5 +64,50 @@ public class ItemUtils {
         ItemStack clone = stack.clone();
         clone.setItemMeta(removeSafetyKey(clone.getItemMeta()));
         return clone;
+    }
+
+
+    private static final Pattern VALID_MC_NAME = Pattern.compile("^[A-Za-z0-9_]{1,16}$");
+    private static final Pattern INVALID_MC_NAME_CHARS = Pattern.compile("[^A-Za-z0-9_]");
+    public static final String SKULL_PROPERTY = "worstshop_skull";
+    public static final boolean SKULL_DEBUG = false;
+    public static PlayerProfile makeProfileExact(@Nullable UUID uuid, @Nullable String name) {
+        String sanitizedName = name;
+        if (name != null && !VALID_MC_NAME.matcher(name).matches()) {
+            sanitizedName = INVALID_MC_NAME_CHARS.matcher(name).replaceAll("");
+            if (sanitizedName.length() > 16)
+                sanitizedName = sanitizedName.substring(0, 16);
+            else if (sanitizedName.isEmpty())
+                sanitizedName = "MHF_Question"; // ok
+            uuid = UUID.randomUUID();
+        }
+        PlayerProfile profile = Bukkit.createProfileExact(uuid, sanitizedName);
+        if (!Objects.equals(sanitizedName, name)) {
+            profile.setProperty(new ProfileProperty(SKULL_PROPERTY, name));
+            if (SKULL_DEBUG) {
+                WorstShop.get().logger.info("Invalid name " + name + ", sanitized to " + sanitizedName + "\nProfile: " + profile);
+            }
+        }
+        return profile;
+    }
+
+    public static PlayerProfile makeProfile(@Nullable UUID uuid, @Nullable String name) {
+        String sanitizedName = name;
+        if (name != null && !VALID_MC_NAME.matcher(name).matches()) {
+            sanitizedName = INVALID_MC_NAME_CHARS.matcher(name).replaceAll("");
+            if (sanitizedName.length() > 16)
+                sanitizedName = sanitizedName.substring(0, 16);
+            else if (sanitizedName.isEmpty())
+                sanitizedName = "MHF_Question"; // ok
+            uuid = UUID.randomUUID(); // must not look up texture if sanitized to preserve original skull value
+        }
+        PlayerProfile profile = Bukkit.createProfile(uuid, sanitizedName);
+        if (!Objects.equals(sanitizedName, name)) {
+            profile.setProperty(new ProfileProperty(SKULL_PROPERTY, name));
+            if (SKULL_DEBUG) {
+                WorstShop.get().logger.info("Invalid name " + name + ", sanitized to " + sanitizedName + "\nProfile: " + profile);
+            }
+        }
+        return profile;
     }
 }

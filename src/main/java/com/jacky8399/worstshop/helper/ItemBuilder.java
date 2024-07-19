@@ -48,6 +48,10 @@ public class ItemBuilder {
         return ClickableItem.of(build(), consumer);
     }
 
+    public Material type() {
+        return stack.getType();
+    }
+
     public ItemBuilder amount(int amount) {
         stack.setAmount(amount);
         return this;
@@ -80,6 +84,12 @@ public class ItemBuilder {
             loadMeta();
         metaConsumer.accept(meta);
         return this;
+    }
+
+    public ItemMeta meta() {
+        if (meta == null)
+            loadMeta();
+        return meta;
     }
 
     public ItemBuilder removeSafetyKey() {

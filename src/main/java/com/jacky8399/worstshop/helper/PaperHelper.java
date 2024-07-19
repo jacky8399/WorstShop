@@ -2,13 +2,6 @@ package com.jacky8399.worstshop.helper;
 
 import com.destroystokyo.paper.profile.PlayerProfile;
 import com.destroystokyo.paper.profile.ProfileProperty;
-import com.mojang.authlib.Agent;
-import com.mojang.authlib.GameProfileRepository;
-import com.mojang.authlib.ProfileLookupCallback;
-import com.mojang.authlib.minecraft.MinecraftSessionService;
-import com.mojang.authlib.properties.Property;
-import com.mojang.authlib.properties.PropertyMap;
-import com.mojang.authlib.yggdrasil.YggdrasilAuthenticationService;
 import net.md_5.bungee.api.ChatMessageType;
 import net.md_5.bungee.api.chat.BaseComponent;
 import org.bukkit.Bukkit;
@@ -21,10 +14,7 @@ import org.bukkit.inventory.meta.SkullMeta;
 
 import javax.annotation.Nullable;
 import java.lang.reflect.Field;
-import java.net.Proxy;
-import java.util.Map;
-import java.util.Objects;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 
 /**
@@ -106,108 +96,6 @@ public class PaperHelper {
         }
     }
 
-    public static class NmsGameProfile extends GameProfile {
-        private static final GameProfileRepository repository;
-        private static final MinecraftSessionService session;
-
-        static {
-            YggdrasilAuthenticationService auth = new YggdrasilAuthenticationService(Proxy.NO_PROXY, null);
-            repository = auth.createProfileRepository();
-            session = auth.createMinecraftSessionService();
-        }
-
-        private com.mojang.authlib.GameProfile obj;
-
-        public NmsGameProfile(UUID uuid, String name) {
-            if (uuid == null && (name == null || name.isBlank())) {
-                throw new IllegalArgumentException("Name and ID cannot both be blank");
-            }
-            try {
-                obj = new com.mojang.authlib.GameProfile(uuid, name);
-            } catch (Exception e) {
-                throw new Error(e);
-            }
-        }
-
-        public NmsGameProfile(Object nmsProfile) {
-            obj = (com.mojang.authlib.GameProfile) nmsProfile;
-        }
-
-        @Override
-        public UUID getUUID() {
-            return obj.getId();
-        }
-
-        @Override
-        public String getName() {
-            return obj.getName();
-        }
-
-        private CompletableFuture<Void> completeUUID() {
-            CompletableFuture<Void> future = new CompletableFuture<>();
-            final NmsGameProfile self = this;
-            ProfileLookupCallback callback = new ProfileLookupCallback() {
-                @Override
-                public void onProfileLookupSucceeded(com.mojang.authlib.GameProfile gameProfile) {
-                    self.obj = gameProfile;
-                    future.complete(null);
-                }
-
-                @Override
-                public void onProfileLookupFailed(com.mojang.authlib.GameProfile gameProfile, Exception e) {
-                    self.obj = gameProfile;
-                    future.complete(null);
-                }
-            };
-            repository.findProfilesByNames(new String[]{getName()}, Agent.MINECRAFT, callback);
-            return future;
-        }
-
-        @Override
-        public CompletableFuture<Void> completeProfile() {
-            if (!obj.isComplete()) {
-                // fill UUID
-                CompletableFuture<Void> uuidFilled;
-                uuidFilled = getUUID() == null ? completeUUID() : CompletableFuture.completedFuture(null);
-
-                return uuidFilled.thenRunAsync(() -> {
-                    try {
-                        obj = session.fillProfileProperties(obj, true);
-                        skinNotLoaded = false;
-                    } catch (Exception e) {
-                        throw new Error(e);
-                    }
-                }).toCompletableFuture();
-            }
-            return CompletableFuture.completedFuture(null);
-        }
-
-        @Override
-        public void setSkin(String base64) {
-            PropertyMap propertyMap = obj.getProperties();
-            propertyMap.put("textures", new Property("textures", base64, null));
-        }
-
-        @Override
-        public String getSkin() {
-            try {
-                return obj.getProperties().get("textures").iterator().next().getValue();
-            } catch (Exception e) {
-                return null;
-            }
-        }
-
-        @Override
-        public boolean hasSkin() {
-            return obj.getProperties().containsKey("textures");
-        }
-
-        @Override
-        public boolean equals(Object other) {
-            return other instanceof NmsGameProfile && ((NmsGameProfile) other).obj.equals(obj);
-        }
-    }
-
     // TODO use Bukkit implementation
     public static class PaperGameProfile extends GameProfile {
         PlayerProfile obj;
@@ -215,7 +103,7 @@ public class PaperHelper {
             if (uuid == null && (name == null || name.isBlank())) {
                 throw new IllegalArgumentException("Name and ID cannot both be blank");
             }
-            obj = Bukkit.createProfile(uuid, name);
+            obj = Bukkit.createProfileExact(uuid, name);
         }
 
         private PaperGameProfile(Object impl) {
@@ -236,8 +124,15 @@ public class PaperHelper {
 
         @Override
         public CompletableFuture<Void> completeProfile() {
-            return CompletableFuture.runAsync(()->{
+            // copy unset properties to preserve worstshop_skull
+            List<ProfileProperty> properties = List.copyOf(obj.getProperties());
+            return CompletableFuture.runAsync(() -> {
                 obj.complete();
+                for (ProfileProperty property : properties) {
+                    if (!obj.hasProperty(property.getName())) {
+                        obj.setProperty(property);
+                    }
+                }
                 skinNotLoaded = false;
             });
         }
@@ -268,44 +163,19 @@ public class PaperHelper {
     }
 
     public static GameProfile createProfile(UUID uuid, String name) {
-        return isPaper ? new PaperGameProfile(uuid, name) : new NmsGameProfile(uuid, name);
+        return new PaperGameProfile(uuid, name);
     }
 
     public static void setSkullMetaProfile(SkullMeta meta, GameProfile profile) {
-        if (profile instanceof PaperGameProfile) {
-            meta.setPlayerProfile(((PaperGameProfile) profile).obj);
-        } else {
-            try {
-                // set profile to GameProfile (NMS class) using reflection
-                Field profileField = meta.getClass().getDeclaredField("profile");
-                profileField.setAccessible(true);
-                profileField.set(meta, ((NmsGameProfile) profile).obj);
-            } catch (Exception e) {
-                throw new Error(e);
-            }
-        }
+        meta.setPlayerProfile(((PaperGameProfile) profile).obj);
     }
 
     @Nullable
     public static GameProfile getSkullMetaProfile(SkullMeta meta) {
-        if (isPaper) {
-            Object thing = meta.getPlayerProfile();
-            if (thing != null)
-                return new PaperGameProfile(thing);
-            return null;
-        } else {
-            try {
-                // get profile using reflection
-                Field profileField = meta.getClass().getDeclaredField("profile");
-                profileField.setAccessible(true);
-                Object thing = profileField.get(meta);
-                if (thing != null)
-                    return new NmsGameProfile(thing);
-                return null;
-            } catch (Exception e) {
-                throw new Error(e);
-            }
-        }
+        Object thing = meta.getPlayerProfile();
+        if (thing != null)
+            return new PaperGameProfile(thing);
+        return null;
     }
 
     public static void checkIsPaper() {
@@ -314,6 +184,7 @@ public class PaperHelper {
             isPaper = true;
         } catch (ClassNotFoundException ex) {
             isPaper = false;
+            throw new IllegalStateException("Please use Paper");
         }
     }
 }

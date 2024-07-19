@@ -1,9 +1,11 @@
 package com.jacky8399.worstshop.shops.rendering;
 
+import com.destroystokyo.paper.profile.PlayerProfile;
+import com.destroystokyo.paper.profile.ProfileProperty;
 import com.jacky8399.worstshop.WorstShop;
 import com.jacky8399.worstshop.helper.ConfigHelper;
 import com.jacky8399.worstshop.helper.Exceptions;
-import com.jacky8399.worstshop.helper.PaperHelper;
+import com.jacky8399.worstshop.helper.ItemUtils;
 import me.clip.placeholderapi.PlaceholderAPI;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
@@ -14,10 +16,10 @@ import org.bukkit.inventory.meta.SkullMeta;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.function.UnaryOperator;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
 public class Placeholders {
     public static final Pattern SHOP_VARIABLE_PATTERN = Pattern.compile("!([A-Za-z0-9_]+)!");
@@ -72,37 +74,51 @@ public class Placeholders {
         if (stack.getType() == Material.AIR || context == PlaceholderContext.NO_CONTEXT)
             return stack;
 
-        UnaryOperator<String> placeholderReplacer = str -> setPlaceholders(str, context);
         ItemMeta meta = stack.getItemMeta();
         if (meta.hasLore()) {
             // noinspection ConstantConditions
             meta.setLore(meta.getLore().stream()
-                    .map(placeholderReplacer)
-                    .collect(Collectors.toList())
+                    .map(context::apply)
+                    .toList()
             );
         }
         if (meta.hasDisplayName()) {
-            meta.setDisplayName(placeholderReplacer.apply(meta.getDisplayName()));
+            meta.setDisplayName(context.apply(meta.getDisplayName()));
         }
         // wow why didn't I think of this
         // check for player skull
         if (meta instanceof SkullMeta skullMeta) {
-            PaperHelper.GameProfile profile = PaperHelper.getSkullMetaProfile(skullMeta);
+            PlayerProfile profile = skullMeta.getPlayerProfile();
             if (profile != null) {
+                PlayerProfile result = (PlayerProfile) profile.clone();
                 Player player = context.getPlayer();
-                if ("{player}".equals(profile.getName()) && player != null) {
-                    skullMeta.setOwningPlayer(player);
-                } else if (profile.getName() != null && (profile.getName().contains("%") || profile.getName().contains("!"))) {
-                    // replace placeholders too
-                    String newName = placeholderReplacer.apply(profile.getName());
-                    // check if the name is that of an online player
-                    Player newPlayer = Bukkit.getPlayer(newName);
-                    if (newPlayer != null && newPlayer.isOnline()) {
-                        skullMeta.setOwningPlayer(newPlayer);
-                    } else if (newName.length() != 0) {
-                        PaperHelper.GameProfile newProfile = PaperHelper.createProfile(null, newName);
-                        PaperHelper.setSkullMetaProfile(skullMeta, newProfile);
+                var skullProperty = profile.getProperties().stream().filter(property -> property.getName().equals(ItemUtils.SKULL_PROPERTY)).findAny();
+                if (skullProperty.isPresent()) {
+                    String profileName = skullProperty.get().getValue();
+                    if ("{player}".equals(profileName) && player != null) {
+                        result = player.getPlayerProfile();
+                    } else if (profileName.contains("%") || profileName.contains("!")) {
+                        // replace placeholders too
+                        String newName = context.apply(profileName);
+                        // check if the name is that of an online player
+                        Player newPlayer = Bukkit.getPlayer(newName);
+                        if (newPlayer != null && newPlayer.isOnline()) {
+                            result = newPlayer.getPlayerProfile();
+                        } else if (!newName.isEmpty()) {
+                            result = ItemUtils.makeProfile(null, newName);
+                            result.clearProperties();
+                        }
                     }
+                }
+                result.removeProperty(ItemUtils.SKULL_PROPERTY);
+                skullMeta.setPlayerProfile(result);
+                if (ItemUtils.SKULL_DEBUG) {
+                    var lore = new ArrayList<>(meta.hasLore() ? meta.getLore() : List.of());
+                    lore.add("name: " + result.getName());
+                    lore.add(ItemUtils.SKULL_PROPERTY + ": " + skullProperty.map(ProfileProperty::getValue).orElse("*not present*"));
+                    lore.add("result: " + result);
+                    meta.setLore(lore);
+                    WorstShop.get().logger.info("[Placeholder] Original profile: " + profile + "\nReplaced: " + result);
                 }
             }
         }

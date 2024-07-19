@@ -1,20 +1,26 @@
 plugins {
-    id 'com.github.johnrengelman.shadow' version '7.1.2'
+    id("io.github.goooler.shadow") version "8.1.8"
     id 'java-library'
     id 'idea'
+    id("io.papermc.paperweight.userdev") version "1.7.1"
 }
 
 group = pluginGroup
 version = pluginVersion
 
-sourceCompatibility = JavaVersion.VERSION_17
-targetCompatibility = JavaVersion.VERSION_17
+compileJava {
+    options.release.set(21)
+}
+
+tasks.assemble {
+    dependsOn(tasks.reobfJar)
+}
 
 repositories {
     mavenCentral()
     maven {
         name = 'papermc'
-        url = 'https://papermc.io/repo/repository/maven-public/'
+        url = 'https://repo.papermc.io/repository/maven-public/'
     }
     maven {
         name = 'sonatype'
@@ -41,14 +47,12 @@ repositories {
 
 compileJava {
     options.compilerArgs += ["-parameters"]
-    options.fork = true
-    options.forkOptions.executable = 'javac'
 }
 
 dependencies {
     // Paper API
-    compileOnly 'io.papermc.paper:paper-api:1.20.1-R0.1-SNAPSHOT'
-//    compileOnly 'io.papermc.paper:paper-server:1.18.1-R0.1-SNAPSHOT:mojang-mapped'
+//    compileOnly 'io.papermc.paper:paper-api:1.21-R0.1-SNAPSHOT'
+    paperweight.paperDevBundle("1.21-R0.1-SNAPSHOT")
     // Mojang AuthLib
     compileOnly('com.mojang:authlib:1.5.21') {
         transitive = false
@@ -80,7 +84,7 @@ dependencies {
     // Annotations
     compileOnly 'org.jetbrains:annotations:22.0.0'
     // bStats
-    implementation "org.bstats:bstats-bukkit:3.0.0"
+//    implementation "org.bstats:bstats-bukkit:3.0.0"
 }
 
 processResources {
@@ -92,7 +96,7 @@ processResources {
     }
 }
 
-shadowJar {
+tasks.shadowJar {
     relocate 'fr.minuskube.inv', 'com.jacky8399.worstshop.inv'
     relocate 'co.aikar.commands', 'com.jacky8399.worstshop.acf'
     relocate 'co.aikar.locales', 'com.jacky8399.worstshop.acf.locales'
@@ -100,7 +104,8 @@ shadowJar {
     relocate 'co.aikar.util', 'com.jacky8399.worstshop.acf.util'
     relocate 'net.jodah.expiringmap', 'com.jacky8399.worstshop.acf.expiringmap'
     relocate "io.papermc.lib", "com.jacky8399.worstshop.paperlib"
-    relocate "org.bstats", "com.jacky8399.worstshop.bstats"
+//    relocate "org.bstats", "com.jacky8399.worstshop.bstats"
+    minimize()
 }
 
 build.dependsOn shadowJar

@@ -38,6 +38,15 @@ public record RenderElement(ShopElement owner,
         return withOwner(owner, context);
     }
 
+    /** returns a new RenderElement with all placeholders applied */
+    public RenderElement withCalculatedContext(ShopRenderer renderer) {
+        return new RenderElement(owner, positions, actualStack(renderer), PlaceholderContext.NO_CONTEXT, handler.andThen(owner::onClick), flags);
+    }
+
+    public RenderElement withFlags(Set<ShopRenderer.RenderingFlag> flags) {
+        return new RenderElement(owner, positions, stack, context, handler, flags);
+    }
+
     public ClickableItem clickableItem(ShopRenderer renderer) {
         return ClickableItem.of(actualStack(renderer), handler);
     }

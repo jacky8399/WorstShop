@@ -5,10 +5,8 @@ import com.jacky8399.worstshop.WorstShop;
 import com.jacky8399.worstshop.helper.Config;
 import com.jacky8399.worstshop.helper.InventoryUtils;
 import com.jacky8399.worstshop.helper.ItemBuilder;
-import com.jacky8399.worstshop.shops.ParseContext;
 import com.jacky8399.worstshop.shops.commodity.*;
 import com.jacky8399.worstshop.shops.elements.DynamicShopElement;
-import com.jacky8399.worstshop.shops.elements.ShopElement;
 import com.jacky8399.worstshop.shops.elements.StaticShopElement;
 import fr.minuskube.inv.ClickableItem;
 import fr.minuskube.inv.SmartInventory;
@@ -47,29 +45,23 @@ import java.util.stream.Stream;
 /**
  * Item shop but items are from QuickShop shops
  */
-public class ActionPlayerShop extends Action {
+public class ActionPlayerShop extends ActionPlayerShopFallback {
     public static final String I18N_KEY = "worstshop.messages.shops.player-shop.";
     static {
         try {
             QuickShopAPI plugin = (QuickShopAPI) Bukkit.getPluginManager().getPlugin("QuickShop");
+            if (!Bukkit.getPluginManager().isPluginEnabled("QuickShop"))
+                throw new IllegalStateException("QuickShop is not enabled");
             cache = new ShopCache(plugin);
         } catch (Throwable e) {
             throw new IllegalStateException("QuickShop is not loaded!", e);
         }
     }
 
-    ShopElement parentElement;
-    ActionItemShop fallback;
     public ActionPlayerShop(Config yaml) {
         super(yaml);
-        ShopElement element = ParseContext.findLatest(ShopElement.class);
-        if (element == null)
-            throw new IllegalStateException("Couldn't find parent element! Not in parse context?");
-        fallback = yaml.find("fallback", Config.class).map(ActionItemShop::new).orElse(null);
-        parentElement = element.clone();
     }
 
-    private static final NamespacedKey NO_OFFERS_MARKER = new NamespacedKey(WorstShop.get(), "no_offers_marker");
     @Override
     public void onClick(InventoryClickEvent e) {
         Player player = (Player) e.getWhoClicked();

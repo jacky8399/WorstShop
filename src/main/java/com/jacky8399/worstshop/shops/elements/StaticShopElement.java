@@ -1,5 +1,6 @@
 package com.jacky8399.worstshop.shops.elements;
 
+import com.destroystokyo.paper.profile.PlayerProfile;
 import com.google.common.collect.ImmutableSet;
 import com.jacky8399.worstshop.WorstShop;
 import com.jacky8399.worstshop.editor.Editable;
@@ -34,8 +35,8 @@ import org.yaml.snakeyaml.Yaml;
 
 import java.nio.charset.StandardCharsets;
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
 import java.util.function.BiConsumer;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 @Editable
@@ -65,7 +66,6 @@ public class StaticShopElement extends ShopElement {
         return inst;
     }
 
-    private static final Pattern VALID_MC_NAME = Pattern.compile("[A-Za-z0-9_]{1,16}");
 
     public static ShopElement fromYaml(Config config) {
         // static parsing
@@ -98,12 +98,11 @@ public class StaticShopElement extends ShopElement {
             inst.asyncLoadingItem = config.find("async-loading-item", Config.class)
                     .map(StaticShopElement::parseItemStack).orElse(null);
 
-        // obtain the skull meta
+        // cache if possible
         if (inst.rawStack.getType() == Material.PLAYER_HEAD) {
             SkullMeta meta = (SkullMeta) inst.rawStack.getItemMeta();
             PaperHelper.GameProfile profile = PaperHelper.getSkullMetaProfile(meta);
-            if (profile != null && profile.getName() != null &&
-                    VALID_MC_NAME.matcher(profile.getName()).matches() && !profile.hasSkin()) {
+            if (profile != null && profile.getName() != null && !profile.hasSkin()) {
                 profile.completeProfile().thenAccept(ignored -> inst.skullCache = profile);
             }
         }
@@ -228,26 +227,21 @@ public class StaticShopElement extends ShopElement {
                     uuidOrName = null; // make name null
                 } catch (IllegalArgumentException ignored) {
                 }
-                final UUID finalUuid = uuid;
-                final String finalName = uuidOrName;
-                is.meta(meta -> {
-                    if (meta instanceof SkullMeta skullMeta) {
-                        PaperHelper.setSkullMetaProfile(skullMeta, PaperHelper.createProfile(finalUuid, finalName));
-                    } else {
-                        throw new ConfigException("skull can only be used on player heads!", yaml, "skull");
-                    }
-                });
+                if (is.meta() instanceof SkullMeta skullMeta) {
+                    // names longer than 16 characters will cause errors
+                    skullMeta.setPlayerProfile(ItemUtils.makeProfileExact(uuid, uuidOrName));
+                } else {
+                    throw new ConfigException("skull can only be used on player heads! Got " + is.type() + " (" + is.meta() + ")", yaml, "skull");
+                }
             });
             yaml.find("skin", String.class).ifPresent(skin -> {
                 PaperHelper.GameProfile profile = PaperHelper.createProfile(UUID.randomUUID(), null);
                 profile.setSkin(skin);
-                is.meta(meta -> {
-                    if (meta instanceof SkullMeta skullMeta) {
-                        PaperHelper.setSkullMetaProfile(skullMeta, profile);
-                    } else {
-                        throw new ConfigException("skin can only be used on player heads!", yaml, "skin");
-                    }
-                });
+                if (is.meta() instanceof SkullMeta skullMeta) {
+                    PaperHelper.setSkullMetaProfile(skullMeta, profile);
+                } else {
+                    throw new ConfigException("skin can only be used on player heads! Got" + is.type() + " (" + is.meta() + ")", yaml, "skin");
+                }
             });
             return is.build();
         } catch (Exception ex) {
@@ -362,16 +356,21 @@ public class StaticShopElement extends ShopElement {
         // try to apply cache
         if (skullCache != null && stack.getType() == Material.PLAYER_HEAD) {
             SkullMeta meta = (SkullMeta) stack.getItemMeta();
-            PaperHelper.setSkullMetaProfile(meta, skullCache);
-            stack.setItemMeta(meta);
+            PlayerProfile currentProfile = meta.getPlayerProfile();
+            // ensure that the cache is still up-to-date
+            if (Objects.equals(skullCache.getName(), currentProfile != null ? currentProfile.getName() : null)) {
+                PaperHelper.setSkullMetaProfile(meta, skullCache);
+                stack.setItemMeta(meta);
+            }
         }
         return stack;
     }
 
     public static final ItemStack ASYNC_PLACEHOLDER = ItemBuilder.of(Material.BEDROCK)
             .name("" + ChatColor.RED + ChatColor.BOLD + "...").build();
+    record AsyncTask(List<RenderElement> placeholder, CompletableFuture<ItemStack> future) {}
     // use a map to prevent conflicts
-    private static final Map<Player, ItemStack> asyncItemCache = Collections.synchronizedMap(new WeakHashMap<>());
+    private final Map<Player, AsyncTask> asyncItemCache = Collections.synchronizedMap(new WeakHashMap<>());
 
     private List<RenderElement> getAsyncPlaceholderElement(ShopRenderer renderer, PlaceholderContext placeholder) {
         ItemStack toReturn = asyncLoadingItem != null ?
@@ -380,33 +379,71 @@ public class StaticShopElement extends ShopElement {
         ItemMeta meta = toReturn.getItemMeta();
         meta.getPersistentDataContainer().set(SAFETY_KEY, PersistentDataType.BYTE, (byte) 1);
         toReturn.setItemMeta(meta);
-        return Collections.singletonList(new RenderElement(this, getFiller(renderer).fill(this, renderer),
+        return List.of(new RenderElement(this, getFiller(renderer).fill(this, renderer),
                 toReturn, getClickHandler(renderer), DYNAMIC_FLAGS));
+    }
+
+    private List<RenderElement> getStaticRenderElement(ShopRenderer renderer, ItemStack stack) {
+        return List.of(new RenderElement(this, getFiller(renderer).fill(this, renderer), stack,
+                PlaceholderContext.NO_CONTEXT, getClickHandler(renderer), STATIC_FLAGS));
     }
 
     @Override
     public List<RenderElement> getRenderElement(ShopRenderer renderer, PlaceholderContext placeholder) {
+        Player player = renderer.player;
         if (async) {
-            Player player = renderer.player;
             synchronized (asyncItemCache) {
-                if (asyncItemCache.containsKey(player)) {
-                    ItemStack stack = asyncItemCache.remove(player);
-                    if (stack != null) {
-                        return Collections.singletonList(
-                                new RenderElement(this, getFiller(renderer).fill(this, renderer), stack,
-                                        PlaceholderContext.NO_CONTEXT, getClickHandler(renderer), STATIC_FLAGS)
-                        );
+                var awaiting = asyncItemCache.get(player);
+                if (awaiting != null) {
+                    if (awaiting.future.isDone()) {
+                        asyncItemCache.remove(player);
+                        return getStaticRenderElement(renderer, awaiting.future.resultNow());
                     } else {
-                        return getAsyncPlaceholderElement(renderer, placeholder);
+                        return awaiting.placeholder;
                     }
                 } else {
-                    asyncItemCache.put(player, null);
+                    var future = new CompletableFuture<ItemStack>();
+                    awaiting = new AsyncTask(getAsyncPlaceholderElement(renderer, placeholder), future);
+                    asyncItemCache.put(player, awaiting);
                     // schedule task
                     Bukkit.getScheduler().runTaskAsynchronously(WorstShop.get(), () -> {
                         ItemStack stack = createStack(renderer);
-                        asyncItemCache.put(player, stack);
+                        completePlayerSkin(stack);
+                        future.complete(stack);
                     });
-                    return getAsyncPlaceholderElement(renderer, placeholder);
+                    return awaiting.placeholder;
+                }
+            }
+        } else if (rawStack.getType() == Material.PLAYER_HEAD && ((SkullMeta) rawStack.getItemMeta()).getPlayerProfile().hasProperty(ItemUtils.SKULL_PROPERTY)) {
+            // the player head looks like it will need updating
+            synchronized (asyncItemCache) {
+                var awaiting = asyncItemCache.get(player);
+                if (awaiting != null) {
+                    if (awaiting.future.isDone()) {
+                        asyncItemCache.remove(player);
+                        return getStaticRenderElement(renderer, awaiting.future.resultNow());
+                    } else {
+                        return awaiting.placeholder;
+                    }
+                } else {
+                    // check if scheduling is needed
+                    ItemStack stack = Placeholders.setPlaceholders(createStack(renderer), new PlaceholderContext(renderer));
+                    if (isPendingPlayerSkin(stack)) {
+                        // mark the element as dynamic
+                        var placeholderElement = List.of(getStaticRenderElement(renderer, stack).getFirst().withFlags(DYNAMIC_FLAGS));
+
+                        SkullMeta meta = (SkullMeta) stack.getItemMeta();
+                        var profile = Objects.requireNonNull(meta.getPlayerProfile());
+                        awaiting = new AsyncTask(placeholderElement, profile.update().thenApply(updated -> {
+                            meta.setPlayerProfile(updated);
+                            stack.setItemMeta(meta);
+                            return stack;
+                        }));
+                        asyncItemCache.put(player, awaiting);
+                        return awaiting.placeholder;
+                    } else {
+                        return getStaticRenderElement(renderer, stack);
+                    }
                 }
             }
         }
@@ -430,6 +467,24 @@ public class StaticShopElement extends ShopElement {
         actualStack.setItemMeta(meta);
 
         return actualStack;
+    }
+
+    public static boolean isPendingPlayerSkin(ItemStack stack) {
+        return stack.getType() == Material.PLAYER_HEAD &&
+                ((SkullMeta) stack.getItemMeta()).getPlayerProfile() instanceof PlayerProfile profile &&
+                !profile.isComplete();
+    }
+
+    public static void completePlayerSkin(ItemStack stack) {
+        if (stack.getType() == Material.PLAYER_HEAD) {
+            SkullMeta meta = (SkullMeta) stack.getItemMeta();
+            var profile = meta.getPlayerProfile();
+            if (profile != null && !profile.isComplete()) {
+                profile.complete();
+                meta.setPlayerProfile(profile);
+                stack.setItemMeta(meta);
+            }
+        }
     }
 
     public static boolean isShopItem(ItemStack stack) {

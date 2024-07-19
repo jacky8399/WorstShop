@@ -149,7 +149,7 @@ public abstract class ShopElement implements Cloneable, ParseContext.NamedContex
     public List<RenderElement> getRenderElement(ShopRenderer renderer, PlaceholderContext placeholder) {
         SlotFiller filler = getFiller(renderer);
         Collection<SlotPos> positions = filler.fill(this, renderer);
-        return Collections.singletonList(new RenderElement(this, positions,
+        return List.of(new RenderElement(this, positions,
                 createStack(renderer), getClickHandler(renderer), getRenderingFlags(renderer)));
     }
 
