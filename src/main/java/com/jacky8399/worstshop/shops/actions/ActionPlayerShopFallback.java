@@ -9,12 +9,14 @@ import com.jacky8399.worstshop.shops.elements.ShopElement;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
+import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.scheduler.BukkitTask;
 
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 public class ActionPlayerShopFallback extends Action {
@@ -85,7 +87,16 @@ public class ActionPlayerShopFallback extends Action {
     }
 
     @Override
+    public void influenceItem(Player player, ItemStack readonlyStack, ItemStack stack) {
+        if (fallback != null)
+            fallback.influenceItem(player, readonlyStack, stack);
+    }
+
+    @Override
     public Map<String, Object> toMap(Map<String, Object> map) {
-        return Map.of();
+        if (fallback != null) {
+            map.put("fallback", fallback.toMap(new LinkedHashMap<>()));
+        }
+        return map;
     }
 }

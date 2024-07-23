@@ -13,10 +13,9 @@ import com.jacky8399.worstshop.shops.rendering.PlaceholderContext;
 import com.jacky8399.worstshop.shops.rendering.Placeholders;
 import com.jacky8399.worstshop.shops.rendering.RenderElement;
 import com.jacky8399.worstshop.shops.rendering.ShopRenderer;
-import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
-import org.bukkit.Material;
-import org.bukkit.NamespacedKey;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.TranslatableComponent;
+import org.bukkit.*;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.configuration.serialization.ConfigurationSerialization;
 import org.bukkit.enchantments.Enchantment;
@@ -175,7 +174,9 @@ public class StaticShopElement extends ShopElement {
                                 (e, i) -> meta.addEnchant(e, i, true);
 
                         enchants.getPrimitiveMap().forEach((ench, level) -> {
-                            Enchantment enchType = Enchantment.getByKey(NamespacedKey.minecraft(ench));
+                            NamespacedKey key = NamespacedKey.fromString(ench);
+                            if (key == null) throw new ConfigException(ench + " is not a valid key!", enchants);
+                            Enchantment enchType = Registry.ENCHANTMENT.get(key);
                             if (enchType == null)
                                 throw new ConfigException(ench + " is not a valid enchantment!", enchants);
                             if (!(level instanceof Number))
@@ -196,7 +197,7 @@ public class StaticShopElement extends ShopElement {
 
             yaml.find("name", String.class).ifPresent(is::name);
 
-            yaml.find("loc-name", String.class).ifPresent(locName -> is.meta(meta -> meta.setLocalizedName(locName)));
+            yaml.find("loc-name", String.class).ifPresent(locName -> is.displayName(Component.translatable(locName)));
 
             yaml.find("lore", List.class, String.class).ifPresent(loreObj -> {
                 if (loreObj instanceof List<?>) {
@@ -276,7 +277,7 @@ public class StaticShopElement extends ShopElement {
         }
         if (meta.hasEnchants() || (meta instanceof EnchantmentStorageMeta && ((EnchantmentStorageMeta) meta).hasStoredEnchants())) {
             HashMap<String, Object> enchants = new HashMap<>();
-            Map<Enchantment, Integer> realEnchants = meta instanceof EnchantmentStorageMeta ? ((EnchantmentStorageMeta) meta).getStoredEnchants() : meta.getEnchants();
+            var realEnchants = meta instanceof EnchantmentStorageMeta storageMeta ? storageMeta.getStoredEnchants() : meta.getEnchants();
             realEnchants.forEach((ench, level) -> {
                 // strip namespace if minecraft:
                 String key = ench.getKey().getNamespace().equals(NamespacedKey.MINECRAFT) ? ench.getKey().getKey() : ench.getKey().toString();
@@ -287,8 +288,8 @@ public class StaticShopElement extends ShopElement {
         if (meta.hasDisplayName()) {
             map.put("name", ConfigHelper.untranslateString(meta.getDisplayName()));
         }
-        if (meta.hasLocalizedName()) {
-            map.put("loc-name", meta.getLocalizedName());
+        if (meta.displayName() instanceof TranslatableComponent translatableComponent) {
+            map.put("loc-name", translatableComponent.key());
         }
         if (meta.hasLore()) {
             map.put("lore", meta.getLore().stream().map(ConfigHelper::untranslateString).collect(Collectors.toList()));
@@ -414,7 +415,11 @@ public class StaticShopElement extends ShopElement {
                     return awaiting.placeholder;
                 }
             }
-        } else if (rawStack.getType() == Material.PLAYER_HEAD && ((SkullMeta) rawStack.getItemMeta()).getPlayerProfile().hasProperty(ItemUtils.SKULL_PROPERTY)) {
+        } else if (
+                rawStack.getType() == Material.PLAYER_HEAD &&
+                ((SkullMeta) rawStack.getItemMeta()).getPlayerProfile() instanceof PlayerProfile profile &&
+                profile.hasProperty(ItemUtils.SKULL_PROPERTY)
+        ) {
             // the player head looks like it will need updating
             synchronized (asyncItemCache) {
                 var awaiting = asyncItemCache.get(player);
@@ -433,8 +438,8 @@ public class StaticShopElement extends ShopElement {
                         var placeholderElement = List.of(getStaticRenderElement(renderer, stack).getFirst().withFlags(DYNAMIC_FLAGS));
 
                         SkullMeta meta = (SkullMeta) stack.getItemMeta();
-                        var profile = Objects.requireNonNull(meta.getPlayerProfile());
-                        awaiting = new AsyncTask(placeholderElement, profile.update().thenApply(updated -> {
+                        var actualProfile = Objects.requireNonNull(meta.getPlayerProfile());
+                        awaiting = new AsyncTask(placeholderElement, actualProfile.update().thenApply(updated -> {
                             meta.setPlayerProfile(updated);
                             stack.setItemMeta(meta);
                             return stack;

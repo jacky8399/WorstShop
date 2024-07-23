@@ -2,6 +2,7 @@ package com.jacky8399.worstshop.helper;
 
 import com.jacky8399.worstshop.shops.elements.StaticShopElement;
 import fr.minuskube.inv.ClickableItem;
+import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.OfflinePlayer;
@@ -20,11 +21,16 @@ import java.util.function.Consumer;
 @SuppressWarnings("deprecation")
 public class ItemBuilder {
     private final ItemStack stack;
+    private ItemMeta meta;
+
     private ItemBuilder(Material mat) {
         stack = new ItemStack(mat);
+        meta = stack.getItemMeta();
     }
+
     private ItemBuilder(ItemStack stack) {
         this.stack = stack;
+        meta = stack.getItemMeta();
     }
 
     public static ItemBuilder of(Material material) {
@@ -57,8 +63,7 @@ public class ItemBuilder {
         return this;
     }
 
-    private ItemMeta meta;
-
+    @Deprecated
     public void loadMeta() {
         meta = stack.getItemMeta();
         meta.getPersistentDataContainer().set(StaticShopElement.SAFETY_KEY, PersistentDataType.BYTE, (byte) 1);
@@ -97,13 +102,19 @@ public class ItemBuilder {
     }
 
     public ItemBuilder name(String str) {
-        return meta(meta -> meta.setDisplayName(str));
+        meta.setDisplayName(str);
+        return this;
+    }
+
+    public ItemBuilder displayName(Component component) {
+        meta.displayName(component);
+        return this;
     }
 
     public ItemBuilder skullOwner(OfflinePlayer p) {
-        return meta(meta->{
-            if (meta instanceof SkullMeta)
-                ((SkullMeta) meta).setOwningPlayer(p);
+        return meta(meta -> {
+            if (meta instanceof SkullMeta skullMeta)
+                skullMeta.setOwningPlayer(p);
             else
                 throw new IllegalArgumentException("Material not a skull");
         });
@@ -114,28 +125,27 @@ public class ItemBuilder {
     }
 
     public ItemBuilder lore(List<String> lore) {
-        return meta(meta -> meta.setLore(lore));
+        meta.setLore(lore);
+        return this;
     }
 
     @SuppressWarnings("ConstantConditions")
     public ItemBuilder addLores(String... lore) {
-        if (lore != null)
-            meta(meta -> {
-                List<String> oldLore = meta.hasLore() ? new ArrayList<>(meta.getLore()) : new ArrayList<>();
-                Collections.addAll(oldLore, lore);
-                meta.setLore(oldLore);
-            });
+        if (lore != null) {
+            List<String> oldLore = meta.hasLore() ? new ArrayList<>(meta.getLore()) : new ArrayList<>();
+            Collections.addAll(oldLore, lore);
+            meta.setLore(oldLore);
+        }
         return this;
     }
 
     @SuppressWarnings("ConstantConditions")
     public ItemBuilder addLore(List<String> lore) {
-        if (lore != null)
-            meta(meta -> {
-               List<String> oldLore = meta.hasLore() ? new ArrayList<>(meta.getLore()) : new ArrayList<>();
-               oldLore.addAll(lore);
-               meta.setLore(oldLore);
-            });
+        if (lore != null) {
+            List<String> oldLore = meta.hasLore() ? new ArrayList<>(meta.getLore()) : new ArrayList<>();
+            oldLore.addAll(lore);
+            meta.setLore(oldLore);
+        }
         return this;
     }
 
