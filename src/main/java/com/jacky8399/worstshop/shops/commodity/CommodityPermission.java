@@ -7,6 +7,8 @@ import com.jacky8399.worstshop.helper.ConfigHelper;
 import com.jacky8399.worstshop.helper.DateTimeUtils;
 import com.jacky8399.worstshop.helper.ItemBuilder;
 import com.jacky8399.worstshop.shops.elements.ShopElement;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
 import net.luckperms.api.LuckPerms;
 import net.luckperms.api.model.data.DataMutateResult;
 import net.luckperms.api.model.data.TemporaryNodeMergeStrategy;
@@ -15,10 +17,11 @@ import net.luckperms.api.node.Node;
 import net.luckperms.api.node.NodeBuilder;
 import net.luckperms.api.node.types.*;
 import net.luckperms.api.query.QueryOptions;
-import net.md_5.bungee.api.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
+import org.jetbrains.annotations.Nullable;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
@@ -159,13 +162,13 @@ public class CommodityPermission extends Commodity {
     }
 
     @Override
-    public String getPlayerTrait(Player player) {
-        return formatPermission() + ":" + canAfford(player);
+    public List<? extends Component> playerTrait(Player player) {
+        return List.of(formatPermissionComponent(canAfford(player)));
     }
 
     @Override
-    public String getPlayerResult(Player player, TransactionType position) {
-        return formatPermission() + ": " + permissionNode.getValue();
+    public List<? extends Component> playerResult(@Nullable Player player, TransactionType position) {
+        return List.of(formatPermissionComponent(permissionNode.getValue()));
     }
 
     @Override
@@ -241,13 +244,20 @@ public class CommodityPermission extends Commodity {
         return result.wasSuccessful() ? 0 : multiplier;
     }
 
-    public String formatPermission() {
-        return ChatColor.WHITE + I18n.translate(permType.getLocaleKey(), permissionDisplay);
+    public Component formatPermissionComponent() {
+        return I18n.translateComponent(permType.getLocaleKey(), permissionDisplay).colorIfAbsent(NamedTextColor.WHITE);
+    }
+
+    public Component formatPermissionComponent(boolean value) {
+        return Component.textOfChildren(
+                I18n.translateComponent(permType.getLocaleKey(), permissionDisplay),
+                Component.text(": " + value)
+        ).color(NamedTextColor.WHITE);
     }
 
     @Override
     public ShopElement createElement(TransactionType pos) {
-        return pos.createElement(ItemBuilder.of(Material.PAPER).name(formatPermission()).build());
+        return pos.createElement(ItemBuilder.of(Material.PAPER).name(formatPermissionComponent()).build());
     }
 
     @Override

@@ -28,6 +28,7 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.SkullMeta;
 import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
+import org.jetbrains.annotations.Blocking;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.yaml.snakeyaml.Yaml;
@@ -197,7 +198,7 @@ public class StaticShopElement extends ShopElement {
 
             yaml.find("name", String.class).ifPresent(is::name);
 
-            yaml.find("loc-name", String.class).ifPresent(locName -> is.displayName(Component.translatable(locName)));
+            yaml.find("loc-name", String.class).ifPresent(locName -> is.name(Component.translatable(locName)));
 
             yaml.find("lore", List.class, String.class).ifPresent(loreObj -> {
                 if (loreObj instanceof List<?>) {
@@ -480,11 +481,12 @@ public class StaticShopElement extends ShopElement {
                 !profile.isComplete();
     }
 
+    @Blocking
     public static void completePlayerSkin(ItemStack stack) {
         if (stack.getType() == Material.PLAYER_HEAD) {
             SkullMeta meta = (SkullMeta) stack.getItemMeta();
             var profile = meta.getPlayerProfile();
-            if (profile != null && !profile.isComplete()) {
+            if (profile != null && !profile.hasTextures()) {
                 profile.complete();
                 meta.setPlayerProfile(profile);
                 stack.setItemMeta(meta);

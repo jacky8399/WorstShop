@@ -2,12 +2,10 @@ package com.jacky8399.worstshop.shops.commodity;
 
 import com.jacky8399.worstshop.I18n;
 import com.jacky8399.worstshop.WorstShop;
-import com.jacky8399.worstshop.helper.Config;
-import com.jacky8399.worstshop.helper.Exceptions;
-import com.jacky8399.worstshop.helper.InventoryUtils;
-import com.jacky8399.worstshop.helper.ItemBuilder;
+import com.jacky8399.worstshop.helper.*;
 import com.jacky8399.worstshop.shops.actions.Action;
 import com.jacky8399.worstshop.shops.elements.ShopElement;
+import net.kyori.adventure.text.Component;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.ClickType;
@@ -44,8 +42,8 @@ public class CommodityAction extends Commodity implements IUnaffordableCommodity
     }
 
     @Override
-    public String getPlayerResult(@Nullable Player player, TransactionType position) {
-        return I18n.translate("worstshop.messages.shops.wants.action", actions.size());
+    public List<? extends Component> playerResult(@Nullable Player player, TransactionType position) {
+        return List.of(I18n.translateComponent("worstshop.messages.shops.wants.action", actions.size()));
     }
 
     private InventoryClickEvent doUnspeakableThings(Player player) {

@@ -5,7 +5,9 @@ import com.jacky8399.worstshop.shops.rendering.PlaceholderContext;
 import com.jacky8399.worstshop.shops.rendering.RenderElement;
 import com.jacky8399.worstshop.shops.rendering.ShopRenderer;
 import fr.minuskube.inv.content.SlotPos;
+import net.kyori.adventure.text.Component;
 import org.bukkit.entity.Player;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
 import java.util.function.Function;
@@ -41,6 +43,11 @@ public class CommodityMultiple extends Commodity implements IFlexibleCommodity {
     @Override
     public boolean canMultiply() {
         return wants.stream().allMatch(Commodity::canMultiply);
+    }
+
+    @Override
+    public int getMaximumPurchase(Player player) {
+        return wants.stream().mapToInt(commodity -> commodity.getMaximumPurchase(player)).min().orElse(Integer.MAX_VALUE);
     }
 
     @Override
@@ -131,13 +138,19 @@ public class CommodityMultiple extends Commodity implements IFlexibleCommodity {
     }
 
     @Override
-    public String getPlayerTrait(Player player) {
-        return wants.stream().map(want->want.getPlayerTrait(player)).collect(Collectors.joining("\n"));
+    public List<? extends Component> playerTrait(Player player) {
+        return wants.stream()
+                // assume that playerTrait usually returns a list with 1 component
+                .<Component>mapMulti((commodity, consumer) -> commodity.playerTrait(player).forEach(consumer))
+                .toList();
     }
 
     @Override
-    public String getPlayerResult(Player player, TransactionType position) {
-        return wants.stream().map(want->want.getPlayerResult(player, position)).collect(Collectors.joining(", "));
+    public List<? extends Component> playerResult(@Nullable Player player, TransactionType position) {
+        return wants.stream()
+                // assume that playerResult usually returns a list with 1 component
+                .<Component>mapMulti((commodity, consumer) -> commodity.playerResult(player, position).forEach(consumer))
+                .toList();
     }
 
     @Override

@@ -7,6 +7,9 @@ import co.aikar.locales.LanguageTable;
 import co.aikar.locales.LocaleManager;
 import com.jacky8399.worstshop.helper.ConfigHelper;
 import com.jacky8399.worstshop.helper.PaperHelper;
+import com.jacky8399.worstshop.helper.TextUtils;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
 import net.md_5.bungee.api.ChatColor;
 import org.bukkit.configuration.InvalidConfigurationException;
 import org.bukkit.configuration.file.YamlConfiguration;
@@ -149,8 +152,8 @@ public class I18n {
     @SuppressWarnings("ConstantConditions")
     public static String translate(String path, Object... args) {
         path = path.toLowerCase(Locale.ROOT);
-        if (lang.isString(path)) {
-            String unformatted = lang.getString(path);
+        String unformatted = lang.getString(path);
+        if (unformatted != null) {
             try {
                 String formatted;
                 if (args.length == 0) // shortcut
@@ -165,6 +168,26 @@ public class I18n {
             }
         }
         return path;
+    }
+
+    public static Component translateComponent(String path, Object... args) {
+        path = path.toLowerCase(Locale.ROOT);
+        String unformatted = lang.getString(path);
+        if (unformatted != null) {
+            try {
+                String formatted;
+                if (args.length == 0) // shortcut
+                    formatted = unformatted;
+                else if (args.length == 1)
+                    formatted = unformatted.replace("{0}", String.valueOf(args[0]));
+                else
+                    formatted = MessageFormat.format(unformatted, args);
+                return TextUtils.LEGACY_COMPONENT_SERIALIZER.deserialize(formatted);
+            } catch (Exception ex) {
+                return Component.text(path + " (@ " + currentLang + ".yml): " + ex, NamedTextColor.RED);
+            }
+        }
+        return Component.text(path);
     }
 
     public static Translatable createTranslatable(String path) {

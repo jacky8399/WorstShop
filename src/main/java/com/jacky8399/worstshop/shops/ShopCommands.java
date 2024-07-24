@@ -3,7 +3,6 @@ package com.jacky8399.worstshop.shops;
 import com.google.common.collect.Lists;
 import com.jacky8399.worstshop.I18n;
 import com.jacky8399.worstshop.WorstShop;
-import com.jacky8399.worstshop.helper.PaperHelper;
 import org.bukkit.Bukkit;
 import net.md_5.bungee.api.ChatColor;
 import org.bukkit.Location;
@@ -24,7 +23,7 @@ public class ShopCommands {
 
     public static List<ShopAliasCommand> registeredCommands = Lists.newArrayList();
     public static void loadAliases() {
-        CommandMap map = PaperHelper.getCommandMap();
+        CommandMap map = Bukkit.getCommandMap();
         for (Shop shop : ShopManager.SHOPS.values()) {
             if (shop.aliases != null) {
                 ShopAliasCommand command = new ShopAliasCommand(shop.id, shop.aliases, shop.aliasesIgnorePermission);
@@ -43,12 +42,8 @@ public class ShopCommands {
 
     public static void removeAliases() {
         try {
-            CommandMap map = PaperHelper.getCommandMap();
-            if (map == null)
-                return;
-            Map<String, Command> knownCommands = PaperHelper.getKnownCommands(map);
-            if (knownCommands == null)
-                return;
+            CommandMap map = Bukkit.getCommandMap();
+            Map<String, Command> knownCommands = map.getKnownCommands();
             for (Iterator<Map.Entry<String, Command>> it = knownCommands.entrySet().iterator(); it.hasNext(); ) {
                 Map.Entry<String, Command> entry = it.next();
                 if (entry.getValue() instanceof ShopAliasCommand c) {

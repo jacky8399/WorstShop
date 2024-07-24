@@ -6,11 +6,13 @@ import com.jacky8399.worstshop.helper.Config;
 import com.jacky8399.worstshop.helper.ConfigHelper;
 import com.jacky8399.worstshop.helper.ItemBuilder;
 import com.jacky8399.worstshop.shops.elements.ShopElement;
-import net.md_5.bungee.api.ChatColor;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
 import net.milkbowl.vault.chat.Chat;
 import net.milkbowl.vault.permission.Permission;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
 
@@ -159,13 +161,13 @@ public class CommodityPermissionVault extends Commodity {
     }
 
     @Override
-    public String getPlayerTrait(Player player) {
-        return formatPermission() + ":" + canAfford(player);
+    public List<? extends Component> playerTrait(Player player) {
+        return List.of(formatPermissionComponent(canAfford(player)));
     }
 
     @Override
-    public String getPlayerResult(Player player, TransactionType position) {
-        return formatPermission() + ": " + value;
+    public List<? extends Component> playerResult(@Nullable Player player, TransactionType position) {
+        return List.of(formatPermissionComponent(value));
     }
 
     @Override
@@ -250,13 +252,20 @@ public class CommodityPermissionVault extends Commodity {
         return 1;
     }
 
-    public String formatPermission() {
-        return ChatColor.WHITE + I18n.translate(permType.getLocaleKey(), permission + "=" + value);
+    public Component formatPermissionComponent() {
+        return I18n.translateComponent(permType.getLocaleKey(), permission + "=" + value).colorIfAbsent(NamedTextColor.WHITE);
+    }
+
+    public Component formatPermissionComponent(Object value) {
+        return Component.textOfChildren(
+                I18n.translateComponent(permType.getLocaleKey(), permission + "=" + value),
+                Component.text(": " + value)
+        ).color(NamedTextColor.WHITE);
     }
 
     @Override
     public ShopElement createElement(TransactionType pos) {
-        return pos.createElement(ItemBuilder.of(Material.PAPER).name(formatPermission()).build());
+        return pos.createElement(ItemBuilder.of(Material.PAPER).name(formatPermissionComponent()).build());
     }
 
     @Override

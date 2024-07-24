@@ -19,6 +19,8 @@ import fr.minuskube.inv.SmartInventory;
 import fr.minuskube.inv.content.InventoryContents;
 import fr.minuskube.inv.content.InventoryProvider;
 import fr.minuskube.inv.content.SlotPos;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
 import net.md_5.bungee.api.ChatColor;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
@@ -324,11 +326,12 @@ public class ActionShop extends Action {
             updateAnimation(player, contents);
 
             // player balance etc
-            contents.set(5, 4, ClickableItem.empty(
-                    ItemBuilder.of(Material.PLAYER_HEAD)
-                            .name(ChatColor.WHITE + player.getDisplayName()).skullOwner(player)
-                            .lore(Arrays.asList(cost.getPlayerTrait(player).split("\\n"))).build()
-            ));
+            contents.set(5, 4, ItemBuilder.of(Material.PLAYER_HEAD)
+                    .name(Component.textOfChildren(player.displayName()).color(NamedTextColor.WHITE))
+                    .skullOwner(player)
+                    .lore(cost.playerTrait(player))
+                    .emptyClickable()
+            );
 
             // ok button
             contents.set(5, 3, ClickableItem.of(

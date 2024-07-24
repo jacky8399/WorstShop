@@ -3,11 +3,14 @@ package com.jacky8399.worstshop.shops.commodity;
 import com.jacky8399.worstshop.helper.Config;
 import com.jacky8399.worstshop.helper.ConfigException;
 import com.jacky8399.worstshop.helper.ItemBuilder;
+import com.jacky8399.worstshop.helper.TextUtils;
 import com.jacky8399.worstshop.shops.actions.ActionShop;
 import com.jacky8399.worstshop.shops.elements.ShopElement;
 import com.jacky8399.worstshop.shops.elements.StaticShopElement;
 import com.jacky8399.worstshop.shops.rendering.DefaultSlotFiller;
 import fr.minuskube.inv.content.SlotPos;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.JoinConfiguration;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
@@ -15,11 +18,8 @@ import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 
 /**
  * Represents a commodity that can be used as the cost/reward in {@link ActionShop}.
@@ -127,10 +127,10 @@ public abstract class Commodity {
     /**
      * Get the amount of the commodity the player already possesses
      * @param player the player
-     * @return the amount of commodity the player has
+     * @return list of components representing the amount of commodity the player has
      */
-    public String getPlayerTrait(Player player) {
-        return "";
+    public List<? extends Component> playerTrait(Player player) {
+        return List.of();
     }
 
     /**
@@ -139,8 +139,19 @@ public abstract class Commodity {
      * @param position the role of the commodity in the transaction
      * @return the result
      */
+    @Deprecated
     public String getPlayerResult(@Nullable Player player, TransactionType position) {
-        return "";
+        return TextUtils.LEGACY_COMPONENT_SERIALIZER.serialize(Component.join(JoinConfiguration.newlines(), playerResult(player, position)));
+    }
+
+    /**
+     * Get the result of a transaction involving the commodity
+     * @param player the player
+     * @param position the role of the commodity in the transaction
+     * @return list of components representing the result
+     */
+    public List<? extends Component> playerResult(@Nullable Player player, TransactionType position) {
+        return List.of();
     }
 
     /**
@@ -240,8 +251,8 @@ public abstract class Commodity {
     public final Object toSerializable(Map<String, Object> map) {
         if (this instanceof CommodityMoney money && money.isFromShorthand)
             return "$" + money.money;
-        else if (this instanceof CommodityMultiple)
-            return ((CommodityMultiple) this).wants.stream().map(want -> want.toSerializable(new HashMap<>())).collect(Collectors.toList());
+        else if (this instanceof CommodityMultiple multiple)
+            return multiple.wants.stream().map(want -> want.toSerializable(new LinkedHashMap<>())).toList();
         return toMap(map);
     }
 

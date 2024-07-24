@@ -7,6 +7,7 @@ import com.jacky8399.worstshop.helper.ItemBuilder;
 import com.jacky8399.worstshop.shops.elements.ShopElement;
 import com.jacky8399.worstshop.shops.rendering.PlaceholderContext;
 import com.jacky8399.worstshop.shops.rendering.Placeholders;
+import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
@@ -50,8 +51,8 @@ public class CommodityCommand extends Commodity implements IUnaffordableCommodit
     }
 
     @Override
-    public String getPlayerResult(@Nullable Player player, TransactionType position) {
-        return I18n.translate("worstshop.messages.shops.wants.command", commands.size());
+    public List<? extends Component> playerResult(@Nullable Player player, TransactionType position) {
+        return List.of(I18n.translateComponent("worstshop.messages.shops.wants.command", commands.size()));
     }
 
     public Runnable givePermissions(Player player) {

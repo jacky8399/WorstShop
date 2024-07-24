@@ -74,12 +74,6 @@ public final class WorstShop extends JavaPlugin {
         saveDefaultConfig();
         reloadConfig();
 
-        // check is Paper
-        PaperHelper.checkIsPaper();
-        if (!PaperHelper.isPaper) {
-            logger.info(ChatColor.YELLOW + "Not using Paper. Using alternative methods.");
-        }
-
         PluginManager manager = Bukkit.getPluginManager();
 
         // setup vault dependencies

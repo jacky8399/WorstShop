@@ -3,11 +3,15 @@ package com.jacky8399.worstshop.shops.commodity;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
 import com.jacky8399.worstshop.I18n;
-import com.jacky8399.worstshop.helper.*;
+import com.jacky8399.worstshop.helper.Config;
+import com.jacky8399.worstshop.helper.ConfigException;
+import com.jacky8399.worstshop.helper.ItemUtils;
+import com.jacky8399.worstshop.helper.TextUtils;
 import com.jacky8399.worstshop.shops.elements.ShopElement;
 import com.jacky8399.worstshop.shops.elements.StaticShopElement;
 import com.jacky8399.worstshop.shops.elements.dynamic.AnimationShopElement;
 import com.jacky8399.worstshop.shops.rendering.Placeholders;
+import net.kyori.adventure.text.Component;
 import org.bukkit.*;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
@@ -115,7 +119,7 @@ public class CommodityItem extends Commodity implements IFlexibleCommodity {
 
     @NotNull
     public Set<Material> getExtraAcceptedItems() {
-        EnumSet<Material> materials = EnumSet.noneOf(Material.class);
+        var materials = new HashSet<Material>();
         for (NamespacedKey key : accepted) {
             Material mat = Registry.MATERIAL.get(key);
             if (mat != null) {
@@ -127,7 +131,7 @@ public class CommodityItem extends Commodity implements IFlexibleCommodity {
                 }
             }
         }
-        return materials.size() == 0 ? Collections.emptySet() : materials;
+        return Set.copyOf(materials);
     }
 
     public int getAmount() {
@@ -249,13 +253,11 @@ public class CommodityItem extends Commodity implements IFlexibleCommodity {
     }
 
     @Override
-    public String getPlayerTrait(Player player) {
+    public List<? extends Component> playerTrait(Player player) {
         return getInventoryMatchingFormatted(player.getInventory());
     }
 
-    public String getInventoryMatchingFormatted(Inventory inventory) {
-        StringJoiner joiner = new StringJoiner("\n");
-
+    public List<? extends Component> getInventoryMatchingFormatted(Inventory inventory) {
         Map<ItemStack, Integer> matching = new HashMap<>();
         Set<Material> cache = getExtraAcceptedItems();
         for (ItemStack playerStack : inventory.getContents()) {
@@ -265,13 +267,14 @@ public class CommodityItem extends Commodity implements IFlexibleCommodity {
                 matching.merge(one, playerStack.getAmount(), Integer::sum);
             }
         }
-        if (matching.size() == 0) {
-            return stack.getType() != Material.AIR ?
-                    I18n.nameStack(stack, 0) :
-                    I18n.translate(I18n.Keys.ITEM_KEY, amount, PaperHelper.getItemName(new ItemStack(cache.iterator().next())));
+
+        if (matching.isEmpty()) {
+            var displayStack = stack.getType() != Material.AIR ? stack : new ItemStack(cache.iterator().next());
+            return List.of(TextUtils.nameStack(displayStack, 0));
         }
-        matching.forEach((is, amount) -> joiner.add(I18n.nameStack(is, amount)));
-        return joiner.toString();
+        return matching.entrySet().stream()
+                .map(entry -> TextUtils.nameStack(entry.getKey(), entry.getValue()))
+                .toList();
     }
 
     public int getInventoryMatching(Inventory inventory) {
@@ -351,9 +354,8 @@ public class CommodityItem extends Commodity implements IFlexibleCommodity {
     }
 
     @Override
-    public String getPlayerResult(Player player, TransactionType position) {
-        int amount = getAmount();
-        return I18n.nameStack(stack, amount);
+    public List<? extends Component> playerResult(@Nullable Player player, TransactionType position) {
+        return List.of(TextUtils.nameStack(stack, getAmount()));
     }
 
     @Override

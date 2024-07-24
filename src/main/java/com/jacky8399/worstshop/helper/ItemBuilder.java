@@ -12,10 +12,7 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.SkullMeta;
 import org.bukkit.persistence.PersistentDataType;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 import java.util.function.Consumer;
 
 @SuppressWarnings("deprecation")
@@ -26,11 +23,13 @@ public class ItemBuilder {
     private ItemBuilder(Material mat) {
         stack = new ItemStack(mat);
         meta = stack.getItemMeta();
+        meta.getPersistentDataContainer().set(StaticShopElement.SAFETY_KEY, PersistentDataType.BYTE, (byte) 1);
     }
 
     private ItemBuilder(ItemStack stack) {
         this.stack = stack;
         meta = stack.getItemMeta();
+        meta.getPersistentDataContainer().set(StaticShopElement.SAFETY_KEY, PersistentDataType.BYTE, (byte) 1);
     }
 
     public static ItemBuilder of(Material material) {
@@ -44,6 +43,14 @@ public class ItemBuilder {
     public ItemStack build() {
         stack.setItemMeta(meta);
         return stack;
+    }
+
+    public ClickableItem emptyClickable() {
+        return ClickableItem.empty(build());
+    }
+
+    public ClickableItem ofClickable(Consumer<InventoryClickEvent> consumer) {
+        return ClickableItem.of(build(), consumer);
     }
 
     public ClickableItem toEmptyClickable() {
@@ -63,15 +70,7 @@ public class ItemBuilder {
         return this;
     }
 
-    @Deprecated
-    public void loadMeta() {
-        meta = stack.getItemMeta();
-        meta.getPersistentDataContainer().set(StaticShopElement.SAFETY_KEY, PersistentDataType.BYTE, (byte) 1);
-    }
-
     public ItemBuilder type(Material material) {
-        if (meta == null)
-            loadMeta();
         meta = Bukkit.getItemFactory().asMetaFor(meta, material);
         stack.setType(material);
         stack.setItemMeta(meta);
@@ -85,15 +84,11 @@ public class ItemBuilder {
     }
 
     public ItemBuilder meta(Consumer<ItemMeta> metaConsumer) {
-        if (meta == null)
-            loadMeta();
         metaConsumer.accept(meta);
         return this;
     }
 
     public ItemMeta meta() {
-        if (meta == null)
-            loadMeta();
         return meta;
     }
 
@@ -106,37 +101,42 @@ public class ItemBuilder {
         return this;
     }
 
-    public ItemBuilder displayName(Component component) {
+    public ItemBuilder name(Component component) {
         meta.displayName(component);
         return this;
     }
 
     public ItemBuilder skullOwner(OfflinePlayer p) {
-        return meta(meta -> {
-            if (meta instanceof SkullMeta skullMeta)
-                skullMeta.setOwningPlayer(p);
-            else
-                throw new IllegalArgumentException("Material not a skull");
-        });
+        if (meta instanceof SkullMeta skullMeta)
+            skullMeta.setOwningPlayer(p);
+        else
+            throw new IllegalArgumentException("Material not a skull");
+        return this;
     }
 
+    @Deprecated
     public ItemBuilder lores(String... lore) {
         return lore(Arrays.asList(lore));
     }
 
+    @Deprecated
     public ItemBuilder lore(List<String> lore) {
         meta.setLore(lore);
         return this;
     }
 
+    public ItemBuilder lores(Component... components) {
+        return lore(Arrays.asList(components));
+    }
+
+    public ItemBuilder lore(Collection<? extends Component> lore) {
+        meta.lore(lore instanceof List<? extends Component> list ? list : List.copyOf(lore));
+        return this;
+    }
+
     @SuppressWarnings("ConstantConditions")
     public ItemBuilder addLores(String... lore) {
-        if (lore != null) {
-            List<String> oldLore = meta.hasLore() ? new ArrayList<>(meta.getLore()) : new ArrayList<>();
-            Collections.addAll(oldLore, lore);
-            meta.setLore(oldLore);
-        }
-        return this;
+        return addLore(Arrays.asList(lore));
     }
 
     @SuppressWarnings("ConstantConditions")
@@ -145,6 +145,21 @@ public class ItemBuilder {
             List<String> oldLore = meta.hasLore() ? new ArrayList<>(meta.getLore()) : new ArrayList<>();
             oldLore.addAll(lore);
             meta.setLore(oldLore);
+        }
+        return this;
+    }
+
+    public ItemBuilder addLores(Component... lore) {
+        return addLore(Arrays.asList(lore));
+    }
+
+    public ItemBuilder addLore(Collection<? extends Component> lore) {
+        if (lore != null) {
+            List<Component> oldLore = meta.hasLore() ? meta.lore() : List.of();
+            List<Component> newLore = new ArrayList<>(oldLore.size() + lore.size());
+            newLore.addAll(oldLore);
+            newLore.addAll(lore);
+            meta.lore(newLore);
         }
         return this;
     }

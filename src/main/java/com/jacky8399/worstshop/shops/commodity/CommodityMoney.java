@@ -4,12 +4,16 @@ import com.jacky8399.worstshop.WorstShop;
 import com.jacky8399.worstshop.helper.Config;
 import com.jacky8399.worstshop.helper.ItemBuilder;
 import com.jacky8399.worstshop.shops.elements.ShopElement;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
 import net.md_5.bungee.api.ChatColor;
 import net.milkbowl.vault.economy.Economy;
 import net.milkbowl.vault.economy.EconomyResponse;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
+import org.jetbrains.annotations.Nullable;
 
+import java.util.List;
 import java.util.Map;
 
 public class CommodityMoney extends Commodity {
@@ -67,8 +71,13 @@ public class CommodityMoney extends Commodity {
     }
 
     @Override
-    public String getPlayerTrait(Player player) {
-        return formatMoney(ECONOMY.getBalance(player));
+    public List<? extends Component> playerTrait(Player player) {
+        return List.of(formatMoneyComponent(ECONOMY.getBalance(player)));
+    }
+
+    @Override
+    public List<? extends Component> playerResult(@Nullable Player player, TransactionType position) {
+        return List.of(formatMoneyComponent(realMoney));
     }
 
     @Override
@@ -83,11 +92,6 @@ public class CommodityMoney extends Commodity {
     }
 
     @Override
-    public String getPlayerResult(Player player, TransactionType position) {
-        return formatMoney(realMoney);
-    }
-
-    @Override
     public Map<String, Object> toMap(Map<String, Object> map) {
         map.put("preset", "money");
         map.put("money", money);
@@ -96,6 +100,10 @@ public class CommodityMoney extends Commodity {
 
     public static String formatMoney(double money) {
         return ChatColor.GOLD + ECONOMY.format(money);
+    }
+
+    public static Component formatMoneyComponent(double money) {
+        return Component.text(ECONOMY.format(money), NamedTextColor.GOLD);
     }
 
     @Override

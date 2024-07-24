@@ -5,12 +5,15 @@ import com.jacky8399.worstshop.WorstShop;
 import com.jacky8399.worstshop.helper.Config;
 import com.jacky8399.worstshop.helper.ItemBuilder;
 import com.jacky8399.worstshop.shops.elements.ShopElement;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
 import net.md_5.bungee.api.ChatColor;
 import org.black_ixx.playerpoints.PlayerPointsAPI;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.List;
 import java.util.Map;
 
 public class CommodityPlayerPoint extends Commodity {
@@ -53,13 +56,13 @@ public class CommodityPlayerPoint extends Commodity {
     }
 
     @Override
-    public String getPlayerTrait(Player player) {
-        return formatPoints(POINTS.look(player.getUniqueId()));
+    public List<? extends Component> playerTrait(Player player) {
+        return List.of(formatPointsComponent(POINTS.look(player.getUniqueId())));
     }
 
     @Override
-    public String getPlayerResult(@Nullable Player player, TransactionType position) {
-        return formatPoints(realPoints);
+    public List<? extends Component> playerResult(@Nullable Player player, TransactionType position) {
+        return List.of(formatPointsComponent(realPoints));
     }
 
     @Override
@@ -82,11 +85,15 @@ public class CommodityPlayerPoint extends Commodity {
 
     @Override
     public ShopElement createElement(TransactionType position) {
-        return position.createElement(ItemBuilder.of(Material.DIAMOND).name(formatPoints(points)).build());
+        return position.createElement(ItemBuilder.of(Material.DIAMOND).name(formatPointsComponent(points)).build());
     }
 
     public static String formatPoints(int points) {
         return ChatColor.AQUA + I18n.translate("worstshop.shops.wants.player-points", points);
+    }
+
+    public static Component formatPointsComponent(int points) {
+        return I18n.translateComponent("worstshop.shops.wants.player-points", points).colorIfAbsent(NamedTextColor.AQUA);
     }
 
     @Override

@@ -82,7 +82,7 @@ public class ActionCommand extends Action {
                     p.spigot().sendMessage(ConfigHelper.parseComponentString(in.trim()))
             )
             .put("actionbar:", (p, in)->
-                    PaperHelper.sendActionBar(p, ConfigHelper.parseComponentString(in.trim()))
+                    p.sendActionBar(ConfigHelper.parseComponentString(in.trim()))
             )
             .put("op:", (p, in)->{
                 boolean oldOp = p.isOp();

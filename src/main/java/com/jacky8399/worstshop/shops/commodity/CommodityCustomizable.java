@@ -6,14 +6,12 @@ import com.jacky8399.worstshop.helper.ConfigException;
 import com.jacky8399.worstshop.shops.ParseContext;
 import com.jacky8399.worstshop.shops.elements.ShopElement;
 import com.jacky8399.worstshop.shops.rendering.DefaultSlotFiller;
+import net.kyori.adventure.text.Component;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 
 /**
  * Special commodity to let users specify the display themselves
@@ -80,13 +78,13 @@ public final class CommodityCustomizable extends Commodity implements IFlexibleC
     }
 
     @Override
-    public String getPlayerTrait(Player player) {
-        return base.getPlayerTrait(player);
+    public List<? extends Component> playerTrait(Player player) {
+        return base.playerTrait(player);
     }
 
     @Override
-    public String getPlayerResult(@Nullable Player player, TransactionType position) {
-        return base.getPlayerResult(player, position);
+    public List<? extends Component> playerResult(@Nullable Player player, TransactionType position) {
+        return base.playerResult(player, position);
     }
 
     @Override
