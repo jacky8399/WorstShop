@@ -10,12 +10,14 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.StringJoiner;
+import java.util.function.UnaryOperator;
 
 public record PlaceholderContext(@Nullable Player player,
                                  @Nullable Shop shop,
                                  @Nullable ShopRenderer renderer,
                                  @Nullable ShopElement element,
-                                 @Nullable PlaceholderContext additionalContext) {
+                                 @Nullable PlaceholderContext additionalContext)
+    implements UnaryOperator<String> {
     public PlaceholderContext(@NotNull ShopRenderer renderer) {
         this(renderer, null);
     }
@@ -92,6 +94,7 @@ public record PlaceholderContext(@Nullable Player player,
         return builder.toString();
     }
 
+    @Override
     public String apply(String input) {
         return Placeholders.setPlaceholders(input, this);
     }

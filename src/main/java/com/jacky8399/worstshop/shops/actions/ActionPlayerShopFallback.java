@@ -25,7 +25,7 @@ public class ActionPlayerShopFallback extends Action {
     static {
         boolean hasQuickShop = false;
         try {
-            Class.forName("org.maxgamer.quickshop.api.event.ShopDeleteEvent");
+            Class.forName("com.ghostchu.quickshop.api.event.ShopDeleteEvent");
             hasQuickShop = true;
         } catch (ClassNotFoundException ex) {
             WorstShop.get().logger.warning("QuickShop not found. All player_shops will fallback to shops if possible.");

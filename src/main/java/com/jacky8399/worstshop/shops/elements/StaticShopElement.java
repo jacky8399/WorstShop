@@ -15,6 +15,8 @@ import com.jacky8399.worstshop.shops.rendering.RenderElement;
 import com.jacky8399.worstshop.shops.rendering.ShopRenderer;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.TranslatableComponent;
+import net.kyori.adventure.text.format.TextDecoration;
+import net.kyori.adventure.text.minimessage.MiniMessage;
 import org.bukkit.*;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.configuration.serialization.ConfigurationSerialization;
@@ -137,6 +139,14 @@ public class StaticShopElement extends ShopElement {
         return SUPPORTED_ITEM_META_TYPES.contains(meta.serialize().get("meta-type"));
     }
 
+
+    // minimessage instance that applies the default lore style (white and no italics)
+    private static final MiniMessage MINI_MESSAGE = MiniMessage.builder()
+            .postProcessor(component -> component
+                    .style(component.style().decorationIfAbsent(TextDecoration.ITALIC, TextDecoration.State.FALSE))
+                    .compact()
+            )
+            .build();
     public static ItemStack parseItemStack(Config yaml) {
         try {
             Material material = Material.matchMaterial(yaml.get("item", String.class).replace(' ', '_'));
@@ -146,8 +156,13 @@ public class StaticShopElement extends ShopElement {
                 return null; // skip air
             }
             ItemBuilder is = ItemBuilder.of(material);
-            int amount = yaml.find("amount", Integer.class).or(()->yaml.find("count", Integer.class)).orElse(1);
-            is.amount(Math.min(Math.max(amount, 1), material.getMaxStackSize()));
+            Object amount = yaml.find("amount", Integer.class, String.class).or(()->yaml.find("count", Integer.class, String.class)).orElse(1);
+            if (amount instanceof Integer integer) {
+                is.amount(Math.min(Math.max(integer, 1), material.getMaxStackSize()));
+            } else {
+                is.amount(1);
+                is.meta().getPersistentDataContainer().set(Placeholders.ITEM_AMOUNT_KEY, PersistentDataType.STRING, ((String) amount));
+            }
 
             Optional<String> itemMetaString = yaml.find("item-meta", String.class);
             if (itemMetaString.isPresent()) {
@@ -155,13 +170,21 @@ public class StaticShopElement extends ShopElement {
                 is.meta(decoded);
                 // allow basic properties to further influence this ItemStack
             }
-            yaml.find("damage", Integer.class).ifPresent(damage -> {
-                if (damage != 0)
-                    is.meta(meta -> {
-                        if (meta instanceof Damageable)
-                            ((Damageable) meta).setDamage(damage);
-                    });
+
+            yaml.find("max-damage", Integer.class).ifPresent(maxDamage -> {
+                if (maxDamage != 0 && is.meta() instanceof Damageable damageable) {
+                    damageable.setMaxDamage(maxDamage);
+                }
             });
+
+            yaml.find("damage", Integer.class).ifPresent(damage -> {
+                if (damage != 0 && is.meta() instanceof Damageable damageable) {
+                    damageable.setDamage(damage);
+                }
+            });
+
+            yaml.find("enchantment-glint", Boolean.class).ifPresent(is::enchantmentGlint);
+            yaml.find("hide-tooltip", Boolean.class).ifPresent(is::hideTooltip);
 
             yaml.find("custom-model-data", Integer.class).ifPresent(customModelData ->
                     is.meta(meta -> meta.setCustomModelData(customModelData))
@@ -187,27 +210,38 @@ public class StaticShopElement extends ShopElement {
                     })
             );
 
-            Optional<String> optionalText = yaml.find("text", String.class);
-            if (optionalText.isPresent()) {
-                String[] lines = optionalText.get().split("\n");
-                is.name(lines[0]);
-                if (lines.length > 1) {
-                    is.lores(Arrays.copyOfRange(lines, 1, lines.length));
+            Optional<String> optionalMessage = yaml.find("message", String.class).or(() -> yaml.find("msg", String.class));
+            if (optionalMessage.isPresent()) {
+                String message = optionalMessage.get();
+                List<Component> lines = message.lines().map(MINI_MESSAGE::deserialize).toList();
+                is.name(lines.getFirst());
+                if (lines.size() > 1) {
+                    is.lore(lines.subList(1, lines.size()));
+                }
+            } else {
+                Optional<String> optionalText = yaml.find("text", String.class);
+                if (optionalText.isPresent()) {
+                    String[] lines = optionalText.get().split("\n");
+                    is.name(lines[0]);
+                    if (lines.length > 1) {
+                        is.lores(Arrays.copyOfRange(lines, 1, lines.length));
+                    }
                 }
             }
 
-            yaml.find("name", String.class).ifPresent(is::name);
+            yaml.find("name", String.class).map(MINI_MESSAGE::deserialize).ifPresent(is::name);
 
             yaml.find("loc-name", String.class).ifPresent(locName -> is.name(Component.translatable(locName)));
 
             yaml.find("lore", List.class, String.class).ifPresent(loreObj -> {
                 if (loreObj instanceof List<?>) {
-                    List<String> lore = new ArrayList<>(yaml.getList("lore", String.class));
-                    is.lore(lore);
+                    is.lore(yaml.getList("lore", String.class).stream().map(MINI_MESSAGE::deserialize).toList());
                 } else {
-                    is.lores(loreObj.toString().split("\n"));
+                    is.lore(loreObj.toString().lines().map(MINI_MESSAGE::deserialize).toList());
                 }
             });
+
+            yaml.find("item-name", String.class).map(MINI_MESSAGE::deserialize).ifPresent(is::itemName);
 
             yaml.find("unbreakable", Boolean.class).ifPresent(bool -> is.meta(meta -> meta.setUnbreakable(bool)));
 
@@ -222,6 +256,7 @@ public class StaticShopElement extends ShopElement {
                     });
 
             // skull
+            // maybe I should've used PersistentDataContainers instead of attaching data to profiles lol
             yaml.find("skull", String.class).ifPresent(uuidOrName -> {
                 UUID uuid = null;
                 try {

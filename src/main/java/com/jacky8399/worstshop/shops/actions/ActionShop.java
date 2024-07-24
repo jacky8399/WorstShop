@@ -21,12 +21,12 @@ import fr.minuskube.inv.content.InventoryProvider;
 import fr.minuskube.inv.content.SlotPos;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
-import net.md_5.bungee.api.ChatColor;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryType;
+import org.bukkit.inventory.meta.BundleMeta;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
@@ -302,13 +302,13 @@ public class ActionShop extends Action {
         }
 
         protected static final ClickableItem FILLER = ItemBuilder.of(Material.BLACK_STAINED_GLASS_PANE)
-                .name(ChatColor.BLACK.toString()).toEmptyClickable();
+                .hideTooltip().toEmptyClickable();
         protected static final ClickableItem ARROW = ItemBuilder.of(Material.YELLOW_STAINED_GLASS_PANE)
-                .name(ChatColor.BLACK.toString()).toEmptyClickable();
+                .hideTooltip().toEmptyClickable();
         protected static final ClickableItem GREEN = ItemBuilder.of(Material.LIME_STAINED_GLASS_PANE)
-                .name(ChatColor.BLACK.toString()).toEmptyClickable();
+                .hideTooltip().toEmptyClickable();
         protected static final ClickableItem RED = ItemBuilder.of(Material.RED_STAINED_GLASS_PANE)
-                .name(ChatColor.BLACK.toString()).toEmptyClickable();
+                .hideTooltip().toEmptyClickable();
 
         protected static final I18n.Translatable PREVIOUS_PURCHASE_ENTRY = I18n.createTranslatable(
                 I18n.Keys.MESSAGES_KEY + "shops.buttons.purchase-limit.previous-purchase-entry");
@@ -494,17 +494,26 @@ public class ActionShop extends Action {
         }
 
         protected void updateItemCount(Player player, InventoryContents contents) {
-            List<String> lore = reward.canMultiply() ?
-                    Collections.singletonList(I18n.translate("worstshop.messages.shops.buy-counts.total-result",
-                            reward.multiply(buyCount).getPlayerResult(player, Commodity.TransactionType.REWARD))) :
-                    Collections.emptyList();
-            boolean useChest = buyCount > 64 && (cost instanceof CommodityItem || reward instanceof CommodityItem);
-            contents.set(4, 4, ItemBuilder.of(useChest ? Material.CHEST :
-                            buyCount != 0 ? Material.END_CRYSTAL : Material.BARRIER)
-                    .name(I18n.translate("worstshop.messages.shops.buy-counts.total", buyCount))
-                    .amount(Math.max(Math.min(useChest ? (int) Math.ceil(buyCount / 64f) : buyCount, 64), 1))
-                    .lore(lore)
-                    .toEmptyClickable()
+            Commodity realReward = reward.multiply(buyCount);
+            var results = realReward.playerResult(player, Commodity.TransactionType.REWARD);
+            List<Component> lore = new ArrayList<>(results.size() + 1);
+            lore.add(I18n.translateComponent("worstshop.messages.shops.buy-counts.total-result", ""));
+            lore.addAll(results);
+            boolean useChest = buyCount > 99 && (cost instanceof CommodityItem || reward instanceof CommodityItem);
+            contents.set(4, 4,
+                    ItemBuilder.of(useChest ? Material.BUNDLE :
+                                    buyCount != 0 ? Material.END_CRYSTAL : Material.BARRIER)
+                            .name(I18n.translate("worstshop.messages.shops.buy-counts.total", buyCount))
+                            .maxAmount(99)
+                            .amount(Math.max(Math.min(useChest ? (int) Math.ceil(buyCount / 64f) : buyCount, 99), 1))
+                            .lore(lore)
+                            .meta(meta -> {
+                                if (meta instanceof BundleMeta bundleMeta && realReward instanceof CommodityItem commodityItem) {
+                                    // this will be so funny
+                                    bundleMeta.setItems(commodityItem.getGrantedItems());
+                                }
+                            })
+                            .toEmptyClickable()
             );
         }
 

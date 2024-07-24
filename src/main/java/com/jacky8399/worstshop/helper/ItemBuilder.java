@@ -3,6 +3,7 @@ package com.jacky8399.worstshop.helper;
 import com.jacky8399.worstshop.shops.elements.StaticShopElement;
 import fr.minuskube.inv.ClickableItem;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.TextDecoration;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.OfflinePlayer;
@@ -65,8 +66,13 @@ public class ItemBuilder {
         return stack.getType();
     }
 
+    public ItemBuilder maxAmount(int maxAmount) {
+        meta.setMaxStackSize(maxAmount);
+        return this;
+    }
+
     public ItemBuilder amount(int amount) {
-        stack.setAmount(amount);
+        stack.setAmount(Math.min(amount, meta.hasMaxStackSize() ? meta.getMaxStackSize() : stack.getType().getMaxStackSize()));
         return this;
     }
 
@@ -102,7 +108,12 @@ public class ItemBuilder {
     }
 
     public ItemBuilder name(Component component) {
-        meta.displayName(component);
+        meta.displayName(component.decorationIfAbsent(TextDecoration.ITALIC, TextDecoration.State.FALSE));
+        return this;
+    }
+
+    public ItemBuilder itemName(Component component) {
+        meta.itemName(component);
         return this;
     }
 
@@ -120,8 +131,8 @@ public class ItemBuilder {
     }
 
     @Deprecated
-    public ItemBuilder lore(List<String> lore) {
-        meta.setLore(lore);
+    public ItemBuilder lore(Collection<String> lore) {
+        meta.setLore(List.copyOf(lore));
         return this;
     }
 
@@ -129,8 +140,13 @@ public class ItemBuilder {
         return lore(Arrays.asList(components));
     }
 
-    public ItemBuilder lore(Collection<? extends Component> lore) {
-        meta.lore(lore instanceof List<? extends Component> list ? list : List.copyOf(lore));
+    public ItemBuilder lore(List<? extends Component> lore) {
+        List<Component> list = new ArrayList<>(lore.size());
+        for (Component line : lore) {
+            Component component = line.decorationIfAbsent(TextDecoration.ITALIC, TextDecoration.State.FALSE);
+            list.add(component);
+        }
+        meta.lore(list);
         return this;
     }
 
@@ -140,7 +156,7 @@ public class ItemBuilder {
     }
 
     @SuppressWarnings("ConstantConditions")
-    public ItemBuilder addLore(List<String> lore) {
+    public ItemBuilder addLore(Collection<String> lore) {
         if (lore != null) {
             List<String> oldLore = meta.hasLore() ? new ArrayList<>(meta.getLore()) : new ArrayList<>();
             oldLore.addAll(lore);
@@ -153,7 +169,7 @@ public class ItemBuilder {
         return addLore(Arrays.asList(lore));
     }
 
-    public ItemBuilder addLore(Collection<? extends Component> lore) {
+    public ItemBuilder addLore(List<? extends Component> lore) {
         if (lore != null) {
             List<Component> oldLore = meta.hasLore() ? meta.lore() : List.of();
             List<Component> newLore = new ArrayList<>(oldLore.size() + lore.size());
@@ -161,6 +177,20 @@ public class ItemBuilder {
             newLore.addAll(lore);
             meta.lore(newLore);
         }
+        return this;
+    }
+
+    public ItemBuilder hideTooltip() {
+        return hideTooltip(true);
+    }
+
+    public ItemBuilder hideTooltip(boolean hideTooltip) {
+        meta.setHideTooltip(hideTooltip);
+        return this;
+    }
+
+    public ItemBuilder enchantmentGlint(boolean enchantmentGlint) {
+        meta.setEnchantmentGlintOverride(enchantmentGlint);
         return this;
     }
 

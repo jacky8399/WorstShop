@@ -1,5 +1,14 @@
 package com.jacky8399.worstshop.shops.actions;
 
+import com.ghostchu.quickshop.QuickShop;
+import com.ghostchu.quickshop.api.QuickShopAPI;
+import com.ghostchu.quickshop.api.event.ShopCreateEvent;
+import com.ghostchu.quickshop.api.event.ShopDeleteEvent;
+import com.ghostchu.quickshop.api.event.ShopItemChangeEvent;
+import com.ghostchu.quickshop.api.shop.Shop;
+import com.ghostchu.quickshop.shop.SimpleInfo;
+import com.ghostchu.quickshop.shop.SimpleShopManager;
+import com.ghostchu.quickshop.shop.inventory.BukkitInventoryWrapper;
 import com.jacky8399.worstshop.I18n;
 import com.jacky8399.worstshop.WorstShop;
 import com.jacky8399.worstshop.helper.Config;
@@ -27,15 +36,6 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.scheduler.BukkitTask;
-import org.maxgamer.quickshop.QuickShop;
-import org.maxgamer.quickshop.api.QuickShopAPI;
-import org.maxgamer.quickshop.api.event.ShopCreateEvent;
-import org.maxgamer.quickshop.api.event.ShopDeleteEvent;
-import org.maxgamer.quickshop.api.event.ShopItemChangeEvent;
-import org.maxgamer.quickshop.api.shop.Shop;
-import org.maxgamer.quickshop.api.shop.ShopAction;
-import org.maxgamer.quickshop.shop.SimpleInfo;
-import org.maxgamer.quickshop.shop.SimpleShopManager;
 
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
@@ -49,10 +49,8 @@ public class ActionPlayerShop extends ActionPlayerShopFallback {
     public static final String I18N_KEY = "worstshop.messages.shops.player-shop.";
     static {
         try {
-            QuickShopAPI plugin = (QuickShopAPI) Bukkit.getPluginManager().getPlugin("QuickShop");
-            if (!Bukkit.getPluginManager().isPluginEnabled("QuickShop"))
-                throw new IllegalStateException("QuickShop is not enabled");
-            cache = new ShopCache(plugin);
+            QuickShopAPI api = QuickShopAPI.getInstance();
+            cache = new ShopCache(api);
         } catch (Throwable e) {
             throw new IllegalStateException("QuickShop is not loaded!", e);
         }
@@ -225,7 +223,7 @@ public class ActionPlayerShop extends ActionPlayerShopFallback {
     private record PurchaseStrategy(Shop shop, int buyCount, SimpleInfo info) {
         PurchaseStrategy(Shop shop, int buyCount) {
             this(shop, buyCount, new SimpleInfo(shop.getLocation(),
-                    ShopAction.BUY, shop.getItem(), shop.getLocation().getBlock(), shop, false));
+                    com.ghostchu.quickshop.api.shop.ShopAction.PURCHASE_BUY, shop.getItem(), shop.getLocation().getBlock(), shop, false));
         }
 
         public double total() {
@@ -369,7 +367,7 @@ public class ActionPlayerShop extends ActionPlayerShopFallback {
             contents.fill(FILLER);
             animationSequence = 1;
             Player player = (Player) e.getWhoClicked();
-            QuickShop qs = QuickShop.getInstance();
+            QuickShop qs = (QuickShop) QuickShopAPI.getPluginInstance();
             CompletableFuture<?>[] futures = purchaseSummary.strategies.stream().map(purchase -> {
                 Shop qShop = purchase.shop;
                 CompletableFuture<Chunk> future = qShop.isLoaded() ?
@@ -380,9 +378,9 @@ public class ActionPlayerShop extends ActionPlayerShopFallback {
                     SimpleShopManager qsManager = (SimpleShopManager) qs.getShopManager();
                     Bukkit.getScheduler().runTask(WorstShop.get(), () -> {
                         if (isBuying)
-                            qsManager.actionSell(player.getUniqueId(), player.getInventory(), qs.getEconomy(), purchase.info, qShop, purchase.buyCount);
+                            qsManager.actionSelling(player, new BukkitInventoryWrapper(player.getInventory()), qs.getEconomy(), purchase.info, qShop, purchase.buyCount);
                         else
-                            qsManager.actionBuy(player.getUniqueId(), player.getInventory(), qs.getEconomy(), purchase.info, qShop, purchase.buyCount);
+                            qsManager.actionBuying(player, new BukkitInventoryWrapper(player.getInventory()), qs.getEconomy(), purchase.info, qShop, purchase.buyCount);
                         future2.complete(null);
                     });
                     return future2;

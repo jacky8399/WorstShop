@@ -118,6 +118,11 @@ public class CommodityItem extends Commodity implements IFlexibleCommodity {
     }
 
     @NotNull
+    public ItemStack getStack() {
+        return stack.clone();
+    }
+
+    @NotNull
     public Set<Material> getExtraAcceptedItems() {
         var materials = new HashSet<Material>();
         for (NamespacedKey key : accepted) {
@@ -328,29 +333,31 @@ public class CommodityItem extends Commodity implements IFlexibleCommodity {
         return refund;
     }
 
-    public int grant(Inventory inventory) {
+    public List<ItemStack> getGrantedItems() {
         ItemStack stack = this.stack;
         if (stack.getType() == Material.AIR) {
             // find first item
             stack = new ItemStack(getExtraAcceptedItems().iterator().next(), amount);
         }
         // split into correct stack sizes
-        int amount = getAmount(), maxStackSize = stack.getType().getMaxStackSize();
+        int amount = getAmount(), maxStackSize = stack.getMaxStackSize();
         if (maxStackSize <= 0) maxStackSize = 64;
-        List<ItemStack> stacks = new ArrayList<>();
-        while (amount > 0) {
-            int stackAmount = Math.min(amount, maxStackSize);
-            amount -= stackAmount;
-            ItemStack s = stack.clone();
-            s.setAmount(stackAmount);
-            stacks.add(s);
-            if (stacks.size() >= 54) {
-                // ...why would you buy so many items
-                break;
-            }
+        int size = Math.min(54, amount / maxStackSize + 1);
+        List<ItemStack> stacks = new ArrayList<>(size);
+        ItemStack fullStack = stack.asQuantity(maxStackSize);
+        for (int i = 0; i < size - 1; i++) {
+            stacks.add(fullStack);
         }
+        if (amount % maxStackSize != 0) {
+            stacks.add(stack.asQuantity(amount));
+        }
+        return List.copyOf(stacks);
+    }
+
+    public int grant(Inventory inventory) {
+        List<ItemStack> stacks = getGrantedItems();
         HashMap<Integer, ItemStack> unfit = inventory.addItem(stacks.toArray(new ItemStack[0]));
-        return unfit.size() > 0 ? amount + unfit.values().stream().mapToInt(ItemStack::getAmount).sum() : -1;
+        return !unfit.isEmpty() ? amount + unfit.values().stream().mapToInt(ItemStack::getAmount).sum() : -1;
     }
 
     @Override
