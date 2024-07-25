@@ -9,7 +9,10 @@ import com.jacky8399.worstshop.helper.ConfigHelper;
 import com.jacky8399.worstshop.helper.PaperHelper;
 import com.jacky8399.worstshop.helper.TextUtils;
 import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.ComponentLike;
+import net.kyori.adventure.text.TextComponent;
+import net.kyori.adventure.text.format.Style;
+import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import net.md_5.bungee.api.ChatColor;
 import org.bukkit.configuration.InvalidConfigurationException;
 import org.bukkit.configuration.file.YamlConfiguration;
@@ -22,10 +25,12 @@ import java.io.InputStreamReader;
 import java.lang.reflect.Field;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
+import java.text.AttributedCharacterIterator;
 import java.text.MessageFormat;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Function;
 
 public class I18n {
@@ -59,12 +64,70 @@ public class I18n {
         }
     }
 
+    public static class ComponentTranslatable implements Function<ComponentLike[], Component> {
+        public ComponentTranslatable(String path) {
+            this.path = path.toLowerCase(Locale.ROOT);
+            update();
+        }
+        public final String path;
+
+        @Override
+        public String toString() {
+            return pattern;
+        }
+
+        private MessageFormat format;
+        private String pattern;
+        public void update() {
+            pattern = ConfigHelper.translateString(lang.getString(path, path));
+            format = new MessageFormat(pattern);
+        }
+
+        private static final Set<Style.Merge> MERGES = Set.of(Style.Merge.COLOR, Style.Merge.DECORATIONS, Style.Merge.FONT);
+        @Override
+        public Component apply(ComponentLike... componentLikes) {
+            if (componentLikes.length == 0) {
+                return LegacyComponentSerializer.legacySection().deserialize(pattern);
+            }
+            // borrowed from TranslatableComponentRenderer
+            // I love Adventure :3
+            var builder = Component.text();
+            final Object[] nulls = new Object[componentLikes.length];
+            final StringBuffer sb = format.format(nulls, new StringBuffer(), null);
+            final AttributedCharacterIterator it = format.formatToCharacterIterator(nulls);
+            Style.Builder style = Style.style();
+
+            while (it.getIndex() < it.getEndIndex()) {
+                final int end = it.getRunLimit();
+                final Integer index = (Integer) it.getAttribute(MessageFormat.Field.ARGUMENT);
+                if (index != null) {
+                    Component component = componentLikes[index].asComponent();
+                    // retain the component's styles
+                    builder.append(component.style(component.style().merge(style.build(), Style.Merge.Strategy.IF_ABSENT_ON_TARGET, MERGES)));
+                } else {
+                    TextComponent userText = LegacyComponentSerializer.legacySection().deserialize(sb.substring(it.getIndex(), end));
+                    if (!userText.content().isEmpty()) {
+                        style.merge(userText.style(), MERGES);
+                        builder.append(Component.text(userText.content(), style.build()));
+                    }
+                    for (Component child : userText.children()) {
+                        style.merge(child.style(), MERGES);
+                        builder.append(child.style(style));
+                    }
+                }
+                it.setIndex(end);
+            }
+            return builder.build();
+        }
+    }
+
     public static YamlConfiguration lang;
     public static HashMap<String, YamlConfiguration> langs = new HashMap<>();
 
     private static String currentLang = "en";
 
     private static final HashMap<String, Translatable> translatables = new HashMap<>();
+    private static final HashMap<String, ComponentTranslatable> componentTranslatables = new HashMap<>();
 
     public static void changeLang(String lang) {
         if (!langs.containsKey(lang)) {
@@ -72,12 +135,14 @@ public class I18n {
             I18n.lang = YamlConfiguration.loadConfiguration(new InputStreamReader(plugin.getResource("en.yml")));
             currentLang = "en";
             translatables.values().forEach(Translatable::update);
+            componentTranslatables.values().forEach(ComponentTranslatable::update);
             return;
         }
         I18n.lang = langs.get(lang);
         currentLang = lang;
         // refresh translatables
         translatables.values().forEach(Translatable::update);
+        componentTranslatables.values().forEach(ComponentTranslatable::update);
     }
 
     static WorstShop plugin = WorstShop.get();
@@ -107,7 +172,7 @@ public class I18n {
             String fileName = langFile.getName();
             String localeName = fileName.substring(0, fileName.lastIndexOf('.'));
             try {
-                Locale locale = new Locale(localeName);
+                Locale locale = Locale.of(localeName);
                 plugin.commands.addSupportedLanguage(locale);
                 locales.loadYamlLanguageFile(langFile, locale);
                 YamlConfiguration yaml = YamlConfiguration.loadConfiguration(langFile);
@@ -171,27 +236,19 @@ public class I18n {
     }
 
     public static Component translateComponent(String path, Object... args) {
-        path = path.toLowerCase(Locale.ROOT);
-        String unformatted = lang.getString(path);
-        if (unformatted != null) {
-            try {
-                String formatted;
-                if (args.length == 0) // shortcut
-                    formatted = unformatted;
-                else if (args.length == 1)
-                    formatted = unformatted.replace("{0}", String.valueOf(args[0]));
-                else
-                    formatted = MessageFormat.format(unformatted, args);
-                return TextUtils.LEGACY_COMPONENT_SERIALIZER.deserialize(formatted);
-            } catch (Exception ex) {
-                return Component.text(path + " (@ " + currentLang + ".yml): " + ex, NamedTextColor.RED);
-            }
-        }
-        return Component.text(path);
+        return TextUtils.LEGACY_COMPONENT_SERIALIZER.deserialize(translate(path, args));
+    }
+
+    public static Component translateComponentArgs(String path, ComponentLike... componentLikes) {
+        return new ComponentTranslatable(path).apply(componentLikes);
     }
 
     public static Translatable createTranslatable(String path) {
         return translatables.computeIfAbsent(path, Translatable::new);
+    }
+
+    public static ComponentTranslatable createComponentTranslatable(String path) {
+        return componentTranslatables.computeIfAbsent(path, ComponentTranslatable::new);
     }
 
     private static final Field FIELD_LANGUAGE_TABLES;

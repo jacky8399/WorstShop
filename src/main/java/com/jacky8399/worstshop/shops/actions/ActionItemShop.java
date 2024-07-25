@@ -6,6 +6,7 @@ import com.jacky8399.worstshop.I18n;
 import com.jacky8399.worstshop.WorstShop;
 import com.jacky8399.worstshop.helper.Config;
 import com.jacky8399.worstshop.helper.ItemBuilder;
+import com.jacky8399.worstshop.helper.ItemUtils;
 import com.jacky8399.worstshop.helper.PlayerPurchases;
 import com.jacky8399.worstshop.shops.*;
 import com.jacky8399.worstshop.shops.commodity.Commodity;
@@ -251,14 +252,16 @@ public class ActionItemShop extends Action {
     }
 
     public ItemStack getTargetItemStack(Player player) {
+        ItemStack stack;
         if (overrideStack != null) {
             PlaceholderContext context = PlaceholderContext.guessContext(player);
-            return Placeholders.setPlaceholders(overrideStack, context);
+            stack = Placeholders.setPlaceholders(overrideStack, context);
         } else {
-            return parentElement instanceof StaticShopElement sse ?
+            stack = parentElement instanceof StaticShopElement sse ?
                     sse.createPlaceholderStack(player) :
                     parentElement.createStack(player);
         }
+        return ItemUtils.removeSafetyKey(stack);
     }
 
     // builds the actual shops used for displaying the GUI

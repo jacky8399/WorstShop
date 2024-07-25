@@ -93,7 +93,7 @@ public class CommodityItem extends Commodity implements IFlexibleCommodity {
     }
 
     public CommodityItem(@NotNull ItemStack stack, @NotNull List<NamespacedKey> accepted, int amount, double multiplier) {
-        this.stack = stack;
+        this.stack = ItemUtils.removeSafetyKey(stack);
         this.accepted = ImmutableList.copyOf(accepted);
         this.amount = amount;
         this.multiplier = multiplier;

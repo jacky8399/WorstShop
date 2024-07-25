@@ -76,8 +76,9 @@ dependencies {
     // Placeholders
     compileOnly 'me.clip:placeholderapi:2.10.3'
     // QuickShop
-//    compileOnly('com.ghostchu:quickshop-api:6.2.0.0')
-    compileOnly('com.ghostchu:quickshop-bukkit:6.2.0.0:shaded')
+    compileOnly('com.ghostchu:quickshop-api:6.2.0.0')
+    compileOnly('com.ghostchu:quickshop-bukkit:6.2.0.0')
+    compileOnly('com.ghostchu:simplereloadlib:1.+')
     // PaperLib
     implementation "io.papermc:paperlib:1.0.7"
     // Annotations

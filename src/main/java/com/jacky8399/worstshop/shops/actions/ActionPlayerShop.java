@@ -14,6 +14,7 @@ import com.jacky8399.worstshop.WorstShop;
 import com.jacky8399.worstshop.helper.Config;
 import com.jacky8399.worstshop.helper.InventoryUtils;
 import com.jacky8399.worstshop.helper.ItemBuilder;
+import com.jacky8399.worstshop.helper.ItemUtils;
 import com.jacky8399.worstshop.shops.commodity.*;
 import com.jacky8399.worstshop.shops.elements.DynamicShopElement;
 import com.jacky8399.worstshop.shops.elements.StaticShopElement;
@@ -22,6 +23,7 @@ import fr.minuskube.inv.SmartInventory;
 import fr.minuskube.inv.content.InventoryContents;
 import fr.minuskube.inv.content.SlotPos;
 import io.papermc.lib.PaperLib;
+import net.kyori.adventure.text.Component;
 import org.bukkit.*;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -32,10 +34,7 @@ import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.event.server.PluginDisableEvent;
 import org.bukkit.event.server.PluginEnableEvent;
-import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.persistence.PersistentDataType;
-import org.bukkit.scheduler.BukkitTask;
 
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
@@ -70,30 +69,6 @@ public class ActionPlayerShop extends ActionPlayerShopFallback {
             InventoryUtils.openSafely(player, gui);
         } else if (fallback != null && (isBuying ? fallback.buyPrice : fallback.sellPrice) != 0) {
             fallback.onClick(e);
-        } else {
-            // hack to display message temporarily without too much of a mess
-            Inventory bukkitInv = e.getClickedInventory();
-            int clickedSlot = e.getSlot();
-            ItemStack[] currentItem = {e.getCurrentItem()};
-            String itemName = I18n.translate(I18N_KEY + "no-offers-message");
-            BukkitTask task = Bukkit.getScheduler().runTaskTimer(WorstShop.get(), () -> {
-                ItemStack slotItem = bukkitInv.getItem(clickedSlot);
-                if (slotItem != null && !slotItem.getItemMeta().getPersistentDataContainer()
-                        .has(NO_OFFERS_MARKER, PersistentDataType.BYTE)) {
-                    currentItem[0] = slotItem;
-                    bukkitInv.setItem(clickedSlot, ItemBuilder.of(Material.BARRIER)
-                            .name(itemName)
-                            .meta(meta -> meta.getPersistentDataContainer()
-                                    .set(NO_OFFERS_MARKER, PersistentDataType.BYTE, (byte) 1))
-                            .build());
-                }
-            }, 0, 5);
-            Bukkit.getScheduler().runTaskLater(WorstShop.get(), () -> {
-                task.cancel();
-                if (!currentItem[0].getItemMeta().getPersistentDataContainer()
-                        .has(NO_OFFERS_MARKER, PersistentDataType.BYTE))
-                    bukkitInv.setItem(clickedSlot, currentItem[0]);
-            }, 20);
         }
     }
 
@@ -130,8 +105,9 @@ public class ActionPlayerShop extends ActionPlayerShopFallback {
     }
 
     public ItemStack getTargetItemStack(Player player) {
-        return parentElement instanceof StaticShopElement sse ?
+        ItemStack stack = parentElement instanceof StaticShopElement sse ?
                 sse.createPlaceholderStack(player) : parentElement.createStack(player);
+        return ItemUtils.removeSafetyKey(stack);
     }
 
     public Commodity createDynamicCommodity(boolean isBuying) {
@@ -198,25 +174,25 @@ public class ActionPlayerShop extends ActionPlayerShopFallback {
         }
 
         public ItemBuilder getDisplay(boolean isBuying) {
-            String grandTotalString = I18n.translate(I18N_KEY + "confirmation-grand-total",
-                    CommodityMoney.formatMoney(grandTotal()));
-            I18n.Translatable translatable = new I18n.Translatable(I18N_KEY + (isBuying ? "buying-from" : "selling-to"));
+            Component grandTotalDisplay = I18n.translateComponentArgs(I18N_KEY + "confirmation-grand-total",
+                    CommodityMoney.formatMoneyComponent(grandTotal()));
+            var translatable = new I18n.ComponentTranslatable(I18N_KEY + (isBuying ? "buying-from" : "selling-to"));
 
             return ItemBuilder.of(Material.PAPER)
                     .name(I18n.translate(I18N_KEY + "confirmation"))
                     .lore(strategies.stream()
                             .map(strategy -> translatable.apply(
-                                    Integer.toString(strategy.buyCount),
+                                    Component.text(strategy.buyCount),
                                     strategy.shop.ownerName(),
-                                    CommodityMoney.formatMoney(strategy.shop.getPrice()),
-                                    CommodityMoney.formatMoney(strategy.shop.getPrice() * strategy.buyCount)
+                                    CommodityMoney.formatMoneyComponent(strategy.shop.getPrice()),
+                                    CommodityMoney.formatMoneyComponent(strategy.shop.getPrice() * strategy.buyCount)
                             ))
-                            .collect(Collectors.toList())
+                            .toList()
                     )
-                    .addLores(unfulfilled == 0 ?
-                            new String[] {grandTotalString} :
-                            new String[] {grandTotalString, I18n.translate(
-                                    I18N_KEY + "failed-to-fulfill." + (isBuying ? "buy" : "sell"), unfulfilled)});
+                    .addLore(unfulfilled == 0 ?
+                            List.of(grandTotalDisplay) :
+                            List.of(grandTotalDisplay, I18n.translateComponentArgs(I18N_KEY + "failed-to-fulfill." + (isBuying ? "buy" : "sell"),
+                                    Component.text(unfulfilled))));
         }
     }
 
@@ -367,7 +343,9 @@ public class ActionPlayerShop extends ActionPlayerShopFallback {
             contents.fill(FILLER);
             animationSequence = 1;
             Player player = (Player) e.getWhoClicked();
-            QuickShop qs = (QuickShop) QuickShopAPI.getPluginInstance();
+            BukkitInventoryWrapper inventoryWrapper = new BukkitInventoryWrapper(player.getInventory());
+
+            QuickShop qs = QuickShop.getInstance();
             CompletableFuture<?>[] futures = purchaseSummary.strategies.stream().map(purchase -> {
                 Shop qShop = purchase.shop;
                 CompletableFuture<Chunk> future = qShop.isLoaded() ?
@@ -378,9 +356,9 @@ public class ActionPlayerShop extends ActionPlayerShopFallback {
                     SimpleShopManager qsManager = (SimpleShopManager) qs.getShopManager();
                     Bukkit.getScheduler().runTask(WorstShop.get(), () -> {
                         if (isBuying)
-                            qsManager.actionSelling(player, new BukkitInventoryWrapper(player.getInventory()), qs.getEconomy(), purchase.info, qShop, purchase.buyCount);
+                            qsManager.actionSelling(player, inventoryWrapper, qs.getEconomy(), purchase.info, qShop, purchase.buyCount);
                         else
-                            qsManager.actionBuying(player, new BukkitInventoryWrapper(player.getInventory()), qs.getEconomy(), purchase.info, qShop, purchase.buyCount);
+                            qsManager.actionBuying(player, inventoryWrapper, qs.getEconomy(), purchase.info, qShop, purchase.buyCount);
                         future2.complete(null);
                     });
                     return future2;
