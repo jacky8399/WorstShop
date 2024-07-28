@@ -72,12 +72,12 @@ public class DefaultSlotFiller {
                 }
             }
             renderer.backgrounds.add((context, ignored) -> {
-                if (context == null)
-                    context = renderer;
                 if (element.condition.test(renderer.player)) {
                     List<RenderElement> elements = element.getRenderElement(context, new PlaceholderContext(context));
-                    if (elements.size() != 0)
-                        return Maps.asMap(items, pos -> elements.get(0));
+                    if (!elements.isEmpty()) {
+                        var first = elements.getFirst();
+                        return Maps.asMap(items, pos -> first);
+                    }
                 }
                 return Collections.emptyMap();
             });

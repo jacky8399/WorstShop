@@ -10,11 +10,11 @@ import fr.minuskube.inv.content.InventoryContents;
 import fr.minuskube.inv.content.InventoryProvider;
 import fr.minuskube.inv.content.SlotPos;
 import org.bukkit.entity.Player;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
 import java.util.function.BiFunction;
-import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 public class ShopRenderer implements InventoryProvider, RenderingLayer {
@@ -70,35 +70,34 @@ public class ShopRenderer implements InventoryProvider, RenderingLayer {
         paginationItems.clear();
     }
 
-    public void fillOutline(@Nullable ShopRenderer context) {
+    public void fillOutline(@NotNull ShopRenderer context) {
         initInventoryStructure();
-        PlaceholderContext placeholder = new PlaceholderContext(context != null ? context : this);
-        Consumer<ShopElement> addToOutline = element -> {
-            List<RenderElement> items = element.getRenderElement(context != null ? context : this, placeholder);
+        PlaceholderContext placeholder = new PlaceholderContext(context);
+        for (ShopElement element : shop.elements) {
+            List<RenderElement> items = element.getRenderElement(context, placeholder);
             for (RenderElement item : items) {
-                Collection<SlotPos> slots = item.positions();
-                if (slots != null) {
-                    for (SlotPos slot : slots) {
+                if (!item.condition().test(context.player)) continue;
+                Collection<SlotPos> slots1 = item.positions();
+                if (slots1 != null) {
+                    for (SlotPos slot : slots1) {
                         outline.put(slot, item);
                     }
                 } else {
                     paginationItems.add(item);
                 }
             }
-        };
-        shop.elements.forEach(addToOutline);
+        }
     }
 
-    public transient int page, maxPage;
+    public int page = 0, lastPage = 0, maxPage = 1;
 
     // temporary
     @Nullable
     public static ShopRenderer RENDERING;
 
     @Override
-    public Map<SlotPos, RenderElement> render(@Nullable ShopRenderer context, int page) {
-        if (context == null)
-            context = this;
+    public Map<SlotPos, RenderElement> render(@NotNull ShopRenderer context, int page) {
+        this.page = page;
 
         LinkedHashMap<SlotPos, RenderElement> elements = new LinkedHashMap<>();
         for (int row = 0; row < getRows(); row++) {
@@ -117,7 +116,7 @@ public class ShopRenderer implements InventoryProvider, RenderingLayer {
         }
 
         BiFunction<SlotPos, RenderElement, Boolean> addToElements = (pos, element) -> {
-            if (element == null || !element.owner().condition.test(player))
+            if (element == null)
                 return false;
             elements.put(pos, element);
             return true;
@@ -134,9 +133,8 @@ public class ShopRenderer implements InventoryProvider, RenderingLayer {
                 emptySlots.add(key);
             }
         }
-        if (emptySlots.size() != 0) {
+        if (!emptySlots.isEmpty()) {
             ListIterator<SlotPos> emptySlotIterator = emptySlots.listIterator();
-            this.page = page;
             this.maxPage = (int) Math.ceil((double) paginationItems.size() / emptySlots.size());
 
             int start = page * emptySlots.size(), end = Math.min(start + emptySlots.size(), paginationItems.size());
@@ -157,7 +155,7 @@ public class ShopRenderer implements InventoryProvider, RenderingLayer {
     public void apply(Player player, InventoryContents contents) {
         RENDERING = this;
         try {
-            Map<SlotPos, RenderElement> result = render(this, contents.pagination().getPage());
+            Map<SlotPos, RenderElement> result = render(this, page);
             result.forEach((var pos, @Nullable var info) -> {
                 if (info == null || info.stack() == null) {
                     contents.set(pos, null); // to clear old pagination items
@@ -200,9 +198,9 @@ public class ShopRenderer implements InventoryProvider, RenderingLayer {
             }
             contents.setProperty("ticksSinceUpdate", ticksElapsed);
         }
-        if (!updated && contents.pagination().getPage() != page) {
+        if (!updated && lastPage != page) {
             // update page number in placeholders
-            page = contents.pagination().getPage();
+            lastPage = page;
             clearAll(contents);
             apply(player, contents);
             updated = true;

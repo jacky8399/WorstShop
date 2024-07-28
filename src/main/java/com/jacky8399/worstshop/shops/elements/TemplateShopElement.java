@@ -61,7 +61,7 @@ public class TemplateShopElement extends ShopElement {
                         if (newMaterial != null) {
                             ItemStack stack = renderElement.stack().clone();
                             stack.setType(newMaterial);
-                            return new RenderElement(this, renderElement.positions(), stack,
+                            return new RenderElement(this, condition, renderElement.positions(), stack,
                                     selfContext, renderElement.handler().andThen(this::onClick), renderElement.flags());
                         } else {
                             return renderElement.withOwner(this, selfContext);

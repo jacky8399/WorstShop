@@ -35,9 +35,13 @@ public class ConditionalShopElement extends ShopElement {
         this.elementFalse = elementFalse;
     }
 
+    // private constructor for parsing
+    private ConditionalShopElement() {
+
+    }
+
     public static ShopElement fromYaml(Config config) {
-        @SuppressWarnings("ConstantConditions")
-        ConditionalShopElement ret = new ConditionalShopElement(null, null, null);
+        ConditionalShopElement ret = new ConditionalShopElement();
 
         ParseContext.pushContext(ret);
 

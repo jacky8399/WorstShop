@@ -1,5 +1,6 @@
 package com.jacky8399.worstshop.shops.rendering;
 
+import com.jacky8399.worstshop.shops.conditions.Condition;
 import com.jacky8399.worstshop.shops.elements.ShopElement;
 import fr.minuskube.inv.ClickableItem;
 import fr.minuskube.inv.content.SlotPos;
@@ -12,6 +13,7 @@ import java.util.Set;
 import java.util.function.Consumer;
 
 public record RenderElement(ShopElement owner,
+                            Condition condition,
                             @Nullable
                             Collection<SlotPos> positions,
                             ItemStack stack,
@@ -20,7 +22,12 @@ public record RenderElement(ShopElement owner,
                             Set<ShopRenderer.RenderingFlag> flags) {
 
     public RenderElement(ShopElement owner, Collection<SlotPos> positions, ItemStack stack, Consumer<InventoryClickEvent> handler, Set<ShopRenderer.RenderingFlag> flags) {
-        this(owner, positions, stack,
+        this(owner, owner.condition, positions, stack,
+                new PlaceholderContext(null, null, null, owner, null), handler, flags);
+    }
+
+    public RenderElement(ShopElement owner, Condition condition, Collection<SlotPos> positions, ItemStack stack, Consumer<InventoryClickEvent> handler, Set<ShopRenderer.RenderingFlag> flags) {
+        this(owner, condition, positions, stack,
                 new PlaceholderContext(null, null, null, owner, null), handler, flags);
     }
 
@@ -30,8 +37,16 @@ public record RenderElement(ShopElement owner,
                 stack;
     }
 
+    public RenderElement withCondition(Condition condition) {
+        return new RenderElement(owner, condition, positions, stack, context, handler, flags);
+    }
+
+    public RenderElement withOwner(ShopElement owner, Condition condition, PlaceholderContext context) {
+        return new RenderElement(owner, owner.condition, positions, stack, context, handler.andThen(owner::onClick), flags);
+    }
+
     public RenderElement withOwner(ShopElement owner, PlaceholderContext context) {
-        return new RenderElement(owner, positions, stack, context, handler.andThen(owner::onClick), flags);
+        return new RenderElement(owner, owner.condition, positions, stack, context, handler.andThen(owner::onClick), flags);
     }
 
     public RenderElement withOwner(ShopElement owner) {
@@ -40,11 +55,11 @@ public record RenderElement(ShopElement owner,
 
     /** returns a new RenderElement with all placeholders applied */
     public RenderElement withCalculatedContext(ShopRenderer renderer) {
-        return new RenderElement(owner, positions, actualStack(renderer), PlaceholderContext.NO_CONTEXT, handler.andThen(owner::onClick), flags);
+        return new RenderElement(owner, condition, positions, actualStack(renderer), PlaceholderContext.NO_CONTEXT, handler.andThen(owner::onClick), flags);
     }
 
     public RenderElement withFlags(Set<ShopRenderer.RenderingFlag> flags) {
-        return new RenderElement(owner, positions, stack, context, handler, flags);
+        return new RenderElement(owner, condition, positions, stack, context, handler, flags);
     }
 
     public ClickableItem clickableItem(ShopRenderer renderer) {

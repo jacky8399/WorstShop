@@ -421,7 +421,7 @@ public class StaticShopElement extends ShopElement {
     }
 
     private List<RenderElement> getStaticRenderElement(ShopRenderer renderer, ItemStack stack) {
-        return List.of(new RenderElement(this, getFiller(renderer).fill(this, renderer), stack,
+        return List.of(new RenderElement(this, condition, getFiller(renderer).fill(this, renderer), stack,
                 PlaceholderContext.NO_CONTEXT, getClickHandler(renderer), STATIC_FLAGS));
     }
 
@@ -475,11 +475,13 @@ public class StaticShopElement extends ShopElement {
 
                         SkullMeta meta = (SkullMeta) stack.getItemMeta();
                         var actualProfile = Objects.requireNonNull(meta.getPlayerProfile());
-                        awaiting = new AsyncTask(placeholderElement, actualProfile.update().thenApply(updated -> {
-                            meta.setPlayerProfile(updated);
-                            stack.setItemMeta(meta);
-                            return stack;
-                        }));
+                        awaiting = new AsyncTask(placeholderElement,
+                                CompletableFuture.supplyAsync(() -> {
+                                    actualProfile.complete();
+                                    meta.setPlayerProfile(actualProfile);
+                                    stack.setItemMeta(meta);
+                                    return stack;
+                                }));
                         asyncItemCache.put(player, awaiting);
                         return awaiting.placeholder;
                     } else {
@@ -513,7 +515,7 @@ public class StaticShopElement extends ShopElement {
     public static boolean isPendingPlayerSkin(ItemStack stack) {
         return stack.getType() == Material.PLAYER_HEAD &&
                 ((SkullMeta) stack.getItemMeta()).getPlayerProfile() instanceof PlayerProfile profile &&
-                !profile.isComplete();
+                !profile.hasTextures();
     }
 
     @Blocking

@@ -5,7 +5,6 @@ import com.jacky8399.worstshop.helper.Config;
 import com.jacky8399.worstshop.helper.ConfigException;
 import com.jacky8399.worstshop.shops.rendering.ShopRenderer;
 import fr.minuskube.inv.content.InventoryContents;
-import fr.minuskube.inv.content.Pagination;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.InventoryClickEvent;
 
@@ -43,16 +42,16 @@ public class ActionPage extends Action {
         Player player = (Player) e.getWhoClicked();
         Optional<InventoryContents> contents = WorstShop.get().inventories.getContents(player);
         contents.ifPresent(c -> {
-            Pagination pagination = c.pagination();
-            int currentPage = pagination.getPage();
+            ShopRenderer renderer = (ShopRenderer) c.inventory().getProvider();
+            int currentPage = renderer.page;
             if (pageOffset < 0 && currentPage + pageOffset < 0) {
                 return;
             } else if (pageOffset > 0) {
-                int lastPage = ((ShopRenderer) c.inventory().getProvider()).maxPage;
+                int lastPage = renderer.maxPage;
                 if (currentPage + pageOffset > lastPage - 1)
                     return;
             }
-            pagination.page(currentPage + pageOffset);
+            renderer.page = (currentPage + pageOffset);
 //            ((Shop) c.inventory().getProvider()).refreshItems(player, c, true, false);
         });
     }
