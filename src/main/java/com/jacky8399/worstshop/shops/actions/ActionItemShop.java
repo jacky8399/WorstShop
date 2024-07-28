@@ -67,16 +67,30 @@ public class ActionItemShop extends Action {
     // shortcut
     public ActionItemShop(String input) {
         super(null);
-        String[] prices = input.split("\\s|,");
+        input = input.trim();
+        String[] prices = input.split(" ");
         if (prices.length != 2)
             throw new IllegalArgumentException(input + " is not in the correct format!");
-        buyPrice = Double.parseDouble(prices[0].trim());
-        sellPrice = Double.parseDouble(prices[1].trim());
+
+        readParent();
+        String key = null;
+        String[] format;
+        format = prices[0].split("/", 3);
+        buyPrice = Double.parseDouble(format[0]);
+        if (format.length == 3) {
+            buyLimit = Integer.parseInt(format[1]);
+            buyLimitTemplate = PlayerPurchases.RecordTemplate.fromShorthand(key = guessKeyFromParent(), format[2]);
+        }
+        format = prices[1].split("/", 3);
+        sellPrice = Double.parseDouble(format[0]);
+        if (format.length == 3) {
+            sellLimit = Integer.parseInt(format[1]);
+            sellLimitTemplate = PlayerPurchases.RecordTemplate.fromShorthand(key == null ? guessKeyFromParent() : key, format[2]);
+        }
         checkPrices();
         canSellAll = sellPrice != 0;
         usedStringShorthand = true;
 
-        readParent();
     }
 
     public ActionItemShop(Config yaml) {
@@ -148,6 +162,15 @@ public class ActionItemShop extends Action {
                 WorstShop.get().logger.warning("Offending action: " + yaml.getPath());
             }
         }
+    }
+
+    private String guessKeyFromParent() {
+        if (parentElement instanceof StaticShopElement element) {
+            return element.rawStack.getType().getKey().toString();
+        }
+        WorstShop.get().logger.warning("Not sure about parent element, using \"item_shop\" as key");
+        WorstShop.get().logger.warning("Offending action: " + ParseContext.getHierarchy());
+        return "item_shop";
     }
 
     public void checkPrices() throws IllegalArgumentException {

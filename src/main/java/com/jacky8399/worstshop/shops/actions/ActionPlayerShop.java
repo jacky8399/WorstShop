@@ -59,6 +59,10 @@ public class ActionPlayerShop extends ActionPlayerShopFallback {
         super(yaml);
     }
 
+    public ActionPlayerShop(String shorthand) {
+        super(shorthand);
+    }
+
     @Override
     public void onClick(InventoryClickEvent e) {
         Player player = (Player) e.getWhoClicked();

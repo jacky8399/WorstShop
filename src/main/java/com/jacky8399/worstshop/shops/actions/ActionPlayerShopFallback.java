@@ -41,6 +41,14 @@ public class ActionPlayerShopFallback extends Action {
         }
     }
 
+    public static ActionPlayerShopFallback makeShorthand(String shorthand) {
+        if (HAS_QUICK_SHOP) {
+            return new ActionPlayerShop(shorthand);
+        } else {
+            return new ActionPlayerShopFallback(shorthand);
+        }
+    }
+
     ShopElement parentElement;
     ActionItemShop fallback;
     public ActionPlayerShopFallback(Config yaml) {
@@ -48,8 +56,17 @@ public class ActionPlayerShopFallback extends Action {
         ShopElement element = ParseContext.findLatest(ShopElement.class);
         if (element == null)
             throw new IllegalStateException("Couldn't find parent element! Not in parse context?");
-        fallback = yaml.find("fallback", Config.class).map(ActionItemShop::new).orElse(null);
         parentElement = element.clone();
+        fallback = yaml.find("fallback", Config.class).map(ActionItemShop::new).orElse(null);
+    }
+
+    public ActionPlayerShopFallback(String shorthand) {
+        super(null);
+        ShopElement element = ParseContext.findLatest(ShopElement.class);
+        if (element == null)
+            throw new IllegalStateException("Couldn't find parent element! Not in parse context?");
+        parentElement = element.clone();
+        fallback = new ActionItemShop(shorthand);
     }
 
     public static final String I18N_KEY = "worstshop.messages.shops.player-shop.";

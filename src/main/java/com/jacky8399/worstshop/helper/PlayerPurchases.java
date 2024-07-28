@@ -99,11 +99,14 @@ public class PlayerPurchases {
     }
 
     public record RecordTemplate(String id, Duration retentionTime, int maxRecords) {
+
+        public static final int DEFAULT_MAX_RECORDS = 128;
+
         public static RecordTemplate fromConfig(Config map) {
             return new RecordTemplate(
                     map.get("id", String.class),
                     DateTimeUtils.parseTimeStr(map.get("every", String.class)),
-                    map.find("max-records", Integer.class).orElse(128)
+                    map.find("max-records", Integer.class).orElse(DEFAULT_MAX_RECORDS)
             );
         }
 
@@ -111,14 +114,18 @@ public class PlayerPurchases {
             return new RecordTemplate(
                     map.find("id", String.class).orElse(defaultId),
                     DateTimeUtils.parseTimeStr(map.get("every", String.class)),
-                    map.find("max-records", Integer.class).orElse(128)
+                    map.find("max-records", Integer.class).orElse(DEFAULT_MAX_RECORDS)
             );
+        }
+
+        public static RecordTemplate fromShorthand(String id, String string) {
+            return new RecordTemplate(id, DateTimeUtils.parseTimeStr(string), DEFAULT_MAX_RECORDS);
         }
 
         public Map<String, Object> toMap(Map<String, Object> map) {
             map.put("id", id);
             map.put("every", DateTimeUtils.formatTime(retentionTime));
-            if (maxRecords != 128)
+            if (maxRecords != DEFAULT_MAX_RECORDS)
                 map.put("max-records", maxRecords);
             return map;
         }

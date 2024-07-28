@@ -63,17 +63,16 @@ public abstract class Action implements Cloneable {
 
 
     public static Action fromShorthand(String input) {
-        String classSpecifier = input.substring(0, input.indexOf("!"))
-                .replace(' ', '_').toLowerCase();
-        String classArgument = input.substring(input.indexOf("!") + 1).trim();
-        switch (classSpecifier) {
-            case "item_shop":
-                return new ActionItemShop(classArgument);
-            case "open":
-                return new ActionOpen(classArgument);
-            default:
-                throw new IllegalArgumentException("Invalid shorthand " + classSpecifier);
-        }
+        input = input.trim();
+        String[] split = input.split("!", 2);
+        String classSpecifier = split[0].replace(' ', '_').toLowerCase();
+        String classArgument = split[1].trim();
+        return switch (classSpecifier) {
+            case "item_shop" -> new ActionItemShop(classArgument);
+            case "player_shop" -> ActionPlayerShopFallback.makeShorthand(classArgument);
+            case "open" -> new ActionOpen(classArgument);
+            default -> throw new IllegalArgumentException("Invalid shorthand " + classSpecifier);
+        };
     }
 
     public static ActionCommand fromCommand(String command) {
@@ -108,10 +107,7 @@ public abstract class Action implements Cloneable {
         Optional<String> presetOptional = yaml.find("preset", String.class);
         Action action = presetOptional.map(preset -> {
             if (preset.contains("!")) {
-                Action result = fromShorthand(preset);
-                if (result == null)
-                    throw new ConfigException(preset + " is not a valid shorthand!", yaml, "preset");
-                return result;
+                return fromShorthand(preset);
             }
             String presetName = preset.replace(' ', '_').toLowerCase(Locale.ROOT);
             Function<Config, Action> constructor = PRESETS.get(presetName);
