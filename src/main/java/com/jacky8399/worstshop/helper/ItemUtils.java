@@ -62,11 +62,12 @@ public class ItemUtils {
 
     @NotNull
     public static ItemStack removeSafetyKey(@NotNull ItemStack stack) {
+        if (stack.getType() == Material.AIR) return stack;
         ItemStack clone = stack.clone();
-        clone.setItemMeta(removeSafetyKey(clone.getItemMeta()));
+        ItemMeta meta = clone.getItemMeta();
+        clone.setItemMeta(removeSafetyKey(meta));
         return clone;
     }
-
 
     private static final Pattern VALID_MC_NAME = Pattern.compile("^[A-Za-z0-9_]{1,16}$");
 

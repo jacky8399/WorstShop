@@ -72,7 +72,6 @@ public class Placeholders {
         return setPlaceholders(stack, PlaceholderContext.guessContext(player));
     }
 
-    @SuppressWarnings("deprecation")
     @Contract("null, _ -> null; !null, _ -> !null")
     public static ItemStack setPlaceholders(ItemStack stack, @NotNull PlaceholderContext context) {
         if (stack == null)
