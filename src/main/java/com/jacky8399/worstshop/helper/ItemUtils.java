@@ -1,21 +1,22 @@
 package com.jacky8399.worstshop.helper;
 
 import com.destroystokyo.paper.profile.PlayerProfile;
-import com.destroystokyo.paper.profile.ProfileProperty;
 import com.jacky8399.worstshop.I18n;
 import com.jacky8399.worstshop.WorstShop;
 import com.jacky8399.worstshop.shops.elements.StaticShopElement;
+import com.jacky8399.worstshop.shops.rendering.Placeholders;
 import fr.minuskube.inv.ClickableItem;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.inventory.meta.SkullMeta;
+import org.bukkit.persistence.PersistentDataType;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.EnumSet;
-import java.util.Objects;
 import java.util.UUID;
 import java.util.regex.Pattern;
 
@@ -68,46 +69,26 @@ public class ItemUtils {
 
 
     private static final Pattern VALID_MC_NAME = Pattern.compile("^[A-Za-z0-9_]{1,16}$");
-    private static final Pattern INVALID_MC_NAME_CHARS = Pattern.compile("[^A-Za-z0-9_]");
-    public static final String SKULL_PROPERTY = "worstshop_skull";
-    public static final boolean SKULL_DEBUG = false;
-    public static PlayerProfile makeProfileExact(@Nullable UUID uuid, @Nullable String name) {
-        String sanitizedName = name;
-        if (name != null && !VALID_MC_NAME.matcher(name).matches()) {
-            sanitizedName = INVALID_MC_NAME_CHARS.matcher(name).replaceAll("");
-            if (sanitizedName.length() > 16)
-                sanitizedName = sanitizedName.substring(0, 16);
-            else if (sanitizedName.isEmpty())
-                sanitizedName = "MHF_Question"; // ok
-            uuid = UUID.randomUUID();
-        }
-        PlayerProfile profile = Bukkit.createProfileExact(uuid, sanitizedName);
-        if (!Objects.equals(sanitizedName, name)) {
-            profile.setProperty(new ProfileProperty(SKULL_PROPERTY, name));
-            if (SKULL_DEBUG) {
-                WorstShop.get().logger.info("Invalid name " + name + ", sanitized to " + sanitizedName + "\nProfile: " + profile);
+
+    public static void handleSkullOwner(SkullMeta skullMeta, String uuidOrName) {
+        UUID uuid = null;
+        try {
+            uuid = UUID.fromString(uuidOrName);
+            uuidOrName = null;
+        } catch (IllegalArgumentException ignored) {}
+
+        if (uuidOrName != null) {
+            if (VALID_MC_NAME.matcher(uuidOrName).matches()) {
+                try {
+                    // Bukkit.createProfile will fetch an online player's profile if possible
+                    PlayerProfile profile = Bukkit.createProfile(uuid, uuidOrName);
+                    skullMeta.setPlayerProfile(profile);
+                    return;
+                } catch (IllegalArgumentException ignored) {}
             }
+            // probably contains placeholders, defer
+            skullMeta.getPersistentDataContainer().set(Placeholders.ITEM_SKULL_OWNER_KEY, PersistentDataType.STRING, uuidOrName);
         }
-        return profile;
     }
 
-    public static PlayerProfile makeProfile(@Nullable UUID uuid, @Nullable String name) {
-        String sanitizedName = name;
-        if (name != null && !VALID_MC_NAME.matcher(name).matches()) {
-            sanitizedName = INVALID_MC_NAME_CHARS.matcher(name).replaceAll("");
-            if (sanitizedName.length() > 16)
-                sanitizedName = sanitizedName.substring(0, 16);
-            else if (sanitizedName.isEmpty())
-                sanitizedName = "MHF_Question"; // ok
-            uuid = UUID.randomUUID(); // must not look up texture if sanitized to preserve original skull value
-        }
-        PlayerProfile profile = Bukkit.createProfile(uuid, sanitizedName);
-        if (!Objects.equals(sanitizedName, name)) {
-            profile.setProperty(new ProfileProperty(SKULL_PROPERTY, name));
-            if (SKULL_DEBUG) {
-                WorstShop.get().logger.info("Invalid name " + name + ", sanitized to " + sanitizedName + "\nProfile: " + profile);
-            }
-        }
-        return profile;
-    }
 }

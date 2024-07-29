@@ -258,15 +258,8 @@ public class StaticShopElement extends ShopElement {
             // skull
             // maybe I should've used PersistentDataContainers instead of attaching data to profiles lol
             yaml.find("skull", String.class).ifPresent(uuidOrName -> {
-                UUID uuid = null;
-                try {
-                    uuid = UUID.fromString(uuidOrName);
-                    uuidOrName = null; // make name null
-                } catch (IllegalArgumentException ignored) {
-                }
                 if (is.meta() instanceof SkullMeta skullMeta) {
-                    // names longer than 16 characters will cause errors
-                    skullMeta.setPlayerProfile(ItemUtils.makeProfileExact(uuid, uuidOrName));
+                    ItemUtils.handleSkullOwner(skullMeta, uuidOrName);
                 } else {
                     throw new ConfigException("skull can only be used on player heads! Got " + is.type() + " (" + is.meta() + ")", yaml, "skull");
                 }
@@ -451,11 +444,8 @@ public class StaticShopElement extends ShopElement {
                     return awaiting.placeholder;
                 }
             }
-        } else if (
-                rawStack.getType() == Material.PLAYER_HEAD &&
-                ((SkullMeta) rawStack.getItemMeta()).getPlayerProfile() instanceof PlayerProfile profile &&
-                profile.hasProperty(ItemUtils.SKULL_PROPERTY)
-        ) {
+        } else if (rawStack.getType() == Material.PLAYER_HEAD &&
+                rawStack.getPersistentDataContainer().has(Placeholders.ITEM_SKULL_OWNER_KEY)) {
             // the player head looks like it will need updating
             synchronized (asyncItemCache) {
                 var awaiting = asyncItemCache.get(player);

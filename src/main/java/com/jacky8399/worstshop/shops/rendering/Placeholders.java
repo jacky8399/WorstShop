@@ -1,11 +1,9 @@
 package com.jacky8399.worstshop.shops.rendering;
 
 import com.destroystokyo.paper.profile.PlayerProfile;
-import com.destroystokyo.paper.profile.ProfileProperty;
 import com.jacky8399.worstshop.WorstShop;
 import com.jacky8399.worstshop.helper.ConfigHelper;
 import com.jacky8399.worstshop.helper.Exceptions;
-import com.jacky8399.worstshop.helper.ItemUtils;
 import me.clip.placeholderapi.PlaceholderAPI;
 import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
@@ -22,12 +20,14 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class Placeholders {
     private static final WorstShop PLUGIN = WorstShop.get();
     public static final NamespacedKey ITEM_AMOUNT_KEY = new NamespacedKey(PLUGIN, "amount");
+    public static final NamespacedKey ITEM_SKULL_OWNER_KEY = new NamespacedKey(PLUGIN, "skull_owner");
 
     public static final Pattern SHOP_VARIABLE_PATTERN = Pattern.compile("!([A-Za-z0-9_]+)!");
 
@@ -82,6 +82,7 @@ public class Placeholders {
             return stack;
         stack = stack.clone();
         ItemMeta meta = stack.getItemMeta();
+        boolean changed = false;
         // render item name, display name and lore with components
         if (meta.hasLore()) {
             // noinspection ConstantConditions
@@ -91,12 +92,15 @@ public class Placeholders {
                 newLore.add(PlaceholderComponentRenderer.INSTANCE.render(component, context));
             }
             meta.lore(newLore);
+            changed = true;
         }
         if (meta.hasDisplayName()) {
             meta.displayName(PlaceholderComponentRenderer.INSTANCE.render(meta.displayName(), context));
+            changed = true;
         }
         if (meta.hasItemName()) {
             meta.itemName(PlaceholderComponentRenderer.INSTANCE.render(meta.itemName(), context));
+            changed = true;
         }
         // check for variables in PDCs
         PersistentDataContainer pdc = meta.getPersistentDataContainer();
@@ -107,46 +111,33 @@ public class Placeholders {
                 newAmount = (int) Float.parseFloat(itemAmount);
             } catch (NumberFormatException ignored) {}
             stack.setAmount(Math.max(1, Math.min(stack.getMaxStackSize(), newAmount)));
+            pdc.remove(ITEM_AMOUNT_KEY);
+            changed = true;
         }
 
-        // wow why didn't I think of this
-        // check for player skull
-        if (meta instanceof SkullMeta skullMeta) {
-            PlayerProfile profile = skullMeta.getPlayerProfile();
-            if (profile != null) {
-                PlayerProfile result = (PlayerProfile) profile.clone();
-                Player player = context.getPlayer();
-                var skullProperty = profile.getProperties().stream().filter(property -> property.getName().equals(ItemUtils.SKULL_PROPERTY)).findAny();
-                if (skullProperty.isPresent()) {
-                    String profileName = skullProperty.get().getValue();
-                    if ("{player}".equals(profileName) && player != null) {
-                        result = player.getPlayerProfile();
-                    } else if (profileName.contains("%") || profileName.contains("!")) {
-                        // replace placeholders too
-                        String newName = context.apply(profileName);
-                        // check if the name is that of an online player
-                        Player newPlayer = Bukkit.getPlayer(newName);
-                        if (newPlayer != null && newPlayer.isOnline()) {
-                            result = newPlayer.getPlayerProfile();
-                        } else if (!newName.isEmpty()) {
-                            result = ItemUtils.makeProfile(null, newName);
-                            result.clearProperties();
-                        }
-                    }
-                }
-                result.removeProperty(ItemUtils.SKULL_PROPERTY);
-                skullMeta.setPlayerProfile(result);
-                if (ItemUtils.SKULL_DEBUG) {
-                    var lore = new ArrayList<>(meta.hasLore() ? meta.getLore() : List.of());
-                    lore.add("name: " + result.getName());
-                    lore.add(ItemUtils.SKULL_PROPERTY + ": " + skullProperty.map(ProfileProperty::getValue).orElse("*not present*"));
-                    lore.add("result: " + result);
-                    meta.setLore(lore);
-                    PLUGIN.logger.info("[Placeholder] Original profile: " + profile + "\nReplaced: " + result);
+        if (meta instanceof SkullMeta skullMeta &&
+                pdc.get(ITEM_SKULL_OWNER_KEY, PersistentDataType.STRING) instanceof String skullOwner) {
+            PlayerProfile result = null;
+            if ("{player}".equals(skullOwner)) {
+                result = Objects.requireNonNull(context.getPlayer()).getPlayerProfile();
+            } else {
+                skullOwner = setPlaceholders(skullOwner, context);
+                Player player = Bukkit.getPlayerExact(skullOwner);
+                if (player != null && player.isOnline()) {
+                    result = player.getPlayerProfile();
+                } else {
+                    try {
+                        result = Bukkit.createProfile(null, skullOwner);
+                    } catch (IllegalArgumentException ignored) {}
                 }
             }
+            skullMeta.setPlayerProfile(result);
+            pdc.remove(ITEM_SKULL_OWNER_KEY);
+            changed = true;
         }
-        stack.setItemMeta(meta);
+        if (changed) {
+            stack.setItemMeta(meta);
+        }
         return stack;
     }
 }
