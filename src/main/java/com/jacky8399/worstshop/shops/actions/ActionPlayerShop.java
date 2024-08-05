@@ -9,12 +9,14 @@ import com.ghostchu.quickshop.api.shop.Shop;
 import com.ghostchu.quickshop.shop.SimpleInfo;
 import com.ghostchu.quickshop.shop.SimpleShopManager;
 import com.ghostchu.quickshop.shop.inventory.BukkitInventoryWrapper;
-import com.jacky8399.worstshop.I18n;
+import com.jacky8399.worstshop.i18n.ComponentTranslatable;
+import com.jacky8399.worstshop.i18n.I18n;
 import com.jacky8399.worstshop.WorstShop;
 import com.jacky8399.worstshop.helper.Config;
 import com.jacky8399.worstshop.helper.InventoryUtils;
 import com.jacky8399.worstshop.helper.ItemBuilder;
 import com.jacky8399.worstshop.helper.ItemUtils;
+import com.jacky8399.worstshop.i18n.Translatable;
 import com.jacky8399.worstshop.shops.commodity.*;
 import com.jacky8399.worstshop.shops.elements.DynamicShopElement;
 import com.jacky8399.worstshop.shops.elements.StaticShopElement;
@@ -79,7 +81,7 @@ public class ActionPlayerShop extends ActionPlayerShopFallback {
         }
     }
 
-    I18n.Translatable elementLoreBuy = I18n.createTranslatable(I18N_KEY + "buy"),
+    Translatable elementLoreBuy = I18n.createTranslatable(I18N_KEY + "buy"),
             elementLoreSell = I18n.createTranslatable(I18N_KEY + "sell"),
             elementLoreNoOffer = I18n.createTranslatable(I18N_KEY + "no-offers"),
             elementLoreFallbackBuy = I18n.createTranslatable(I18N_KEY + "fallback.buy"),
@@ -181,11 +183,16 @@ public class ActionPlayerShop extends ActionPlayerShopFallback {
         }
 
         public ItemBuilder getDisplay(boolean isBuying) {
+            double grandTotal = grandTotal();
             Component grandTotalDisplay = I18n.translateComponentArgs(I18N_KEY + "confirmation-grand-total",
-                    CommodityMoney.formatMoneyComponent(grandTotal()));
-            var translatable = new I18n.ComponentTranslatable(I18N_KEY + (isBuying ? "buying-from" : "selling-to"));
+                    CommodityMoney.formatMoneyComponent(grandTotal));
+            var translatable = new ComponentTranslatable(I18N_KEY + (isBuying ? "buying-from" : "selling-to"));
 
-            return ItemBuilder.of(Material.PAPER)
+            var denomination = CommodityMoney.getDenomination(grandTotal);
+
+            return ItemBuilder.of(denomination.material())
+                    .maxAmount(99)
+                    .amount(Math.min(denomination.getAmount(grandTotal), 99))
                     .name(I18n.translate(I18N_KEY + "confirmation"))
                     .lore(strategies.stream()
                             .map(strategy -> translatable.apply(
@@ -298,10 +305,11 @@ public class ActionPlayerShop extends ActionPlayerShopFallback {
             // estimate cost and update accordingly
             if (dynamicOnly) {
                 PurchaseStrategySummary strategySummary = deviseStrategy(player, isBuying, buyCount);
-                ItemStack displayStack = strategySummary.getDisplay(isBuying)
+                ItemBuilder builder = strategySummary.getDisplay(isBuying);
+                if (outOfStockBlink)
+                    builder.type(Material.BARRIER);
+                ItemStack displayStack = builder
                         // remove references to confirmation
-                        .type(outOfStockBlink && strategySummary.unfulfilled != 0 ?
-                                Material.BARRIER : Material.GOLD_INGOT)
                         .name(I18n.translate(I18N_KEY + (isBuying ? "buy" : "sell") + "-amount-prompt"))
                         .addLores(I18n.translate(I18N_KEY + "confirmation-info"))
                         .build();
@@ -319,8 +327,12 @@ public class ActionPlayerShop extends ActionPlayerShopFallback {
         @Override
         protected void doTransaction(InventoryClickEvent e) {
             Player player = (Player) e.getWhoClicked();
-            purchaseSummary = deviseStrategy(player, isBuying, buyCount);
-            showConfirmation(player);
+            if (buyCount == 0) {
+                player.closeInventory();
+            } else {
+                purchaseSummary = deviseStrategy(player, isBuying, buyCount);
+                showConfirmation(player);
+            }
         }
 
         protected void showConfirmation(Player player) {

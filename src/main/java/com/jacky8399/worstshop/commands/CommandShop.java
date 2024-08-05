@@ -5,7 +5,7 @@ import co.aikar.commands.CommandIssuer;
 import co.aikar.commands.InvalidCommandArgument;
 import co.aikar.commands.annotation.*;
 import co.aikar.commands.bukkit.contexts.OnlinePlayer;
-import com.jacky8399.worstshop.I18n;
+import com.jacky8399.worstshop.i18n.I18n;
 import com.jacky8399.worstshop.PluginConfig;
 import com.jacky8399.worstshop.WorstShop;
 import com.jacky8399.worstshop.helper.ConfigHelper;
@@ -43,7 +43,7 @@ import java.util.HashMap;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-import static com.jacky8399.worstshop.I18n.translate;
+import static com.jacky8399.worstshop.i18n.I18n.translate;
 import static net.md_5.bungee.api.ChatColor.*;
 
 @SuppressWarnings("unused")

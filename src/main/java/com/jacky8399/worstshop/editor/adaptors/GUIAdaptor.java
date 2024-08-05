@@ -1,6 +1,6 @@
 package com.jacky8399.worstshop.editor.adaptors;
 
-import com.jacky8399.worstshop.I18n;
+import com.jacky8399.worstshop.i18n.I18n;
 import com.jacky8399.worstshop.WorstShop;
 import com.jacky8399.worstshop.editor.EditableAdaptor;
 import com.jacky8399.worstshop.helper.EditorUtils;

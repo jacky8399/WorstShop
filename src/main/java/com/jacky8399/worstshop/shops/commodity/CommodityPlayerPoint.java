@@ -1,6 +1,6 @@
 package com.jacky8399.worstshop.shops.commodity;
 
-import com.jacky8399.worstshop.I18n;
+import com.jacky8399.worstshop.i18n.I18n;
 import com.jacky8399.worstshop.WorstShop;
 import com.jacky8399.worstshop.helper.Config;
 import com.jacky8399.worstshop.helper.ItemBuilder;
@@ -93,7 +93,7 @@ public class CommodityPlayerPoint extends Commodity {
     }
 
     public static Component formatPointsComponent(int points) {
-        return I18n.translateComponent("worstshop.shops.wants.player-points", points).colorIfAbsent(NamedTextColor.AQUA);
+        return I18n.translateAsComponent("worstshop.shops.wants.player-points", points).colorIfAbsent(NamedTextColor.AQUA);
     }
 
     @Override

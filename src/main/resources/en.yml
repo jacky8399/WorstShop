@@ -100,9 +100,10 @@ worstshop:
         maximize-purchase: '&b&lMaximize purchase amount'
         purchase-limit:
           name: '&bPurchase limit'
-          limit: '&aYou can only purchase &e{0}&a every &e{1}'
+          limit: '&aYou can only purchase &e{0} copies&a every &e{1}'
+          remaining: '<gold>Remaining quota: <yellow>{0} copies'
           previous-purchases: '&7Recent purchases'
-          previous-purchase-entry: '&7- x{0} ({1} ago)'
+          previous-purchase-entry: '&7 {1} ago: &e{0} copies'
 
       alias:
         description: 'Opens shop {0}'

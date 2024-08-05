@@ -1,9 +1,10 @@
 package com.jacky8399.worstshop.helper;
 
-import com.jacky8399.worstshop.I18n;
+import com.jacky8399.worstshop.i18n.I18n;
 import com.jacky8399.worstshop.WorstShop;
 import com.jacky8399.worstshop.editor.*;
 import com.jacky8399.worstshop.editor.adaptors.*;
+import com.jacky8399.worstshop.i18n.Translatable;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.Nullable;
 
@@ -15,8 +16,8 @@ import java.util.Collection;
 
 public class EditorUtils {
     public static final String I18N_KEY = I18n.Keys.MESSAGES_KEY + "editor.property.";
-    public static final I18n.Translatable VALUE_FORMAT = I18n.createTranslatable(I18N_KEY + "value-format");
-    public static final I18n.Translatable NAME_FORMAT = I18n.createTranslatable(I18N_KEY + "name-format");
+    public static final Translatable VALUE_FORMAT = I18n.createTranslatable(I18N_KEY + "value-format");
+    public static final Translatable NAME_FORMAT = I18n.createTranslatable(I18N_KEY + "name-format");
 
     @SuppressWarnings({"unchecked", "rawtypes"})
     public static <T> EditableAdaptor<T> findAdaptorForField(Object parent, Field field) {

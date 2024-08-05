@@ -1,6 +1,6 @@
 package com.jacky8399.worstshop.shops.commodity;
 
-import com.jacky8399.worstshop.I18n;
+import com.jacky8399.worstshop.i18n.I18n;
 import com.jacky8399.worstshop.WorstShop;
 import com.jacky8399.worstshop.helper.Config;
 import com.jacky8399.worstshop.helper.ItemBuilder;
@@ -52,7 +52,7 @@ public class CommodityCommand extends Commodity implements IUnaffordableCommodit
 
     @Override
     public List<? extends Component> playerResult(@Nullable Player player, TransactionType position) {
-        return List.of(I18n.translateComponent("worstshop.messages.shops.wants.command", commands.size()));
+        return List.of(I18n.translateAsComponent("worstshop.messages.shops.wants.command", commands.size()));
     }
 
     public Runnable givePermissions(Player player) {

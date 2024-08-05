@@ -1,7 +1,7 @@
 package com.jacky8399.worstshop.helper;
 
 import com.destroystokyo.paper.profile.PlayerProfile;
-import com.jacky8399.worstshop.I18n;
+import com.jacky8399.worstshop.i18n.I18n;
 import com.jacky8399.worstshop.WorstShop;
 import com.jacky8399.worstshop.shops.elements.StaticShopElement;
 import com.jacky8399.worstshop.shops.rendering.Placeholders;

@@ -1,8 +1,9 @@
 package com.jacky8399.worstshop.shops.actions;
 
-import com.jacky8399.worstshop.I18n;
 import com.jacky8399.worstshop.WorstShop;
 import com.jacky8399.worstshop.helper.*;
+import com.jacky8399.worstshop.i18n.ComponentTranslatable;
+import com.jacky8399.worstshop.i18n.I18n;
 import com.jacky8399.worstshop.shops.ParseContext;
 import com.jacky8399.worstshop.shops.Shop;
 import com.jacky8399.worstshop.shops.commodity.Commodity;
@@ -253,9 +254,9 @@ public class ActionShop extends Action {
     public String formatPurchaseLimitMessage(Player player) {
         PlayerPurchases records = PlayerPurchases.getCopy(player);
         PlayerPurchases.RecordStorage storage = records.applyTemplate(purchaseLimitTemplate);
-        List<Map.Entry<LocalDateTime, Integer>> entries = storage.getEntries();
+        List<PlayerPurchases.Record> entries = storage.getEntries();
         Duration wait;
-        if (entries.size() == 0) {
+        if (entries.isEmpty()) {
             wait = Duration.ofSeconds(0);
         } else {
             LocalDateTime firstPurchase = entries.get(0).getKey();
@@ -282,6 +283,8 @@ public class ActionShop extends Action {
 
     public static class ShopGui implements InventoryProvider {
         protected boolean firstClick = true;
+        protected int buyCount = 1;
+        protected int lastBuyCount = buyCount;
         protected final ActionShop shop;
         protected final Commodity cost;
         protected final Commodity reward;
@@ -310,9 +313,6 @@ public class ActionShop extends Action {
         protected static final ClickableItem RED = ItemBuilder.of(Material.RED_STAINED_GLASS_PANE)
                 .hideTooltip().toEmptyClickable();
 
-        protected static final I18n.Translatable PREVIOUS_PURCHASE_ENTRY = I18n.createTranslatable(
-                I18n.Keys.MESSAGES_KEY + "shops.buttons.purchase-limit.previous-purchase-entry");
-
         @Override
         public void init(Player player, InventoryContents contents) {
             contents.fill(FILLER);
@@ -322,7 +322,6 @@ public class ActionShop extends Action {
             updateItemCount(player, contents);
             if (cost.canMultiply() && reward.canMultiply() && shop.maxPurchase != 1)
                 populateBuyCountChangeButtons(player, contents);
-            updateCanAfford(player, contents);
             updateAnimation(player, contents);
 
             // player balance etc
@@ -360,7 +359,6 @@ public class ActionShop extends Action {
         public void update(Player player, InventoryContents contents) {
             if (lastBuyCount != buyCount) {
                 updateItemCount(player, contents);
-                updateCanAfford(player, contents);
                 populateBuyCountChangeButtons(player, contents);
                 lastBuyCount = buyCount;
             }
@@ -368,9 +366,10 @@ public class ActionShop extends Action {
         }
 
         // animation
+        // 0 to 4
         protected int animationSequence = 0;
-        protected int buyCount = 1;
-        protected int lastBuyCount = buyCount;
+        // 0 to 3
+        protected int animationCooldown = 3;
 
         protected void doTransaction(InventoryClickEvent e) {
             Player player = (Player) e.getWhoClicked();
@@ -384,6 +383,9 @@ public class ActionShop extends Action {
 
         private Consumer<InventoryClickEvent> createBuyCountChanger(int newValue) {
             return e -> {
+                if (firstClick) { // update the +1 button
+                    lastBuyCount = 0;
+                }
                 buyCount = newValue;
                 firstClick = false;
             };
@@ -394,10 +396,11 @@ public class ActionShop extends Action {
             return shop.getMaxPurchase(player);
         }
 
-        private static final I18n.Translatable
-                INCREASE_BUY_COUNT_BY = I18n.createTranslatable("worstshop.messages.shops.buy-counts.increase-by"),
-                DECREASE_BUY_COUNT_BY = I18n.createTranslatable("worstshop.messages.shops.buy-counts.decrease-by"),
-                BUY_COUNT_RESULT = I18n.createTranslatable("worstshop.messages.shops.buy-counts.change-result");
+        private static final String BUY_COUNTS_KEY = "worstshop.messages.shops.buy-counts.";
+        private static final ComponentTranslatable
+                INCREASE_BUY_COUNT_BY = I18n.createComponentTranslatable(BUY_COUNTS_KEY + "increase-by"),
+                DECREASE_BUY_COUNT_BY = I18n.createComponentTranslatable(BUY_COUNTS_KEY + "decrease-by"),
+                BUY_COUNT_RESULT = I18n.createComponentTranslatable(BUY_COUNTS_KEY + "change-result");
         // create button pairs
         protected void populateBuyCountChangeButtons(Player player, InventoryContents contents) {
             int oldCount = firstClick ? 0 : buyCount;
@@ -405,39 +408,28 @@ public class ActionShop extends Action {
             for (int i = 0; i < BUTTON_DELTA.length; i++) {
                 int index = i + 1;
                 int number = BUTTON_DELTA[i];
+                var numberComponent = Component.text(number);
 
                 // increase by x
-                if (oldCount + number <= maxPurchase) {
-                    contents.set(4, 4 + index, ItemBuilder.of(Material.LIME_STAINED_GLASS)
-                            .name(INCREASE_BUY_COUNT_BY.apply(number))
-                            .lores(BUY_COUNT_RESULT.apply(oldCount + number))
-                            .amount(number)
-                            .toClickable(createBuyCountChanger(oldCount + number))
-                    );
-                } else {
-                    contents.set(4, 4 + index, ItemBuilder.of(Material.GRAY_STAINED_GLASS)
-                            .name(INCREASE_BUY_COUNT_BY.apply(number))
-                            .lores(BUY_COUNT_RESULT.apply(maxPurchase))
-                            .amount(number)
-                            .toClickable(createBuyCountChanger(maxPurchase))
-                    );
-                }
+                int increased = Math.min(oldCount + number, maxPurchase);
+                // gray out if increment is not allowed
+                Material incrementMaterial = increased == oldCount + number ? Material.LIME_STAINED_GLASS : Material.GRAY_STAINED_GLASS;
+                contents.set(4, 4 + index, ItemBuilder.of(incrementMaterial)
+                        .name(INCREASE_BUY_COUNT_BY.apply(numberComponent))
+                        .lores(BUY_COUNT_RESULT.apply(Component.text(increased)))
+                        .amount(number)
+                        .toClickable(createBuyCountChanger(increased))
+                );
                 // decrease by x
-                if (oldCount - number >= 1) {
-                    contents.set(4, 4 - index, ItemBuilder.of(Material.RED_STAINED_GLASS)
-                            .name(DECREASE_BUY_COUNT_BY.apply(number))
-                            .lores(BUY_COUNT_RESULT.apply(oldCount - number))
-                            .amount(number)
-                            .toClickable(createBuyCountChanger(oldCount - number))
-                    );
-                } else {
-                    contents.set(4, 4 - index, ItemBuilder.of(Material.GRAY_STAINED_GLASS)
-                            .name(DECREASE_BUY_COUNT_BY.apply(number))
-                            .lores(BUY_COUNT_RESULT.apply(1))
-                            .amount(number)
-                            .toClickable(createBuyCountChanger(1))
-                    );
-                }
+                int decreased = Math.max(oldCount - number, 1);
+                // gray out if decrement is not allowed
+                Material decrementMaterial = decreased == oldCount - number ? Material.RED_STAINED_GLASS : Material.GRAY_STAINED_GLASS;
+                contents.set(4, 4 - index, ItemBuilder.of(decrementMaterial)
+                        .name(DECREASE_BUY_COUNT_BY.apply(numberComponent))
+                        .lores(BUY_COUNT_RESULT.apply(Component.text(decreased)))
+                        .amount(number)
+                        .toClickable(createBuyCountChanger(decreased))
+                );
             }
         }
 
@@ -484,8 +476,8 @@ public class ActionShop extends Action {
                 // guess parent
                 Optional<SmartInventory> parent = contents.inventory().getParent();
                 String parentShop = "???";
-                if (parent.isPresent() && parent.get().getProvider() instanceof ShopRenderer renderer) {
-                    parentShop = renderer.toString();
+                if (parent.isPresent() && parent.get().getProvider() instanceof ShopRenderer parentRenderer) {
+                    parentShop = parentRenderer.toString();
                 }
                 RuntimeException wrapped = new RuntimeException("Rendering " + stage + " element for " + player.getName() + " (@" + parentShop + ")", ex);
                 // spam the player
@@ -497,13 +489,13 @@ public class ActionShop extends Action {
             Commodity realReward = reward.multiply(buyCount);
             var results = realReward.playerResult(player, Commodity.TransactionType.REWARD);
             List<Component> lore = new ArrayList<>(results.size() + 1);
-            lore.add(I18n.translateComponent("worstshop.messages.shops.buy-counts.total-result", ""));
+            lore.add(I18n.translateAsComponent(BUY_COUNTS_KEY + "total-result", ""));
             lore.addAll(results);
             boolean useChest = buyCount > 99 && (cost instanceof CommodityItem || reward instanceof CommodityItem);
             contents.set(4, 4,
                     ItemBuilder.of(useChest ? Material.BUNDLE :
                                     buyCount != 0 ? Material.END_CRYSTAL : Material.BARRIER)
-                            .name(I18n.translate("worstshop.messages.shops.buy-counts.total", buyCount))
+                            .name(I18n.translate(BUY_COUNTS_KEY + "total", buyCount))
                             .maxAmount(99)
                             .amount(Math.max(Math.min(useChest ? (int) Math.ceil(buyCount / 64f) : buyCount, 99), 1))
                             .lore(lore)
@@ -517,64 +509,85 @@ public class ActionShop extends Action {
             );
         }
 
-        protected void updateCanAfford(Player player, InventoryContents contents) {
-            boolean canBuy = cost.multiply(buyCount).canAfford(player) && buyCount <= shop.getShopMaxPurchase(player);
-            contents.fillRow(3, canBuy ? GREEN : RED);
+        protected boolean canAfford(Player player) {
+            return cost.multiply(buyCount).canAfford(player) && buyCount <= shop.getShopMaxPurchase(player);
         }
 
-        final int calculateItemColumn() {
-            return (animationSequence == 4 ? 2 : animationSequence + 3);
-        }
-
+        private static final SlotPos[] CANT_AFFORD_CROSS = {SlotPos.of(0, 3), SlotPos.of(0, 5),
+                SlotPos.of(1, 4), SlotPos.of(2, 3), SlotPos.of(2, 3), SlotPos.of(2, 5)};
+        private boolean couldAfford = false;
         protected void updateAnimation(Player player, InventoryContents contents) {
-            int animationCooldown = contents.property("animationCooldown", 0);
-            if (animationCooldown == 0) {
-                contents.setProperty("animationCooldown", 3);
-            } else {
-                contents.setProperty("animationCooldown", animationCooldown - 1);
+            if (animationCooldown++ != 3) {
                 return;
             }
-            // clear last arrow
-            contents.set(0, animationSequence + 2, FILLER);
-            contents.set(1, calculateItemColumn(), FILLER);
-            contents.set(2, animationSequence + 2, FILLER);
-
+            animationCooldown = 0;
+            boolean canAfford = canAfford(player);
+            if (canAfford != couldAfford) {
+                // clear area
+                contents.fillRect(0, 2, 2, 6, FILLER);
+                couldAfford = canAfford;
+            }
+            int lastAnimationSequence = animationSequence;
             animationSequence = animationSequence == 4 ? 0 : animationSequence + 1;
-
-            contents.set(0, animationSequence + 2, ARROW);
-            contents.set(1, calculateItemColumn(), ARROW);
-            contents.set(2, animationSequence + 2, ARROW);
-
+            if (canAfford) {
+                // clear last arrow
+                int lastCol = lastAnimationSequence + 2;
+                contents.set(0, lastCol, FILLER);
+                contents.set(1, lastCol == 6 ? 2 : lastCol + 1, FILLER);
+                contents.set(2, lastCol, FILLER);
+                int col = animationSequence + 2;
+                contents.set(0, col, ARROW);
+                contents.set(1, col == 6 ? 2 : col + 1, ARROW);
+                contents.set(2, col, ARROW);
+            } else {
+                ClickableItem clickableItem = animationSequence != 0 ? RED : FILLER;
+                for (SlotPos pos : CANT_AFFORD_CROSS) {
+                    contents.set(pos, clickableItem);
+                }
+            }
             // also update item lol
             if (animationSequence == 3) {
                 // regularly refresh these too
                 updatePurchaseLimit(player, contents);
-                updateCanAfford(player, contents);
                 updateCommodities(player, contents, true);
             }
         }
 
+        private static final String PURCHASE_LIMIT_KEY = I18n.Keys.MESSAGES_KEY + "shops.buttons.purchase-limit.";
+        private static final ComponentTranslatable
+                PURCHASE_LIMIT_NAME = I18n.createComponentTranslatable(PURCHASE_LIMIT_KEY + "name"),
+                PURCHASE_LIMIT_LIMIT = I18n.createComponentTranslatable(PURCHASE_LIMIT_KEY + "limit"),
+                PURCHASE_LIMIT_REMAINING = I18n.createComponentTranslatable(PURCHASE_LIMIT_KEY + "remaining"),
+                PURCHASE_LIMIT_PREVIOUS = I18n.createComponentTranslatable(PURCHASE_LIMIT_KEY + "previous-purchases"),
+                PURCHASE_LIMIT_PREVIOUS_ENTRY = I18n.createComponentTranslatable(PURCHASE_LIMIT_KEY + "previous-purchase-entry");
         protected void updatePurchaseLimit(Player player, InventoryContents contents) {
             // purchase limit
             if (shop.purchaseLimitTemplate != null) {
                 var records = PlayerPurchases.getCopy(player).applyTemplate(shop.purchaseLimitTemplate);
-                List<String> lore = new ArrayList<>(records.getEntries().size() + 2);
+                List<PlayerPurchases.Record> entries = records.getEntries();
+                List<Component> lore = new ArrayList<>(entries.size() + 3);
                 // header
-                lore.add(I18n.translate(I18n.Keys.MESSAGES_KEY + "shops.buttons.purchase-limit.limit",
-                        shop.purchaseLimit, DateTimeUtils.formatTime(shop.purchaseLimitTemplate.retentionTime())));
-                lore.add(I18n.translate(I18n.Keys.MESSAGES_KEY + "shops.buttons.purchase-limit.previous-purchases"));
-
+                lore.add(PURCHASE_LIMIT_LIMIT.apply(
+                        Component.text(shop.purchaseLimit),
+                        DateTimeUtils.formatReadableDuration(shop.purchaseLimitTemplate.retentionTime(), player.locale())
+                ));
+                lore.add(null); //ayo
+                lore.add(PURCHASE_LIMIT_PREVIOUS.apply());
                 // entries
+                int total = 0;
                 LocalDateTime now = LocalDateTime.now();
-                records.getEntries().stream()
-                        .map(entry -> PREVIOUS_PURCHASE_ENTRY.apply(
-                                entry.getValue(),
-                                DateTimeUtils.formatTime(Duration.between(entry.getKey(), now))
-                        ))
-                        .forEach(lore::add);
+                for (var entry : entries) {
+                    lore.add(PURCHASE_LIMIT_PREVIOUS_ENTRY.apply(
+                            Component.text(entry.amount()),
+                            DateTimeUtils.formatReadableDuration(Duration.between(entry.timeOfPurchase(), now), player.locale())
+                    ));
+                    total += entry.amount();
+                }
+                lore.set(1, PURCHASE_LIMIT_REMAINING.apply(Component.text(shop.purchaseLimit - total)));
                 contents.set(5, 0, ItemBuilder.of(Material.CLOCK)
-                        .name(I18n.translate(I18n.Keys.MESSAGES_KEY + "shops.buttons.purchase-limit.name"))
-                        .lore(lore).toEmptyClickable()
+                        .name(PURCHASE_LIMIT_NAME.apply())
+                        .lore(lore)
+                        .toEmptyClickable()
                 );
             }
         }

@@ -1,7 +1,7 @@
 package com.jacky8399.worstshop.shops;
 
 import com.google.common.collect.Lists;
-import com.jacky8399.worstshop.I18n;
+import com.jacky8399.worstshop.i18n.I18n;
 import com.jacky8399.worstshop.WorstShop;
 import net.md_5.bungee.api.ChatColor;
 import org.bukkit.Bukkit;

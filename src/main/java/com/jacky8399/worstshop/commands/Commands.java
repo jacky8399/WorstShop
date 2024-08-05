@@ -2,7 +2,7 @@ package com.jacky8399.worstshop.commands;
 
 import co.aikar.commands.BukkitLocales;
 import co.aikar.commands.PaperCommandManager;
-import com.jacky8399.worstshop.I18n;
+import com.jacky8399.worstshop.i18n.I18n;
 import com.jacky8399.worstshop.WorstShop;
 
 public class Commands {

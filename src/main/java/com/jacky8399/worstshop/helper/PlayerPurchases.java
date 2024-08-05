@@ -1,6 +1,5 @@
 package com.jacky8399.worstshop.helper;
 
-import com.google.common.collect.Maps;
 import com.jacky8399.worstshop.WorstShop;
 import org.bukkit.Bukkit;
 import org.bukkit.NamespacedKey;
@@ -22,7 +21,6 @@ import java.time.ZoneOffset;
 import java.util.*;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.logging.Level;
-import java.util.stream.Collectors;
 
 /**
  * Records player purchases when needed
@@ -43,11 +41,11 @@ public class PlayerPurchases {
         }, 0, 20);
     }
 
-    private static final Path file = new File(WorstShop.get().getDataFolder(), "purchases.csv").toPath();
+    private static final Path FILE = new File(WorstShop.get().getDataFolder(), "purchases.csv").toPath();
     public static void writePurchaseRecords() throws IOException {
         if (recordsToSave.isEmpty())
             return;
-        try (var bw = Files.newBufferedWriter(file, StandardCharsets.UTF_8, StandardOpenOption.APPEND, StandardOpenOption.CREATE)) {
+        try (var bw = Files.newBufferedWriter(FILE, StandardCharsets.UTF_8, StandardOpenOption.APPEND, StandardOpenOption.CREATE)) {
             Object[] toWrite;
             while ((toWrite = recordsToSave.poll()) != null) {
                 var joiner = new StringJoiner(",", "", "\n");
@@ -60,6 +58,7 @@ public class PlayerPurchases {
         }
     }
 
+
     public static PlayerPurchases getCopy(Player player) {
         PersistentDataContainer container = player.getPersistentDataContainer();
         if (!container.has(PURCHASE_RECORD_KEY, PURCHASE_RECORD_STORAGE)) {
@@ -68,6 +67,8 @@ public class PlayerPurchases {
         return container.get(PURCHASE_RECORD_KEY, PURCHASE_RECORD_STORAGE);
     }
 
+    // Actual records
+    HashMap<String, RecordStorage> records = new HashMap<>();
     public void updateFor(Player player) {
         purgeOldRecords();
         player.getPersistentDataContainer().set(PURCHASE_RECORD_KEY, PURCHASE_RECORD_STORAGE, this);
@@ -99,7 +100,6 @@ public class PlayerPurchases {
     }
 
     public record RecordTemplate(String id, Duration retentionTime, int maxRecords) {
-
         public static final int DEFAULT_MAX_RECORDS = 128;
 
         public static RecordTemplate fromConfig(Config map) {
@@ -131,6 +131,34 @@ public class PlayerPurchases {
         }
     }
 
+    /**
+     * @param timeOfPurchase The time of purchase
+     * @param amount         The number of copies bought, which doesn't necessarily represent the stack size. <br>
+     *                       Note that this amount can be calculated by {@code amount = resultant stack size / shop stack size}
+     */
+    public record Record(LocalDateTime timeOfPurchase, int amount)
+            implements Map.Entry<LocalDateTime, Integer> // legacy
+    {
+        public boolean shouldBeDeletedAt(LocalDateTime time, Duration retentionTime) {
+            return Duration.between(timeOfPurchase, time).compareTo(retentionTime) > 0;
+        }
+
+        @Override
+        public LocalDateTime getKey() {
+            return timeOfPurchase;
+        }
+
+        @Override
+        public Integer getValue() {
+            return amount;
+        }
+
+        @Override
+        public Integer setValue(Integer value) {
+            throw new UnsupportedOperationException();
+        }
+    }
+
     public static class RecordStorage {
         public RecordStorage(String id, Duration retentionTime, int maxRecords) {
             this.id = id;
@@ -141,19 +169,6 @@ public class PlayerPurchases {
         public final String id;
         public final Duration retentionTime;
         public final int maxRecords;
-        public class Record {
-            public Record(LocalDateTime timeOfPurchase, int amount) {
-                this.timeOfPurchase = timeOfPurchase;
-                this.amount = amount;
-            }
-            public final LocalDateTime timeOfPurchase;
-            public boolean shouldBeDeletedAt(LocalDateTime time) {
-                return Duration.between(timeOfPurchase, time).compareTo(retentionTime) > 0;
-            }
-            // NOT stack size
-            // amount = resultant stack size / shop stack size
-            public final int amount;
-        }
 
         ArrayList<Record> records = new ArrayList<>();
         private void addRecord(LocalDateTime timeOfPurchase, int amount) {
@@ -176,26 +191,23 @@ public class PlayerPurchases {
 
         public int getTotalPurchases() {
             LocalDateTime now = LocalDateTime.now();
-            return records.stream().filter(record -> !record.shouldBeDeletedAt(now)).mapToInt(record -> record.amount).sum();
+            return records.stream().filter(record -> !record.shouldBeDeletedAt(now, retentionTime)).mapToInt(record -> record.amount).sum();
         }
 
-        public List<Map.Entry<LocalDateTime, Integer>> getEntries() {
+        public List<Record> getEntries() {
             LocalDateTime now = LocalDateTime.now();
-            return records.stream().filter(record -> !record.shouldBeDeletedAt(now))
+            return records.stream().filter(record -> !record.shouldBeDeletedAt(now, retentionTime))
                     .sorted(Comparator.comparing(record -> Duration.between(record.timeOfPurchase, now)))
-                    .map(record -> Maps.immutableEntry(record.timeOfPurchase, record.amount))
-                    .collect(Collectors.toList());
+                    .toList();
         }
 
         public void purgeOldRecords() {
             if (records.size() > maxRecords)
                 records.subList(0, records.size() - maxRecords).clear();
             LocalDateTime now = LocalDateTime.now();
-            records.removeIf(record -> record.shouldBeDeletedAt(now));
+            records.removeIf(record -> record.shouldBeDeletedAt(now, retentionTime));
         }
     }
-    // Actual fields
-    HashMap<String, RecordStorage> records = new HashMap<>();
 
     // Storage
     private static final WorstShop PLUGIN = WorstShop.get();

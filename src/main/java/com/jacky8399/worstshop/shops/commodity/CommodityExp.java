@@ -1,6 +1,6 @@
 package com.jacky8399.worstshop.shops.commodity;
 
-import com.jacky8399.worstshop.I18n;
+import com.jacky8399.worstshop.i18n.I18n;
 import com.jacky8399.worstshop.helper.Config;
 import com.jacky8399.worstshop.helper.ItemBuilder;
 import com.jacky8399.worstshop.shops.elements.ShopElement;
@@ -45,12 +45,12 @@ public class CommodityExp extends Commodity {
     private static Component formatComponent(int levels, int points) {
         var builder = Component.text().color(NamedTextColor.BLUE);
         if (levels != 0) {
-            builder.append(I18n.translateComponent("worstshop.messages.shops.wants.levels", levels));
+            builder.append(I18n.translateAsComponent("worstshop.messages.shops.wants.levels", levels));
             if (points != 0)
                 builder.append(Component.space());
         }
         if (points != 0)
-            builder.append(I18n.translateComponent("worstshop.messages.shops.wants.points", points));
+            builder.append(I18n.translateAsComponent("worstshop.messages.shops.wants.points", points));
         return builder.build();
     }
 

@@ -39,7 +39,7 @@ import java.util.logging.Logger;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-import static com.jacky8399.worstshop.I18n.translate;
+import static com.jacky8399.worstshop.i18n.I18n.translate;
 
 @Adaptor(Shop.Adaptor.class)
 @Editable("shop")

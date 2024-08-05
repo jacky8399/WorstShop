@@ -1,18 +1,15 @@
-package com.jacky8399.worstshop;
+package com.jacky8399.worstshop.i18n;
 
 import co.aikar.commands.BukkitLocales;
 import co.aikar.commands.CommandIssuer;
 import co.aikar.commands.Locales;
 import co.aikar.locales.LanguageTable;
 import co.aikar.locales.LocaleManager;
+import com.jacky8399.worstshop.WorstShop;
 import com.jacky8399.worstshop.helper.ConfigHelper;
 import com.jacky8399.worstshop.helper.PaperHelper;
 import com.jacky8399.worstshop.helper.TextUtils;
 import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.ComponentLike;
-import net.kyori.adventure.text.TextComponent;
-import net.kyori.adventure.text.format.Style;
-import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import net.md_5.bungee.api.ChatColor;
 import org.bukkit.configuration.InvalidConfigurationException;
 import org.bukkit.configuration.file.YamlConfiguration;
@@ -25,100 +22,15 @@ import java.io.InputStreamReader;
 import java.lang.reflect.Field;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
-import java.text.AttributedCharacterIterator;
 import java.text.MessageFormat;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Set;
-import java.util.function.Function;
 
 public class I18n {
     public static class Keys {
         public static final String MESSAGES_KEY = "worstshop.messages.";
         public static final String ITEM_KEY = MESSAGES_KEY + "shops.wants.items";
-    }
-
-    public static class Translatable implements Function<Object[], String> {
-        public Translatable(String path) {
-            this.path = path.toLowerCase(Locale.ROOT);
-            update();
-        }
-        public final String path;
-
-        @Override
-        public String apply(Object... strings) {
-            return format.format(strings);
-        }
-
-        @Override
-        public String toString() {
-            return pattern;
-        }
-
-        private MessageFormat format;
-        private String pattern;
-        public void update() {
-            pattern = ConfigHelper.translateString(lang.getString(path, path));
-            format = new MessageFormat(pattern);
-        }
-    }
-
-    public static class ComponentTranslatable implements Function<ComponentLike[], Component> {
-        public ComponentTranslatable(String path) {
-            this.path = path.toLowerCase(Locale.ROOT);
-            update();
-        }
-        public final String path;
-
-        @Override
-        public String toString() {
-            return pattern;
-        }
-
-        private MessageFormat format;
-        private String pattern;
-        public void update() {
-            pattern = ConfigHelper.translateString(lang.getString(path, path));
-            format = new MessageFormat(pattern);
-        }
-
-        private static final Set<Style.Merge> MERGES = Set.of(Style.Merge.COLOR, Style.Merge.DECORATIONS, Style.Merge.FONT);
-        @Override
-        public Component apply(ComponentLike... componentLikes) {
-            if (componentLikes.length == 0) {
-                return LegacyComponentSerializer.legacySection().deserialize(pattern);
-            }
-            // borrowed from TranslatableComponentRenderer
-            // I love Adventure :3
-            var builder = Component.text();
-            final Object[] nulls = new Object[componentLikes.length];
-            final StringBuffer sb = format.format(nulls, new StringBuffer(), null);
-            final AttributedCharacterIterator it = format.formatToCharacterIterator(nulls);
-            Style.Builder style = Style.style();
-
-            while (it.getIndex() < it.getEndIndex()) {
-                final int end = it.getRunLimit();
-                final Integer index = (Integer) it.getAttribute(MessageFormat.Field.ARGUMENT);
-                if (index != null) {
-                    Component component = componentLikes[index].asComponent();
-                    // retain the component's styles
-                    builder.append(component.style(component.style().merge(style.build(), Style.Merge.Strategy.IF_ABSENT_ON_TARGET, MERGES)));
-                } else {
-                    TextComponent userText = LegacyComponentSerializer.legacySection().deserialize(sb.substring(it.getIndex(), end));
-                    if (!userText.content().isEmpty()) {
-                        style.merge(userText.style(), MERGES);
-                        builder.append(Component.text(userText.content(), style.build()));
-                    }
-                    for (Component child : userText.children()) {
-                        style.merge(child.style(), MERGES);
-                        builder.append(child.style(style));
-                    }
-                }
-                it.setIndex(end);
-            }
-            return builder.build();
-        }
     }
 
     public static YamlConfiguration lang;
@@ -235,12 +147,12 @@ public class I18n {
         return path;
     }
 
-    public static Component translateComponent(String path, Object... args) {
+    public static Component translateAsComponent(String path, Object... args) {
         return TextUtils.LEGACY_COMPONENT_SERIALIZER.deserialize(translate(path, args));
     }
 
-    public static Component translateComponentArgs(String path, ComponentLike... componentLikes) {
-        return new ComponentTranslatable(path).apply(componentLikes);
+    public static Component translateComponentArgs(String path, Component... components) {
+        return new ComponentTranslatable(path).apply(components);
     }
 
     public static Translatable createTranslatable(String path) {

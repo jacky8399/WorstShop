@@ -22,7 +22,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import static com.jacky8399.worstshop.I18n.translate;
+import static com.jacky8399.worstshop.i18n.I18n.translate;
 
 @CommandAlias("worstshop|shop")
 @Subcommand("log|logs")
@@ -144,7 +144,7 @@ public class CommandLogs extends BaseCommand {
                         throw new InvalidCommandArgument(recordId + " is not a valid record ID!", false);
                     }
                     purchases.purgeOldRecords();
-                    List<Map.Entry<LocalDateTime, Integer>> entries = purchases.getEntries();
+                    List<PlayerPurchases.Record> entries = purchases.getEntries();
                     sender.sendMessage(ChatColor.GREEN + player.getName() + " has " + entries.size() + " purchase record(s) in " + ChatColor.YELLOW + recordId);
                     LocalDateTime now = LocalDateTime.now();
                     for (Map.Entry<LocalDateTime, Integer> entry : entries) {

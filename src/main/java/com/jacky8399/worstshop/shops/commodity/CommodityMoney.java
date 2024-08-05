@@ -50,9 +50,40 @@ public class CommodityMoney extends Commodity {
         this.isFromShorthand = shorthand;
     }
 
+    public record Denomination(int minAmount, Material material) {
+        public int getAmount(double money) {
+            return (int) Math.max(Math.round(money / minAmount), 1);
+        }
+    }
+    public static final List<Denomination> DENOMINATIONS = List.of(
+            new Denomination(1, Material.GOLD_NUGGET),
+            new Denomination(100, Material.GOLD_INGOT),
+            new Denomination(10_000, Material.GOLD_BLOCK),
+            new Denomination(1_000_000, Material.RAW_GOLD),
+            new Denomination(100_000_000, Material.RAW_GOLD_BLOCK)
+    );
+    public static Denomination getDenomination(double money) {
+        var iterator = DENOMINATIONS.iterator();
+        Denomination denomination = iterator.next();
+        while (iterator.hasNext()) {
+            Denomination next = iterator.next();
+            if (money < next.minAmount) {
+                break;
+            }
+            denomination = next;
+        }
+        return denomination;
+    }
     @Override
     public ShopElement createElement(TransactionType position) {
-        return position.createElement(ItemBuilder.of(Material.GOLD_INGOT).name(formatMoney(realMoney)).build());
+        Denomination denomination = getDenomination(realMoney);
+        return position.createElement(
+                ItemBuilder.of(denomination.material)
+                        .maxAmount(99)
+                        .amount(Math.min(denomination.getAmount(realMoney), 99))
+                        .name(formatMoneyComponent(realMoney))
+                        .build()
+        );
     }
 
     @Override

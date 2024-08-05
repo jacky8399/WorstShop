@@ -1,6 +1,7 @@
 package com.jacky8399.worstshop.helper;
 
-import com.jacky8399.worstshop.I18n;
+import com.jacky8399.worstshop.i18n.I18n;
+import com.jacky8399.worstshop.i18n.Translatable;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.StyleBuilderApplicable;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
@@ -37,7 +38,7 @@ public final class TextUtils {
         return of(I18n.translate(translationKey, args));
     }
 
-    public static BaseComponent[] ofTranslated(I18n.Translatable translatable, Object... args) {
+    public static BaseComponent[] ofTranslated(Translatable translatable, Object... args) {
         return of(translatable.apply(args));
     }
 

@@ -6,6 +6,7 @@ import com.jacky8399.worstshop.events.Events;
 import com.jacky8399.worstshop.helper.ConfigHelper;
 import com.jacky8399.worstshop.helper.InventoryUtils;
 import com.jacky8399.worstshop.helper.PlayerPurchases;
+import com.jacky8399.worstshop.i18n.I18n;
 import com.jacky8399.worstshop.shops.ShopManager;
 import fr.minuskube.inv.InventoryManager;
 import fr.minuskube.inv.SmartInventory;

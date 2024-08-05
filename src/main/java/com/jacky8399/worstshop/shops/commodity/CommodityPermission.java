@@ -1,6 +1,6 @@
 package com.jacky8399.worstshop.shops.commodity;
 
-import com.jacky8399.worstshop.I18n;
+import com.jacky8399.worstshop.i18n.I18n;
 import com.jacky8399.worstshop.WorstShop;
 import com.jacky8399.worstshop.helper.Config;
 import com.jacky8399.worstshop.helper.ConfigHelper;
@@ -245,12 +245,12 @@ public class CommodityPermission extends Commodity {
     }
 
     public Component formatPermissionComponent() {
-        return I18n.translateComponent(permType.getLocaleKey(), permissionDisplay).colorIfAbsent(NamedTextColor.WHITE);
+        return I18n.translateAsComponent(permType.getLocaleKey(), permissionDisplay).colorIfAbsent(NamedTextColor.WHITE);
     }
 
     public Component formatPermissionComponent(boolean value) {
         return Component.textOfChildren(
-                I18n.translateComponent(permType.getLocaleKey(), permissionDisplay),
+                I18n.translateAsComponent(permType.getLocaleKey(), permissionDisplay),
                 Component.text(": " + value)
         ).color(NamedTextColor.WHITE);
     }

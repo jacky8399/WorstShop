@@ -2,7 +2,7 @@ package com.jacky8399.worstshop.shops.commodity;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
-import com.jacky8399.worstshop.I18n;
+import com.jacky8399.worstshop.i18n.I18n;
 import com.jacky8399.worstshop.helper.Config;
 import com.jacky8399.worstshop.helper.ConfigException;
 import com.jacky8399.worstshop.helper.ItemUtils;

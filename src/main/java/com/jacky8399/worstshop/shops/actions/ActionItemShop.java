@@ -2,12 +2,13 @@ package com.jacky8399.worstshop.shops.actions;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
-import com.jacky8399.worstshop.I18n;
+import com.jacky8399.worstshop.i18n.I18n;
 import com.jacky8399.worstshop.WorstShop;
 import com.jacky8399.worstshop.helper.Config;
 import com.jacky8399.worstshop.helper.ItemBuilder;
 import com.jacky8399.worstshop.helper.ItemUtils;
 import com.jacky8399.worstshop.helper.PlayerPurchases;
+import com.jacky8399.worstshop.i18n.Translatable;
 import com.jacky8399.worstshop.shops.*;
 import com.jacky8399.worstshop.shops.commodity.Commodity;
 import com.jacky8399.worstshop.shops.commodity.CommodityItem;
@@ -426,7 +427,7 @@ public class ActionItemShop extends Action {
         }
     }
 
-    I18n.Translatable BUY_PRICE_MESSAGE = I18n.createTranslatable("worstshop.messages.shops.buy-for"),
+    Translatable BUY_PRICE_MESSAGE = I18n.createTranslatable("worstshop.messages.shops.buy-for"),
             SELL_PRICE_MESSAGE = I18n.createTranslatable("worstshop.messages.shops.sell-for"),
             SELL_ALL_MESSAGE = I18n.createTranslatable("worstshop.messages.shops.sell-all");
     @Override

@@ -1,12 +1,18 @@
 package com.jacky8399.worstshop.helper;
 
+import net.kyori.adventure.text.Component;
+
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.FormatStyle;
+import java.time.temporal.ChronoField;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -43,11 +49,10 @@ public class DateTimeUtils {
     }
 
     public static String formatTime(Duration duration, boolean withTicks) {
-        int seconds = (int) duration.getSeconds();
-        int days = seconds / 86400;
-        int hours = (seconds - days * 86400) / 3600;
-        int minutes = (seconds - days * 86400 - hours * 3600) / 60;
-        int remainingSeconds = seconds - days * 86400 - hours * 3600 - minutes * 60;
+        long days = duration.toDaysPart();
+        int hours = duration.toHoursPart();
+        int minutes = duration.toMinutesPart();
+        int seconds = duration.toSecondsPart();
         StringBuilder sb = new StringBuilder();
         if (days != 0)
             sb.append(days).append("d");
@@ -55,13 +60,32 @@ public class DateTimeUtils {
             sb.append(hours).append("h");
         if (minutes != 0)
             sb.append(minutes).append("m");
-        if (remainingSeconds != 0)
-            sb.append(remainingSeconds).append("s");
+        if (seconds != 0)
+            sb.append(seconds).append("s");
         if (withTicks && duration.getNano() != 0) {
             int millis = duration.getNano() / ChronoUnit.MILLIS.getDuration().getNano();
             sb.append(millis / 50).append("t");
         }
-        return sb.length() == 0 ? "0s" : sb.toString();
+        return sb.isEmpty() ? "0s" : sb.toString();
+    }
+
+    public static Component formatReadableDuration(Duration duration, Locale locale) {
+        long days = duration.toDaysPart();
+        int hours = duration.toHoursPart();
+        int minutes = duration.toMinutesPart();
+        int seconds = duration.toSecondsPart();
+        List<String> parts = new ArrayList<>();
+        if (days != 0)
+            parts.add(days + " " + ChronoField.DAY_OF_MONTH.getDisplayName(locale));
+        if (hours != 0)
+            parts.add(hours + " " + ChronoField.HOUR_OF_DAY.getDisplayName(locale));
+        if (minutes != 0)
+            parts.add(minutes + " " + ChronoField.MINUTE_OF_HOUR.getDisplayName(locale));
+        if (seconds != 0)
+            parts.add(seconds + " " + ChronoField.SECOND_OF_MINUTE.getDisplayName(locale));
+        return Component.text(parts.isEmpty() ?
+                "0 " + ChronoField.SECOND_OF_MINUTE.getDisplayName(locale) :
+                String.join(" ", parts));
     }
 
     public static String formatTime(ZonedDateTime time) {
