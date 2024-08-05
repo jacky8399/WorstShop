@@ -24,6 +24,8 @@ import fr.minuskube.inv.content.InventoryContents;
 import fr.minuskube.inv.content.SlotPos;
 import io.papermc.lib.PaperLib;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.event.ClickEvent;
+import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.*;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -35,6 +37,7 @@ import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.event.server.PluginDisableEvent;
 import org.bukkit.event.server.PluginEnableEvent;
 import org.bukkit.inventory.ItemStack;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
@@ -375,22 +378,39 @@ public class ActionPlayerShop extends ActionPlayerShopFallback {
         }
     }
 
-    public static void probeCache(CommandSender sender) {
+    public static void probeCache(CommandSender sender, @Nullable Material targetMaterial) {
         int total = 0;
+        Comparator<Shop> sorter = Comparator.comparing(Shop::isBuying)
+                .thenComparingDouble(shop -> shop.isBuying() ? shop.getPrice() : -shop.getPrice());
+        var buy = Component.text("Buying @ ", NamedTextColor.GREEN);
+        var sell = Component.text("Selling @ ", NamedTextColor.RED);
         for (Map.Entry<Material, List<Shop>> entry : cache.shops.entrySet()) {
             Material mat = entry.getKey();
+            if (targetMaterial != null && mat != targetMaterial) continue;
             List<Shop> shops = entry.getValue();
-            var shopsString = shops.stream()
+            sender.sendMessage(Component.textOfChildren(
+                    Component.translatable(Objects.requireNonNull(mat.getItemTranslationKey())),
+                    Component.text(":")
+            ).color(NamedTextColor.GREEN));
+            Component shopsComponent = shops.stream()
+                    .sorted(sorter)
                     .map(shop -> {
                         Location location = shop.getLocation();
-                        return (shop.isBuying() ? ChatColor.GREEN + "BUYING" : ChatColor.RED + "SELLING") +
-                                ChatColor.YELLOW + " @ " + shop.getPrice() +
-                                "(" + location.getBlockX() + ", " + location.getBlockY() + ", " + location.getBlockZ() + ")";
+                        int x = location.getBlockX();
+                        int y = location.getBlockY();
+                        int z = location.getBlockZ();
+                        return Component.textOfChildren(
+                                Component.text(shop.getOwner().getDisplay() + " "),
+                                shop.isBuying() ? buy : sell,
+                                CommodityMoney.formatMoneyComponent(shop.getPrice()),
+                                Component.text()
+                                        .content("(" + location.getWorld().getName() + "," + x + ", " + y + ", " + z + ")")
+                                        .color(NamedTextColor.AQUA)
+                                        .clickEvent(ClickEvent.runCommand("/minecraft:tp " + x + " " + y + " " + z))
+                        );
                     })
-                    .collect(Collectors.joining("\n"));
-
-
-            sender.sendMessage("" + ChatColor.GREEN + mat + ":\n" + shopsString);
+                    .collect(Component.toComponent(Component.newline()));
+            sender.sendMessage(shopsComponent);
             total += shops.size();
         }
 
@@ -430,6 +450,8 @@ public class ActionPlayerShop extends ActionPlayerShopFallback {
                     newShops = this.shops.computeIfAbsent(newStack.getType(), key->new ArrayList<>());
             if (shops != null) {
                 shops.remove(shop);
+                if (shops.isEmpty())
+                    this.shops.remove(oldStack.getType());
             }
             newShops.add(shop);
         }
@@ -446,6 +468,8 @@ public class ActionPlayerShop extends ActionPlayerShopFallback {
             Shop shop = e.getShop();
             List<Shop> shops = this.shops.get(shop.getItem().getType());
             shops.remove(shop);
+            if (shops.isEmpty())
+                this.shops.remove(shop.getItem().getType());
         }
 
         @EventHandler(priority = EventPriority.LOWEST)

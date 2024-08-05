@@ -5,14 +5,12 @@ import com.jacky8399.worstshop.commands.Commands;
 import com.jacky8399.worstshop.events.Events;
 import com.jacky8399.worstshop.helper.ConfigHelper;
 import com.jacky8399.worstshop.helper.InventoryUtils;
-import com.jacky8399.worstshop.helper.PaperHelper;
 import com.jacky8399.worstshop.helper.PlayerPurchases;
 import com.jacky8399.worstshop.shops.ShopManager;
 import fr.minuskube.inv.InventoryManager;
 import fr.minuskube.inv.SmartInventory;
 import net.luckperms.api.LuckPerms;
 import net.luckperms.api.LuckPermsProvider;
-import net.md_5.bungee.api.ChatColor;
 import net.milkbowl.vault.chat.Chat;
 import net.milkbowl.vault.economy.Economy;
 import net.milkbowl.vault.permission.Permission;
@@ -136,14 +134,12 @@ public final class WorstShop extends JavaPlugin {
         try {
             ShopManager.cleanUp();
         } catch (Throwable e) {
-            logger.severe("Failed to clean up!");
-            e.printStackTrace();
+            logger.log(Level.SEVERE, "Failed to clean up!", e);
         }
         try {
             ShopManager.saveDiscounts();
         } catch (Throwable e) {
-            logger.severe("Failed to save discounts!");
-            e.printStackTrace();
+            logger.log(Level.SEVERE, "Failed to save discounts!", e);
         }
         try {
             PlayerPurchases.writePurchaseRecords();

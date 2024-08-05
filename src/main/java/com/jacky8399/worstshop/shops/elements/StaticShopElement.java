@@ -210,22 +210,15 @@ public class StaticShopElement extends ShopElement {
                     })
             );
 
-            Optional<String> optionalMessage = yaml.find("message", String.class).or(() -> yaml.find("msg", String.class));
+            Optional<String> optionalMessage = yaml.find("message", String.class)
+                    .or(() -> yaml.find("msg", String.class))
+                    .or(() -> yaml.find("text", String.class));
             if (optionalMessage.isPresent()) {
                 String message = optionalMessage.get();
                 List<Component> lines = message.lines().map(MINI_MESSAGE::deserialize).toList();
                 is.name(lines.getFirst());
                 if (lines.size() > 1) {
                     is.lore(lines.subList(1, lines.size()));
-                }
-            } else {
-                Optional<String> optionalText = yaml.find("text", String.class);
-                if (optionalText.isPresent()) {
-                    String[] lines = optionalText.get().split("\n");
-                    is.name(lines[0]);
-                    if (lines.length > 1) {
-                        is.lores(Arrays.copyOfRange(lines, 1, lines.length));
-                    }
                 }
             }
 

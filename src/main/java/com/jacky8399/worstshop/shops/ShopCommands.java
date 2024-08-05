@@ -3,8 +3,8 @@ package com.jacky8399.worstshop.shops;
 import com.google.common.collect.Lists;
 import com.jacky8399.worstshop.I18n;
 import com.jacky8399.worstshop.WorstShop;
-import org.bukkit.Bukkit;
 import net.md_5.bungee.api.ChatColor;
+import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandMap;
@@ -14,8 +14,8 @@ import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
@@ -27,7 +27,9 @@ public class ShopCommands {
         for (Shop shop : ShopManager.SHOPS.values()) {
             if (shop.aliases != null) {
                 ShopAliasCommand command = new ShopAliasCommand(shop.id, shop.aliases, shop.aliasesIgnorePermission);
-                register(map, command);
+                if (!register(map, command)) {
+                    WorstShop.get().logger.warning("Failed to register shop alias command /" + shop.aliases.getFirst() + " for shop " + shop.id);
+                }
                 registeredCommands.add(command);
             }
         }
@@ -35,34 +37,36 @@ public class ShopCommands {
         Bukkit.getScheduler().runTask(WorstShop.get(), () -> Bukkit.getOnlinePlayers().forEach(Player::updateCommands));
     }
 
-    private static void register(CommandMap map, ShopAliasCommand cmd) {
+    private static boolean register(CommandMap map, ShopAliasCommand cmd) {
         cmd.register(map);
-        map.register("worstshop", cmd);
+        return map.register("worstshop", cmd);
     }
 
     public static void removeAliases() {
-        try {
-            CommandMap map = Bukkit.getCommandMap();
-            Map<String, Command> knownCommands = map.getKnownCommands();
-            for (Iterator<Map.Entry<String, Command>> it = knownCommands.entrySet().iterator(); it.hasNext(); ) {
-                Map.Entry<String, Command> entry = it.next();
-                if (entry.getValue() instanceof ShopAliasCommand c) {
-                    c.unregister(map);
-                    it.remove();
-                }
+        CommandMap map = Bukkit.getCommandMap();
+        Map<String, Command> knownCommands = map.getKnownCommands();
+        int[] removed = {0};
+        // strangely Paper only redirects Iterator#remove() on values()
+        knownCommands.values().removeIf(command -> {
+            if (command instanceof ShopAliasCommand) {
+                removed[0]++;
+                return true;
             }
-        } catch (Exception ignore) {}
+            return false;
+        });
+        WorstShop.get().logger.info("Removed " + removed[0] + " aliases");
     }
 
     public static class ShopAliasCommand extends BukkitCommand {
         private final String shopName;
 
         protected ShopAliasCommand(String shopName, List<String> aliases, boolean ignorePermission) {
-            super(aliases.remove(0)); // pop first arg
+            super(aliases.getFirst()); // pop first arg
             this.shopName = shopName;
             this.description = I18n.translate(I18n.Keys.MESSAGES_KEY + "shops.alias.description", shopName);
-            this.usageMessage = "/" + shopName;
-            this.setAliases(aliases);
+            ArrayList<String> popped = new ArrayList<>(aliases);
+            this.usageMessage = "/" + popped.removeFirst();
+            this.setAliases(popped);
             if (!ignorePermission)
                 this.setPermission("worstshop.shops." + shopName);
         }
@@ -72,7 +76,10 @@ public class ShopCommands {
             if (sender instanceof Player player) {
                 ShopManager.getShop(shopName)
                         .filter(shop -> shop.canPlayerView(player, true)) // check conditions
-                        .ifPresent(shop -> shop.getInventory(player).open(player));
+                        .ifPresentOrElse(
+                                shop -> shop.getInventory(player).open(player),
+                                () -> sender.sendMessage(ChatColor.RED + "Shop " + shopName + " not found")
+                        );
             } else {
                 sender.sendMessage(ChatColor.RED + "This command can only be run by a player!");
             }

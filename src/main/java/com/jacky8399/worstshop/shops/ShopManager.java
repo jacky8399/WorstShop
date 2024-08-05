@@ -14,6 +14,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.*;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public class ShopManager {
@@ -125,22 +126,36 @@ public class ShopManager {
         try {
             yaml.save(new File(WorstShop.get().getDataFolder(), "discounts.yml"));
         } catch (IOException e) {
-            WorstShop.get().logger.severe("Failed to save discounts");
+            WorstShop.get().logger.log(Level.SEVERE, "Failed to save to discounts.yml", e);
         }
     }
 
     public static void cleanUp() {
+        RuntimeException exception = new RuntimeException("Cleaning up ShopManager");
+        boolean doThrow = false;
         try {
             closeAllShops();
-        } catch (Throwable ignored) {}
+        } catch (Throwable t) {
+            doThrow = true;
+            exception.addSuppressed(t);
+        }
         try {
             ShopCommands.removeAliases();
-        } catch (Throwable ignored) {}
+        } catch (Throwable t) {
+            doThrow = true;
+            exception.addSuppressed(t);
+        }
         try {
             ShopReference.REFERENCES.values().forEach(ShopReference::invalidate);
-        } catch (Throwable ignored) {}
+        } catch (Throwable t) {
+            doThrow = true;
+            exception.addSuppressed(t);
+        }
         SHOPS.clear();
         ITEM_SHOPS.clear();
+        if (doThrow) {
+            throw exception;
+        }
     }
 
     @SuppressWarnings("ConstantConditions")

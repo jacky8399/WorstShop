@@ -160,7 +160,7 @@ public class CommandSell extends BaseCommand {
     @CommandCompletion("*")
     public void sellMaterial(Player player, Material mat) {
         for (ItemStack stack : player.getInventory().getContents()) {
-            if (stack.getType() == mat)
+            if (stack != null && stack.getType() == mat)
                 sellStack(player, stack, true);
         }
     }

@@ -6,6 +6,7 @@ import com.jacky8399.worstshop.helper.ConfigHelper;
 import com.jacky8399.worstshop.helper.Exceptions;
 import me.clip.placeholderapi.PlaceholderAPI;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.TextDecoration;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
@@ -88,13 +89,15 @@ public class Placeholders {
             List<Component> oldLore = meta.lore();
             List<Component> newLore = new ArrayList<>(oldLore.size());
             for (Component component : oldLore) {
-                newLore.add(PlaceholderComponentRenderer.INSTANCE.render(component, context));
+                newLore.add(PlaceholderComponentRenderer.INSTANCE.render(component, context)
+                        .decorationIfAbsent(TextDecoration.ITALIC, TextDecoration.State.FALSE));
             }
             meta.lore(newLore);
             changed = true;
         }
         if (meta.hasDisplayName()) {
-            meta.displayName(PlaceholderComponentRenderer.INSTANCE.render(meta.displayName(), context));
+            meta.displayName(PlaceholderComponentRenderer.INSTANCE.render(meta.displayName(), context)
+                    .decorationIfAbsent(TextDecoration.ITALIC, TextDecoration.State.FALSE));
             changed = true;
         }
         if (meta.hasItemName()) {

@@ -326,8 +326,8 @@ public class CommandShop extends BaseCommand {
     @Private
     @Subcommand("debugqs probe")
     @CommandPermission("worstshop.debug")
-    public void debugQuickShopProbe(CommandSender sender) {
-        ActionPlayerShop.probeCache(sender);
+    public void debugQuickShopProbe(CommandSender sender, @Optional Material material) {
+        ActionPlayerShop.probeCache(sender, material);
     }
 
     @Private
