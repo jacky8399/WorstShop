@@ -13,7 +13,7 @@ public class PlaceholderComponentRenderer extends TranslatableComponentRenderer<
     public static final PlaceholderComponentRenderer INSTANCE = new PlaceholderComponentRenderer();
 
     // apply placeholders, and optionally split the component if it contains color codes
-    protected TextComponent applyPlaceholdersAndSplit(String input, PlaceholderContext context) {
+    protected static TextComponent applyPlaceholdersAndSplit(String input, PlaceholderContext context) {
         String result = Placeholders.setPlaceholders(input, context);
         if (result.indexOf(LegacyComponentSerializer.SECTION_CHAR) != -1) {
             return LegacyComponentSerializer.legacySection().deserialize(result);

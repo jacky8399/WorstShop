@@ -141,7 +141,7 @@ public abstract class Commodity {
      */
     @Deprecated
     public String getPlayerResult(@Nullable Player player, TransactionType position) {
-        return TextUtils.LEGACY_COMPONENT_SERIALIZER.serialize(Component.join(JoinConfiguration.newlines(), playerResult(player, position)));
+        return TextUtils.LEGACY_AMPERSAND_SERIALIZER.serialize(Component.join(JoinConfiguration.newlines(), playerResult(player, position)));
     }
 
     /**

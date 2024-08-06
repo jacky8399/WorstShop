@@ -9,14 +9,13 @@ import com.ghostchu.quickshop.api.shop.Shop;
 import com.ghostchu.quickshop.shop.SimpleInfo;
 import com.ghostchu.quickshop.shop.SimpleShopManager;
 import com.ghostchu.quickshop.shop.inventory.BukkitInventoryWrapper;
-import com.jacky8399.worstshop.i18n.ComponentTranslatable;
-import com.jacky8399.worstshop.i18n.I18n;
 import com.jacky8399.worstshop.WorstShop;
 import com.jacky8399.worstshop.helper.Config;
 import com.jacky8399.worstshop.helper.InventoryUtils;
 import com.jacky8399.worstshop.helper.ItemBuilder;
 import com.jacky8399.worstshop.helper.ItemUtils;
-import com.jacky8399.worstshop.i18n.Translatable;
+import com.jacky8399.worstshop.i18n.ComponentTranslatable;
+import com.jacky8399.worstshop.i18n.I18n;
 import com.jacky8399.worstshop.shops.commodity.*;
 import com.jacky8399.worstshop.shops.elements.DynamicShopElement;
 import com.jacky8399.worstshop.shops.elements.StaticShopElement;
@@ -28,7 +27,10 @@ import io.papermc.lib.PaperLib;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.event.ClickEvent;
 import net.kyori.adventure.text.format.NamedTextColor;
-import org.bukkit.*;
+import org.bukkit.Bukkit;
+import org.bukkit.Chunk;
+import org.bukkit.Location;
+import org.bukkit.Material;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -81,32 +83,32 @@ public class ActionPlayerShop extends ActionPlayerShopFallback {
         }
     }
 
-    Translatable elementLoreBuy = I18n.createTranslatable(I18N_KEY + "buy"),
-            elementLoreSell = I18n.createTranslatable(I18N_KEY + "sell"),
-            elementLoreNoOffer = I18n.createTranslatable(I18N_KEY + "no-offers"),
-            elementLoreFallbackBuy = I18n.createTranslatable(I18N_KEY + "fallback.buy"),
-            elementLoreFallbackSell = I18n.createTranslatable(I18N_KEY + "fallback.sell");
+    ComponentTranslatable elementLoreBuy = I18n.createComponentTranslatable(I18N_KEY + "buy"),
+            elementLoreSell = I18n.createComponentTranslatable(I18N_KEY + "sell"),
+            elementLoreNoOffer = I18n.createComponentTranslatable(I18N_KEY + "no-offers"),
+            elementLoreFallbackBuy = I18n.createComponentTranslatable(I18N_KEY + "fallback.buy"),
+            elementLoreFallbackSell = I18n.createComponentTranslatable(I18N_KEY + "fallback.sell");
 
     @Override
     public void influenceItem(Player player, ItemStack readonlyStack, ItemStack stack) {
         ItemBuilder builder = ItemBuilder.from(stack);
         DoubleSummaryStatistics buyShops = findAllShops(player, true).mapToDouble(Shop::getPrice).summaryStatistics(),
                 sellShops = findAllShops(player, false).mapToDouble(Shop::getPrice).summaryStatistics();
-        List<String> lines = new ArrayList<>();
+        List<Component> lines = new ArrayList<>();
         if (buyShops.getCount() == 0 && fallback != null && fallback.buyPrice != 0) {
-            lines.add(elementLoreFallbackBuy.apply(CommodityMoney.formatMoney(fallback.buyPrice)));
+            lines.add(elementLoreFallbackBuy.apply(CommodityMoney.formatMoneyComponent(fallback.buyPrice)));
         } else {
             lines.add(elementLoreBuy.apply(
-                    Long.toString(buyShops.getCount()),
-                    buyShops.getCount() != 0 ? CommodityMoney.formatMoney(buyShops.getMin()) : elementLoreNoOffer.apply()
+                    Component.text(buyShops.getCount()),
+                    buyShops.getCount() != 0 ? CommodityMoney.formatMoneyComponent(buyShops.getMin()) : elementLoreNoOffer.apply()
             ));
         }
         if (sellShops.getCount() == 0 && fallback != null && fallback.sellPrice != 0) {
-            lines.add(elementLoreFallbackSell.apply(CommodityMoney.formatMoney(fallback.sellPrice)));
+            lines.add(elementLoreFallbackSell.apply(CommodityMoney.formatMoneyComponent(fallback.sellPrice)));
         } else {
             lines.add(elementLoreSell.apply(
-                    Long.toString(sellShops.getCount()),
-                    sellShops.getCount() != 0 ? CommodityMoney.formatMoney(sellShops.getMin()) : elementLoreNoOffer.apply()
+                    Component.text(sellShops.getCount()),
+                    sellShops.getCount() != 0 ? CommodityMoney.formatMoneyComponent(sellShops.getMin()) : elementLoreNoOffer.apply()
             ));
         }
         builder.addLore(lines);
@@ -127,8 +129,8 @@ public class ActionPlayerShop extends ActionPlayerShopFallback {
                     @Override
                     public ItemStack createStack(Player player) {
                         return ItemBuilder.of(Material.GOLD_INGOT)
-                                .name(I18n.translate(I18N_KEY + (isBuying ? "buy" : "sell") + "-amount-prompt"))
-                                .lores(I18n.translate(I18N_KEY + "confirmation-info"))
+                                .name(I18n.translateComponent(I18N_KEY + (isBuying ? "buy" : "sell") + "-amount-prompt"))
+                                .lores(I18n.translateComponent(I18N_KEY + "confirmation-info"))
                                 .build();
                     }
                 });
@@ -178,14 +180,16 @@ public class ActionPlayerShop extends ActionPlayerShopFallback {
     }
 
     private record PurchaseStrategySummary(List<PurchaseStrategy> strategies, int unfulfilled) {
+
+        private static final ComponentTranslatable GRAND_TOTAL = I18n.createComponentTranslatable(I18N_KEY + "confirmation-grand-total");
+
         public double grandTotal() {
             return strategies.stream().mapToDouble(PurchaseStrategy::total).sum();
         }
 
         public ItemBuilder getDisplay(boolean isBuying) {
             double grandTotal = grandTotal();
-            Component grandTotalDisplay = I18n.translateComponentArgs(I18N_KEY + "confirmation-grand-total",
-                    CommodityMoney.formatMoneyComponent(grandTotal));
+            Component grandTotalDisplay = GRAND_TOTAL.apply(CommodityMoney.formatMoneyComponent(grandTotal));
             var translatable = new ComponentTranslatable(I18N_KEY + (isBuying ? "buying-from" : "selling-to"));
 
             var denomination = CommodityMoney.getDenomination(grandTotal);
@@ -193,7 +197,7 @@ public class ActionPlayerShop extends ActionPlayerShopFallback {
             return ItemBuilder.of(denomination.material())
                     .maxAmount(99)
                     .amount(Math.min(denomination.getAmount(grandTotal), 99))
-                    .name(I18n.translate(I18N_KEY + "confirmation"))
+                    .name(I18n.translateComponent(I18N_KEY + "confirmation"))
                     .lore(strategies.stream()
                             .map(strategy -> translatable.apply(
                                     Component.text(strategy.buyCount),
@@ -205,7 +209,7 @@ public class ActionPlayerShop extends ActionPlayerShopFallback {
                     )
                     .addLore(unfulfilled == 0 ?
                             List.of(grandTotalDisplay) :
-                            List.of(grandTotalDisplay, I18n.translateComponentArgs(I18N_KEY + "failed-to-fulfill." + (isBuying ? "buy" : "sell"),
+                            List.of(grandTotalDisplay, I18n.translateComponent(I18N_KEY + "failed-to-fulfill." + (isBuying ? "buy" : "sell"),
                                     Component.text(unfulfilled))));
         }
     }
@@ -223,10 +227,10 @@ public class ActionPlayerShop extends ActionPlayerShopFallback {
 
     /**
      * Devise an optimal strategy to trade items with QuickShop shops, earning the maximum or losing the minimum.
-     * @param player
-     * @param isBuying
-     * @param targetAmount
-     * @return
+     * @param player The player
+     * @param isBuying Whether the playing is trying to purchase or not
+     * @param targetAmount The target amount
+     * @return The strategy
      */
     private PurchaseStrategySummary deviseStrategy(Player player, boolean isBuying, int targetAmount) {
         // check for any shops
@@ -306,12 +310,12 @@ public class ActionPlayerShop extends ActionPlayerShopFallback {
             if (dynamicOnly) {
                 PurchaseStrategySummary strategySummary = deviseStrategy(player, isBuying, buyCount);
                 ItemBuilder builder = strategySummary.getDisplay(isBuying);
-                if (outOfStockBlink)
+                if (outOfStockBlink && strategySummary.unfulfilled != 0)
                     builder.type(Material.BARRIER);
                 ItemStack displayStack = builder
                         // remove references to confirmation
-                        .name(I18n.translate(I18N_KEY + (isBuying ? "buy" : "sell") + "-amount-prompt"))
-                        .addLores(I18n.translate(I18N_KEY + "confirmation-info"))
+                        .name(I18n.translateComponent(I18N_KEY + (isBuying ? "buy" : "sell") + "-amount-prompt"))
+                        .addLores(I18n.translateComponent(I18N_KEY + "confirmation-info"))
                         .build();
                 if (isBuying) {
                     costElem = Commodity.TransactionType.COST.createElement(displayStack);
@@ -343,13 +347,13 @@ public class ActionPlayerShop extends ActionPlayerShopFallback {
             // ok button
             contents.set(5, 3, ClickableItem.of(
                     ItemBuilder.of(Material.GREEN_TERRACOTTA)
-                            .name(I18n.translate("worstshop.messages.shops.buttons.confirm"))
+                            .name(I18n.translateAsComponent("worstshop.messages.shops.buttons.confirm"))
                             .build(), this::confirmPurchase
             ));
             // cancel button
             contents.set(5, 5, ClickableItem.of(
                     ItemBuilder.of(Material.RED_TERRACOTTA)
-                            .name(I18n.translate("worstshop.messages.shops.buttons.cancel"))
+                            .name(I18n.translateComponent("worstshop.messages.shops.buttons.cancel"))
                             .build(), e -> contents.inventory().close(player)
             ));
         }
@@ -426,7 +430,7 @@ public class ActionPlayerShop extends ActionPlayerShopFallback {
             total += shops.size();
         }
 
-        sender.sendMessage("" + ChatColor.GREEN + total + " total shops");
+        sender.sendMessage(Component.text(total + " total shops", NamedTextColor.GREEN));
     }
 
     public static void reloadCache(CommandSender sender) {

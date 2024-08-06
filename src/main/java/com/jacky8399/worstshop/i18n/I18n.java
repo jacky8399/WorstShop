@@ -126,6 +126,11 @@ public class I18n {
                 meta.hasDisplayName() ? meta.getDisplayName() : PaperHelper.getItemName(stack));
     }
 
+    public static String translate(String path) {
+        path = path.toLowerCase(Locale.ROOT);
+        return ConfigHelper.translateString(lang.getString(path));
+    }
+
     @SuppressWarnings("ConstantConditions")
     public static String translate(String path, Object... args) {
         path = path.toLowerCase(Locale.ROOT);
@@ -148,11 +153,15 @@ public class I18n {
     }
 
     public static Component translateAsComponent(String path, Object... args) {
-        return TextUtils.LEGACY_COMPONENT_SERIALIZER.deserialize(translate(path, args));
+        return TextUtils.LEGACY_AMPERSAND_SERIALIZER.deserialize(translate(path, args));
     }
 
-    public static Component translateComponentArgs(String path, Component... components) {
-        return new ComponentTranslatable(path).apply(components);
+    public static Component translateComponent(String path) {
+        return createComponentTranslatable(path).patternComponent;
+    }
+
+    public static Component translateComponent(String path, Component... components) {
+        return createComponentTranslatable(path).apply(components);
     }
 
     public static Translatable createTranslatable(String path) {

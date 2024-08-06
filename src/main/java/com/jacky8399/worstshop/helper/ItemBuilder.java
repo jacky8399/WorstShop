@@ -4,6 +4,7 @@ import com.jacky8399.worstshop.shops.elements.StaticShopElement;
 import fr.minuskube.inv.ClickableItem;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.TextDecoration;
+import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.OfflinePlayer;
@@ -102,6 +103,7 @@ public class ItemBuilder {
         return meta(meta -> meta.getPersistentDataContainer().remove(StaticShopElement.SAFETY_KEY));
     }
 
+    @Deprecated
     public ItemBuilder name(String str) {
         meta.setDisplayName(str);
         return this;
@@ -151,16 +153,22 @@ public class ItemBuilder {
     }
 
     @SuppressWarnings("ConstantConditions")
+    @Deprecated
     public ItemBuilder addLores(String... lore) {
         return addLore(Arrays.asList(lore));
     }
 
     @SuppressWarnings("ConstantConditions")
+    @Deprecated
     public ItemBuilder addLore(Collection<String> lore) {
         if (lore != null) {
-            List<String> oldLore = meta.hasLore() ? new ArrayList<>(meta.getLore()) : new ArrayList<>();
-            oldLore.addAll(lore);
-            meta.setLore(oldLore);
+            List<Component> oldLore = meta.hasLore() ? meta.lore() : List.of();
+            List<Component> newLore = new ArrayList<>(oldLore.size() + lore.size());
+            newLore.addAll(oldLore);
+            for (String line : lore) {
+                newLore.add(LegacyComponentSerializer.legacySection().deserialize(line));
+            }
+            meta.lore(newLore);
         }
         return this;
     }
@@ -174,7 +182,9 @@ public class ItemBuilder {
             List<Component> oldLore = meta.hasLore() ? meta.lore() : List.of();
             List<Component> newLore = new ArrayList<>(oldLore.size() + lore.size());
             newLore.addAll(oldLore);
-            newLore.addAll(lore);
+            for (Component line : lore) {
+                newLore.add(line.decorationIfAbsent(TextDecoration.ITALIC, TextDecoration.State.FALSE));
+            }
             meta.lore(newLore);
         }
         return this;
