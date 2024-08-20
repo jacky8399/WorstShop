@@ -3,6 +3,7 @@ package com.jacky8399.worstshop.shops.actions;
 import com.jacky8399.worstshop.helper.Config;
 import com.jacky8399.worstshop.helper.ConfigException;
 import com.jacky8399.worstshop.helper.ConfigHelper;
+import com.jacky8399.worstshop.helper.ItemBuilder;
 import com.jacky8399.worstshop.shops.conditions.Condition;
 import com.jacky8399.worstshop.shops.conditions.ConditionConstant;
 import org.bukkit.entity.Player;
@@ -127,9 +128,9 @@ public abstract class Action implements Cloneable {
      * Influence the final displayed item stack, like adding price tags to the item
      * @param player Player
      * @param readonlyStack Original item stack
-     * @param stack Actual item stack that will be displayed
+     * @param builder Actual item stack that will be displayed
      */
-    public void influenceItem(Player player, final ItemStack readonlyStack, ItemStack stack) {
+    public void influenceItem(Player player, final ItemStack readonlyStack, ItemBuilder builder) {
 
     }
 

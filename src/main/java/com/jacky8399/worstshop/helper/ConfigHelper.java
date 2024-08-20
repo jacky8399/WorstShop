@@ -70,7 +70,9 @@ public final class ConfigHelper {
     public static String translateString(String input) {
         if (input == null)
             return null;
-        input = PluginConfig.rgbRegex.matcher(input).replaceAll(result -> ChatColor.of("#" + result.group(1)).toString());
+        if (input.contains(PluginConfig.RGB_PREFIX)) {
+            input = PluginConfig.rgbRegex.matcher(input).replaceAll(result -> ChatColor.of("#" + result.group(1)).toString());
+        }
         return ChatColor.translateAlternateColorCodes('&', input);
     }
 

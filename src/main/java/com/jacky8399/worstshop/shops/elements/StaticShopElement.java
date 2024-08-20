@@ -9,6 +9,7 @@ import com.jacky8399.worstshop.helper.*;
 import com.jacky8399.worstshop.shops.ParseContext;
 import com.jacky8399.worstshop.shops.Shop;
 import com.jacky8399.worstshop.shops.ShopReference;
+import com.jacky8399.worstshop.shops.actions.Action;
 import com.jacky8399.worstshop.shops.rendering.PlaceholderContext;
 import com.jacky8399.worstshop.shops.rendering.Placeholders;
 import com.jacky8399.worstshop.shops.rendering.RenderElement;
@@ -482,17 +483,13 @@ public class StaticShopElement extends ShopElement {
         Player player = renderer.player;
 
         final ItemStack readonlyStack = rawStack.clone();
-        final ItemStack actualStack = readonlyStack.clone();
-
+        ItemBuilder builder = ItemBuilder.from(readonlyStack.clone());
         // let actions influence item
-        actions.forEach(action -> action.influenceItem(player, readonlyStack.clone(), actualStack));
+        for (Action action : actions) {
+            action.influenceItem(player, readonlyStack.clone(), builder);
+        }
 
-        // put unique identifier
-        ItemMeta meta = actualStack.getItemMeta();
-        meta.getPersistentDataContainer().set(SAFETY_KEY, PersistentDataType.BYTE, (byte) 1);
-        actualStack.setItemMeta(meta);
-
-        return actualStack;
+        return builder.build();
     }
 
     public static boolean isPendingPlayerSkin(ItemStack stack) {

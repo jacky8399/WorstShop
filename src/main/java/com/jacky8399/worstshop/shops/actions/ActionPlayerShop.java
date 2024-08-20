@@ -81,8 +81,7 @@ public class ActionPlayerShop extends ActionPlayerShopFallback {
     }
 
     @Override
-    public void influenceItem(Player player, ItemStack readonlyStack, ItemStack stack) {
-        ItemBuilder builder = ItemBuilder.from(stack);
+    public void influenceItem(Player player, ItemStack readonlyStack, ItemBuilder builder) {
         DoubleSummaryStatistics buyShops = findAllShops(player, true).collect(Collectors.summarizingDouble(Shop::getPrice)),
                 sellShops = findAllShops(player, false).collect(Collectors.summarizingDouble(Shop::getPrice));
         List<Component> lines = new ArrayList<>();
@@ -97,7 +96,6 @@ public class ActionPlayerShop extends ActionPlayerShopFallback {
             lines.addAll(ItemShopFormatter.formatPlayerSell((int) sellShops.getCount(), sellShops.getMax()));
         }
         builder.addLore(lines);
-        builder.build();
     }
 
     public ItemStack getTargetItemStack(Player player) {

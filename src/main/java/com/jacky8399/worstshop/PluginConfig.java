@@ -10,16 +10,17 @@ public class PluginConfig {
         FileConfiguration config = WorstShop.get().getConfig();
         advancedProtection = config.getBoolean("advanced-protection");
         defaultShop = config.getString("default-shop");
-        String rgbRegexString = config.getString("rgb-regex");
-        try {
-            rgbRegex = Pattern.compile(rgbRegexString);
-        } catch (Exception e) {
-            rgbRegex = Pattern.compile("&#([A-Za-z0-9]{6})");
-        }
+//        String rgbRegexString = config.getString("rgb-regex");
+//        try {
+//            rgbRegex = Pattern.compile(rgbRegexString);
+//        } catch (Exception e) {
+//            rgbRegex = Pattern.compile("&#([A-Za-z0-9]{6})");
+//        }
     }
 
     public static boolean advancedProtection = true;
     public static String defaultShop = "default";
+    public static final String RGB_PREFIX = "&#";
     public static Pattern rgbRegex = Pattern.compile("&#([A-Za-z0-9]{6})");
 
 }

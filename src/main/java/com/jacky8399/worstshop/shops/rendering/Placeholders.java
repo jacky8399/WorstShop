@@ -46,16 +46,18 @@ public class Placeholders {
                     .replace("!shop!", context.renderer().shop.id);
         }
         // shop and element variables
-        Matcher matcher = SHOP_VARIABLE_PATTERN.matcher(input);
-        input = matcher.replaceAll(result -> {
-            String varName = result.group(1);
-            Object value = context.getVariable(varName);
-            if (value != null) {
-                return value.toString();
-            } else {
-                return result.group();
-            }
-        });
+        if (input.indexOf('!') > -1) {
+            Matcher matcher = SHOP_VARIABLE_PATTERN.matcher(input);
+            input = matcher.replaceAll(result -> {
+                String varName = result.group(1);
+                Object value = context.getVariable(varName);
+                if (value != null) {
+                    return value.toString();
+                } else {
+                    return result.group();
+                }
+            });
+        }
         // PlaceholderAPI
         if (PLUGIN.placeholderAPI && context.player() != null) {
             try {

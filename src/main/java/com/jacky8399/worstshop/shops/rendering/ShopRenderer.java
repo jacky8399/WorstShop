@@ -18,6 +18,7 @@ import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 
 public class ShopRenderer implements InventoryProvider, RenderingLayer {
+    public static final int NO_OF_SLOTS = 9 * 6;
     public final Shop shop;
     public final Player player;
     public ShopRenderer(Shop shop, Player player) {
@@ -27,7 +28,7 @@ public class ShopRenderer implements InventoryProvider, RenderingLayer {
 
     public boolean debug = false;
 
-    public HashMap<SlotPos, @Nullable RenderElement> outline = new HashMap<>();
+    public HashMap<SlotPos, @Nullable RenderElement> outline = LinkedHashMap.newLinkedHashMap(NO_OF_SLOTS);
     public List<RenderElement> toUpdateNextTick = new ArrayList<>();
     public List<RenderElement> paginationItems = new ArrayList<>();
     public List<RenderingLayer> backgrounds = new ArrayList<>();
@@ -99,7 +100,7 @@ public class ShopRenderer implements InventoryProvider, RenderingLayer {
     public Map<SlotPos, RenderElement> render(@NotNull ShopRenderer context, int page) {
         this.page = page;
 
-        LinkedHashMap<SlotPos, RenderElement> elements = new LinkedHashMap<>();
+        LinkedHashMap<SlotPos, RenderElement> elements = LinkedHashMap.newLinkedHashMap(NO_OF_SLOTS);
         for (int row = 0; row < getRows(); row++) {
             for (int column = 0; column < getColumns(); column++) {
                 elements.put(new SlotPos(row, column), null);

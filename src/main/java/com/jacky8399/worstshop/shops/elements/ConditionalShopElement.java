@@ -15,7 +15,6 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 public class ConditionalShopElement extends ShopElement {
     @NotNull
@@ -81,10 +80,9 @@ public class ConditionalShopElement extends ShopElement {
         if (toApply == null)
             return Collections.emptyList();
         PlaceholderContext selfContext = placeholder.withElement(this);
-        return toApply.getRenderElement(renderer, selfContext)
-                .stream()
-                .map(renderElement -> renderElement.withOwner(this, selfContext))
-                .collect(Collectors.toList());
+        List<RenderElement> elements = new ArrayList<>(toApply.getRenderElement(renderer, selfContext));
+        elements.replaceAll(element -> element.withOwner(this, selfContext));
+        return elements;
     }
 
     public void sanitize() {

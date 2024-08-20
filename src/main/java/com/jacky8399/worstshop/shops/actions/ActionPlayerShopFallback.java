@@ -104,9 +104,9 @@ public class ActionPlayerShopFallback extends Action {
     }
 
     @Override
-    public void influenceItem(Player player, ItemStack readonlyStack, ItemStack stack) {
+    public void influenceItem(Player player, ItemStack readonlyStack, ItemBuilder builder) {
         if (fallback != null)
-            fallback.influenceItem(player, readonlyStack, stack);
+            fallback.influenceItem(player, readonlyStack, builder);
     }
 
     @Override

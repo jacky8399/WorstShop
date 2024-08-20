@@ -427,9 +427,8 @@ public class ActionItemShop extends Action {
 
     ComponentTranslatable SELL_ALL_MESSAGE = I18n.createComponentTranslatable("worstshop.messages.shops.sell-all");
     @Override
-    public void influenceItem(Player player, ItemStack readonlyStack, ItemStack stack) {
+    public void influenceItem(Player player, ItemStack readonlyStack, ItemBuilder builder) {
         double discount = getDiscount(player);
-        ItemBuilder modifier = ItemBuilder.from(stack);
         var lines = new ArrayList<Component>();
         if (buyPrice > 0) {
             lines.addAll(ItemShopFormatter.formatServerBuy(this, player));
@@ -440,8 +439,7 @@ public class ActionItemShop extends Action {
         if (canSellAll && sellPrice > 0) {
             lines.add(SELL_ALL_MESSAGE.apply(formatPriceDiscountComponent(sellPrice, discount)));
         }
-        modifier.addLore(lines);
-        modifier.build();
+        builder.addLore(lines);
     }
 
     public Component formatPriceDiscountComponent(double price, double discount) {
