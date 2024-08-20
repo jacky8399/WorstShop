@@ -572,9 +572,10 @@ public class ActionShop extends Action {
                         DateTimeUtils.formatReadableDuration(shop.purchaseLimitTemplate.retentionTime(), player.locale())
                 ));
                 lore.add(null); //ayo
-                lore.add(PURCHASE_LIMIT_PREVIOUS.apply());
                 // entries
                 int total = 0;
+                if (!entries.isEmpty())
+                    lore.add(PURCHASE_LIMIT_PREVIOUS.apply());
                 LocalDateTime now = LocalDateTime.now();
                 for (var entry : entries) {
                     lore.add(PURCHASE_LIMIT_PREVIOUS_ENTRY.apply(

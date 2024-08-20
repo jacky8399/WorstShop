@@ -6,6 +6,8 @@ import com.jacky8399.worstshop.shops.actions.Action;
 import com.jacky8399.worstshop.shops.conditions.Condition;
 import com.jacky8399.worstshop.shops.conditions.ConditionConstant;
 import com.jacky8399.worstshop.shops.elements.ShopElement;
+import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
+import net.kyori.adventure.text.serializer.legacy.LegacyFormat;
 import net.md_5.bungee.api.ChatColor;
 import net.md_5.bungee.api.chat.BaseComponent;
 import net.md_5.bungee.api.chat.TextComponent;
@@ -17,6 +19,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
+import java.util.regex.Pattern;
 
 public final class ConfigHelper {
     private ConfigHelper() {}
@@ -69,6 +72,36 @@ public final class ConfigHelper {
             return null;
         input = PluginConfig.rgbRegex.matcher(input).replaceAll(result -> ChatColor.of("#" + result.group(1)).toString());
         return ChatColor.translateAlternateColorCodes('&', input);
+    }
+
+    private static final Pattern LEGACY_FORMAT = Pattern.compile("&(.)");
+    /**
+     * Migrates the string to MiniMessage format
+     * @param input The string
+     * @return The string in MiniMessage format
+     */
+    public static String migrateString(String input) {
+        input = input.replace(LegacyComponentSerializer.SECTION_CHAR, '&');
+        input = PluginConfig.rgbRegex.matcher(input).replaceAll("<#$1>");
+        return LEGACY_FORMAT.matcher(input).replaceAll(matchResult -> {
+            char chr = matchResult.group(1).charAt(0);
+            LegacyFormat legacyFormat = LegacyComponentSerializer.parseChar(chr);
+            if (legacyFormat == null) {
+                return matchResult.group(); // skip
+            } else if (legacyFormat.color() != null) {
+                return "<reset><" + legacyFormat.color() + ">";
+            } else if (legacyFormat.decoration() != null) {
+                return switch (legacyFormat.decoration()) {
+                    case BOLD -> "<b>";
+                    case ITALIC -> "<i>";
+                    case OBFUSCATED -> "<obf>";
+                    case UNDERLINED -> "<u>";
+                    case STRIKETHROUGH -> "<st>";
+                };
+            } else { // reset
+                return "<reset>";
+            }
+        });
     }
 
     public static String untranslateString(String input) {

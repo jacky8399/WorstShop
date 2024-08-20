@@ -2,13 +2,10 @@ package com.jacky8399.worstshop.shops.actions;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
-import com.jacky8399.worstshop.i18n.I18n;
 import com.jacky8399.worstshop.WorstShop;
-import com.jacky8399.worstshop.helper.Config;
-import com.jacky8399.worstshop.helper.ItemBuilder;
-import com.jacky8399.worstshop.helper.ItemUtils;
-import com.jacky8399.worstshop.helper.PlayerPurchases;
-import com.jacky8399.worstshop.i18n.Translatable;
+import com.jacky8399.worstshop.helper.*;
+import com.jacky8399.worstshop.i18n.ComponentTranslatable;
+import com.jacky8399.worstshop.i18n.I18n;
 import com.jacky8399.worstshop.shops.*;
 import com.jacky8399.worstshop.shops.commodity.Commodity;
 import com.jacky8399.worstshop.shops.commodity.CommodityItem;
@@ -20,7 +17,8 @@ import com.jacky8399.worstshop.shops.elements.ShopElement;
 import com.jacky8399.worstshop.shops.elements.StaticShopElement;
 import com.jacky8399.worstshop.shops.rendering.PlaceholderContext;
 import com.jacky8399.worstshop.shops.rendering.Placeholders;
-import net.md_5.bungee.api.ChatColor;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.TextDecoration;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.entity.Player;
@@ -270,7 +268,7 @@ public class ActionItemShop extends Action {
      * @param player Player
      * @return The cost multiplier
      */
-    private double getDiscount(Player player) {
+    public double getDiscount(Player player) {
         ItemStack stack = getTargetItemStack(player);
         return ShopDiscount.calcFinalPrice(ShopDiscount.findApplicableEntries(parentShop.get(), stack.getType(), player));
     }
@@ -427,30 +425,35 @@ public class ActionItemShop extends Action {
         }
     }
 
-    Translatable BUY_PRICE_MESSAGE = I18n.createTranslatable("worstshop.messages.shops.buy-for"),
-            SELL_PRICE_MESSAGE = I18n.createTranslatable("worstshop.messages.shops.sell-for"),
-            SELL_ALL_MESSAGE = I18n.createTranslatable("worstshop.messages.shops.sell-all");
+    ComponentTranslatable SELL_ALL_MESSAGE = I18n.createComponentTranslatable("worstshop.messages.shops.sell-all");
     @Override
     public void influenceItem(Player player, ItemStack readonlyStack, ItemStack stack) {
         double discount = getDiscount(player);
         ItemBuilder modifier = ItemBuilder.from(stack);
+        var lines = new ArrayList<Component>();
         if (buyPrice > 0) {
-            modifier.addLores(BUY_PRICE_MESSAGE.apply(formatPriceDiscount(buyPrice, discount)));
+            lines.addAll(ItemShopFormatter.formatServerBuy(this, player));
         }
         if (sellPrice > 0) {
-            modifier.addLores(SELL_PRICE_MESSAGE.apply(formatPriceDiscount(sellPrice, discount)));
+            lines.addAll(ItemShopFormatter.formatServerSell(this, player));
         }
         if (canSellAll && sellPrice > 0) {
-            modifier.addLores(SELL_ALL_MESSAGE.apply(formatPriceDiscount(sellPrice, discount)));
+            lines.add(SELL_ALL_MESSAGE.apply(formatPriceDiscountComponent(sellPrice, discount)));
         }
-        modifier.build(); // future-proof
+        modifier.addLore(lines);
+        modifier.build();
     }
 
-    public String formatPriceDiscount(double price, double discount) {
+    public Component formatPriceDiscountComponent(double price, double discount) {
+        Component priceComponent = CommodityMoney.formatMoneyComponent(price);
         if (discount == 1) {
-            return formatPrice(price);
+            return priceComponent;
         }
-        return ChatColor.STRIKETHROUGH + formatPrice(price) + ChatColor.RESET + " " + formatPrice(price * discount);
+        return Component.textOfChildren(
+                priceComponent.decorate(TextDecoration.STRIKETHROUGH),
+                Component.space(),
+                CommodityMoney.formatMoneyComponent(price * discount)
+        );
     }
 
     public static String formatPrice(double money) {

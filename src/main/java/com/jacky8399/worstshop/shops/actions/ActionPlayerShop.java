@@ -10,10 +10,7 @@ import com.ghostchu.quickshop.shop.SimpleInfo;
 import com.ghostchu.quickshop.shop.SimpleShopManager;
 import com.ghostchu.quickshop.shop.inventory.BukkitInventoryWrapper;
 import com.jacky8399.worstshop.WorstShop;
-import com.jacky8399.worstshop.helper.Config;
-import com.jacky8399.worstshop.helper.InventoryUtils;
-import com.jacky8399.worstshop.helper.ItemBuilder;
-import com.jacky8399.worstshop.helper.ItemUtils;
+import com.jacky8399.worstshop.helper.*;
 import com.jacky8399.worstshop.i18n.ComponentTranslatable;
 import com.jacky8399.worstshop.i18n.I18n;
 import com.jacky8399.worstshop.shops.commodity.*;
@@ -83,33 +80,21 @@ public class ActionPlayerShop extends ActionPlayerShopFallback {
         }
     }
 
-    ComponentTranslatable elementLoreBuy = I18n.createComponentTranslatable(I18N_KEY + "buy"),
-            elementLoreSell = I18n.createComponentTranslatable(I18N_KEY + "sell"),
-            elementLoreNoOffer = I18n.createComponentTranslatable(I18N_KEY + "no-offers"),
-            elementLoreFallbackBuy = I18n.createComponentTranslatable(I18N_KEY + "fallback.buy"),
-            elementLoreFallbackSell = I18n.createComponentTranslatable(I18N_KEY + "fallback.sell");
-
     @Override
     public void influenceItem(Player player, ItemStack readonlyStack, ItemStack stack) {
         ItemBuilder builder = ItemBuilder.from(stack);
-        DoubleSummaryStatistics buyShops = findAllShops(player, true).mapToDouble(Shop::getPrice).summaryStatistics(),
-                sellShops = findAllShops(player, false).mapToDouble(Shop::getPrice).summaryStatistics();
+        DoubleSummaryStatistics buyShops = findAllShops(player, true).collect(Collectors.summarizingDouble(Shop::getPrice)),
+                sellShops = findAllShops(player, false).collect(Collectors.summarizingDouble(Shop::getPrice));
         List<Component> lines = new ArrayList<>();
         if (buyShops.getCount() == 0 && fallback != null && fallback.buyPrice != 0) {
-            lines.add(elementLoreFallbackBuy.apply(CommodityMoney.formatMoneyComponent(fallback.buyPrice)));
+            lines.addAll(ItemShopFormatter.formatServerBuy(fallback, player));
         } else {
-            lines.add(elementLoreBuy.apply(
-                    Component.text(buyShops.getCount()),
-                    buyShops.getCount() != 0 ? CommodityMoney.formatMoneyComponent(buyShops.getMin()) : elementLoreNoOffer.apply()
-            ));
+            lines.addAll(ItemShopFormatter.formatPlayerBuy((int) buyShops.getCount(), buyShops.getMin()));
         }
         if (sellShops.getCount() == 0 && fallback != null && fallback.sellPrice != 0) {
-            lines.add(elementLoreFallbackSell.apply(CommodityMoney.formatMoneyComponent(fallback.sellPrice)));
+            lines.addAll(ItemShopFormatter.formatServerSell(fallback, player));
         } else {
-            lines.add(elementLoreSell.apply(
-                    Component.text(sellShops.getCount()),
-                    sellShops.getCount() != 0 ? CommodityMoney.formatMoneyComponent(sellShops.getMin()) : elementLoreNoOffer.apply()
-            ));
+            lines.addAll(ItemShopFormatter.formatPlayerSell((int) sellShops.getCount(), sellShops.getMax()));
         }
         builder.addLore(lines);
         builder.build();
@@ -173,15 +158,20 @@ public class ActionPlayerShop extends ActionPlayerShopFallback {
             comparator = comparator.reversed();
         }
         return shops.stream()
-                .filter(shop -> (isBuying ? shop.isSelling() : shop.isBuying())) // correct shop type
-                .filter(shop -> (isBuying ? shop.getRemainingStock() : shop.getRemainingSpace()) > 0) // has stock
-                .filter(shop -> shop.matches(stack))
+                .filter(shop -> {
+                    if (isBuying == shop.isBuying()) // player buying = shop selling
+                        return false;
+                    if ((isBuying ? shop.getRemainingStock() : shop.getRemainingSpace()) <= 0) // has stock
+                        return false;
+                    return shop.matches(stack);
+                })
                 .sorted(comparator);
     }
 
     private record PurchaseStrategySummary(List<PurchaseStrategy> strategies, int unfulfilled) {
-
         private static final ComponentTranslatable GRAND_TOTAL = I18n.createComponentTranslatable(I18N_KEY + "confirmation-grand-total");
+        private static final ComponentTranslatable BUYING_FROM = I18n.createComponentTranslatable(I18N_KEY + "buying-from");
+        private static final ComponentTranslatable SELLING_TO = I18n.createComponentTranslatable(I18N_KEY + "selling-to");
 
         public double grandTotal() {
             return strategies.stream().mapToDouble(PurchaseStrategy::total).sum();
@@ -190,10 +180,9 @@ public class ActionPlayerShop extends ActionPlayerShopFallback {
         public ItemBuilder getDisplay(boolean isBuying) {
             double grandTotal = grandTotal();
             Component grandTotalDisplay = GRAND_TOTAL.apply(CommodityMoney.formatMoneyComponent(grandTotal));
-            var translatable = new ComponentTranslatable(I18N_KEY + (isBuying ? "buying-from" : "selling-to"));
+            ComponentTranslatable translatable = isBuying ? BUYING_FROM : SELLING_TO;
 
             var denomination = CommodityMoney.getDenomination(grandTotal);
-
             return ItemBuilder.of(denomination.material())
                     .maxAmount(99)
                     .amount(Math.min(denomination.getAmount(grandTotal), 99))
@@ -241,7 +230,6 @@ public class ActionPlayerShop extends ActionPlayerShopFallback {
         }
         int[] amount = {targetAmount};
         List<PurchaseStrategy> strategies = findAllShops(player, isBuying)
-                .sequential()
                 .map(s -> {
                     int stock;
                     if (s.isUnlimited()) {
@@ -259,7 +247,7 @@ public class ActionPlayerShop extends ActionPlayerShopFallback {
                     }
                 })
                 .filter(strategy -> strategy.buyCount > 0)
-                .collect(Collectors.toList());
+                .toList();
         return new PurchaseStrategySummary(strategies, amount[0]);
     }
 
@@ -482,10 +470,13 @@ public class ActionPlayerShop extends ActionPlayerShopFallback {
         @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
         void onShopDelete(ShopDeleteEvent e) {
             Shop shop = e.getShop();
-            List<Shop> shops = this.shops.get(shop.getItem().getType());
-            shops.remove(shop);
-            if (shops.isEmpty())
-                this.shops.remove(shop.getItem().getType());
+            ItemStack stack = shop.getItem();
+            List<Shop> shops = this.shops.get(stack.getType());
+            if (shops != null) {
+                shops.remove(shop);
+                if (shops.isEmpty())
+                    this.shops.remove(stack.getType());
+            }
         }
 
         @EventHandler(priority = EventPriority.LOWEST)

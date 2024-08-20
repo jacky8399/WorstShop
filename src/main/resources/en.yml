@@ -68,17 +68,29 @@ worstshop:
       sell-for: '&aSell for {0} &b(Right click)'
       sell-all: '&aMiddle click to sell all'
       shop: '&6Shop'
+      item-shop:
+        source:
+          player: <aqua>{0} shops
+          player-missing: <dark_aqua>0 shops
+          server: <light_purple>the server
+        price:
+          buy:
+            player: <gray>  starting at {0}
+            player-missing: <dark_gray>  no offers!
+            server: <gray>  at {0}
+          sell:
+            player: <gray>  for up to {0}
+            player-missing: <dark_gray>  no offers!
+            server: <gray>  for {0}
+        limit: <gold>  ⌚ {0} items every {1}
+        remaining: <gray>  ({0} remaining)
+        buy: <green>Buy<gray> from {0} (</gray><key:key.attack><gray>)
+        sell: <red>Sell<gray> to {0} (</gray><key:key.use><gray>)
       player-shop:
-        buy: '&aBuy from {0} player shops starting at {1} &b(Left click)'
-        sell: '&aSell to {0} player shops for up to {1} &b(Right click)'
-        no-offers: '&7N/A'
         no-offers-message: '&cThere are currently no offers. Check back later.'
-        fallback:
-          buy: '&aBuy from the server at {0} &b(Left click)'
-          sell: '&aSell to the server for {0} &b(Right click)'
         buy-amount-prompt: '&6Please enter the amount to buy'
         sell-amount-prompt: '&6Please enter the amount to sell'
-        confirmation-info: '&eYou will asked to confirm the transaction before it actually takes place.'
+        confirmation-info: '&eYou will be asked to confirm the transaction before it actually takes place.'
         confirmation: '&aPlease confirm your transaction:'
         confirmation-grand-total: '&6Grand total: {0}'
         buying-from: '&bBuying&e x{0} from {1} at {2}&e (={3}&e)'

@@ -7,7 +7,6 @@ import net.kyori.adventure.text.TranslatableComponent;
 import net.kyori.adventure.text.format.Style;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.kyori.adventure.text.renderer.TranslatableComponentRenderer;
-import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Locale;
@@ -33,14 +32,15 @@ public class ComponentTranslatable implements Function<Component[], Component> {
     public Component patternComponent;
 
     public void update() {
-        String raw = ConfigHelper.translateString(I18n.lang.getString(path, path));
-        var serializer = raw.indexOf(LegacyComponentSerializer.SECTION_CHAR) > -1 ?
-                LegacyComponentSerializer.legacySection() :
-                MiniMessage.miniMessage();
-        patternComponent = serializer.deserialize(raw);
+        String raw = ConfigHelper.migrateString(I18n.lang.getString(path, path));
+        patternComponent = MiniMessage.miniMessage().deserialize(raw);
     }
 
     private static final Set<Style.Merge> MERGES = Set.of(Style.Merge.COLOR, Style.Merge.DECORATIONS, Style.Merge.FONT);
+
+    public Component apply() {
+        return patternComponent;
+    }
 
     @Override
     public Component apply(Component... components) {
